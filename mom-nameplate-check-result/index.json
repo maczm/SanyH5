@@ -1,0 +1,27 @@
+{
+  "code": 200,
+  "mes": "操作成功",
+  "data": {
+    "acceptNo": "AR20260811001",
+    "completedAt": "2026-08-14 10:45:32",
+    "status": "COMPLETED",
+    "overallConclusion": "PASS",
+    "checkResults": [
+      {
+        "checkCode": "CHECK_QR",
+        "checkName": "二维码可读性",
+        "conclusion": "PASS",
+        "reason": "",
+        "fieldDetails": [
+          {
+            "fieldNameCn": "二维码内容",
+            "fieldNameEn": "QRContent",
+            "conclusion": "PASS",
+            "recognizedValue": "DFH5180XXY|LSVAU2A00N2100001|2024-06-08",
+            "correctValue": "DFH5180XXY|LSVAU2A00N2100001|2024-06-08"
+          }
+        ]
+      }
+    ]
+  }
+}

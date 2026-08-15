@@ -1,0 +1,4676 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js"></script>
+<script src="index.js"></script>
+<div class="main">
+	<div class="orderInfo">
+		<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+			<tbody>
+				<tr>
+					<td>
+						订单编号
+					</td>
+					<td>
+						<span id="span_WIPORDERNO">
+						</span>
+					</td>
+					<td>
+						主机编码
+					</td>
+					<td>
+						<span id="span_PRODUCTNO">
+						</span>
+					</td>
+					<td>
+						整车物料号
+					</td>
+					<td >
+						<span id="span_SINGLEVEHICLEMODELNO">
+						</span>
+					</td>
+					<td>
+						模板类型
+					</td>
+					<td>
+						<span id="span_MODETYPE">
+						</span>
+					</td>
+					<td>
+						公告车型
+					</td>
+					<td>
+						<span id="span_GROUPNO">
+						</span>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						检验时间
+					</td>
+					<td >
+						<span id="span_CHECK_Date">
+						</span>
+					</td>
+					<td>
+						订单特殊配置
+					</td>
+					<td colspan="7"  >
+						<span id="span_SPECIALSALECOMMONT">
+						</span>
+					</td>
+				</tr>
+			</tbody>
+			<tfoot>
+				<tr>
+					<td>
+						检验信息
+					</td>
+					<td colspan="9" class="checkMsg" id="check_content">
+					</td>
+				</tr>
+			</tfoot>
+		</table>
+	</div>
+	<div>
+	   <span style="color:green;font-weight:bold;">注意：如果是某个主机和整车物料号的合格证修改后的第一个订单，合格证生成成功，将以红色加粗字体显示该值做了修改，需要重点审核！</span>
+	</div>
+	<div class="zh_type" style="display:none;">
+		<label class="cs">
+			<input onclick="reloadZHC('CS')" type="radio" name="zh_type" value="CS"
+			checked="checked">
+			仓栅式
+		</label>
+		<label class="lb">
+			<input onclick="reloadZHC('LB')" type="radio" name="zh_type" value="LB">
+			栏板式
+		</label>
+		<label class="x">
+			<input onclick="reloadZHC('X')" type="radio" name="zh_type" value="X">
+			厢式
+		</label>
+		<label class="qy">
+			<input onclick="reloadZHC('CQ')" type="radio" name="zh_type" value="CQ">
+			畜禽式
+		</label>
+		<label class="lc">
+			<input onclick="reloadZHC('LC')" type="radio" name="zh_type" value="LC">
+			冷藏式
+		</label>
+	</div>
+	<div class="tab-box">
+		<ul style="padding: 0;">
+			<li id="tab_dp">
+				机动车底盘出厂合格证
+			</li>
+			<li id="tab_zc" class="active">
+				机动车整车出厂合格证
+			</li>
+			<li id="tab_hb">
+				机动车环保信息随车清单
+			</li>
+			<li id="tab_cl">
+				车辆一致性证书
+			</li>
+			<li id="tab_wx">
+				卫星定位装置（前装）安装凭证
+			</li>
+			<li id="tab_ry">
+				重型柴油车燃料消耗量参数表
+			</li>
+			<li id="tab_cl_dd">
+				车辆一致性证书-电动
+			</li>
+			<li id="tab_hb_dd">
+			    电动车环保信息随车清单
+			</li>
+		</ul>
+		<input type="button" align="right"  value="审核" class="Primary ReviewButton" />
+		<input type="button" align="right"  value="返回" class="Primary BackButton" />
+		
+		<div class="tab-content">
+
+			<div id="content_dp">
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								机动车底盘出厂合格证
+							</th>
+						</tr>
+					</thead>
+					<tbody id="tb_body_dp">
+						<tr>
+							<td>
+								1.合格证编号
+							</td>
+							<td id="dp_CHASISCETIFICATIONNO">
+							</td>
+							<td>
+								2.发证日期
+							</td>
+							<td id="dp_ISSUEDATE">
+							</td> 
+						</tr>
+						<tr>
+							<td>
+								3.车辆制造企业名称
+							</td>
+							<td colspan="3" id="dp_ZCMANUFACTURECOMPANY">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								4.车辆品牌/车辆名称
+							</td>
+							<td id="dp_ZCBRAND">
+							</td>
+							<td colspan="2" id="dp_ZCNAME">
+								载货汽车底盘
+							</td>
+						</tr>
+						<tr>
+							<td width="15%">
+								5.底盘类型
+							</td>
+							<td width="35%" id="dp_ZCCLASSIFY">
+							</td>
+							<td width="15%">
+								6.车辆型号
+							</td>
+							<td width="35%" id="dp_ZCMODEL">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								7.底盘ID
+							</td>
+							<td colspan="3" id="dp_CHASISID">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								8.车身颜色
+							</td>
+							<td colspan="3" id="dp_ZCCOLOR">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								9.车辆识别代号
+							</td>
+							<td id="dp_CARRIAGEVIN">
+							</td>
+							<td>
+								10.燃油种类
+							</td>
+							<td id="dp_FUELTYPE">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								11.发动机型号
+							</td>
+							<td id="dp_ZCENGINEMODEL">
+							</td>
+							<td>
+								12.排量和功率(ml/kW)
+							</td>
+							<td>
+								<span id="dp_DISPLACEMENT">
+								</span>
+								/
+								<span id="dp_RATE">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13.发动机号
+							</td>
+							<td id="dp_ENGINENO" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								14.排放标准
+							</td>
+							<td id="dp_EMISSIONSTANDARD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15.转向方式
+							</td>
+							<td id="dp_STEERINGMODE">
+							</td>
+							<td>
+								16.轮胎数
+							</td>
+							<td id="dp_TIRENUMBER">
+								12
+							</td>
+						</tr>
+						<tr>
+							<td>
+								17.轮胎规格
+							</td>
+							<td id="dp_TIRETYPE" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								18.轮距(前/后)(mm)
+							</td>
+							<td id="dp_FRONTGAUGE">
+							</td>
+							<td id="dp_RACKREAR" colspan="2">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								19.轴距
+							</td>
+							<td id="dp_AXIESPREAD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20.轴荷(kg)
+							</td>
+							<td id="dp_AXIELOAD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								21.轴数
+							</td>
+							<td id="dp_AXIENUMBER">
+								3
+							</td>
+							<td>
+								22.钢板弹簧片数(片)
+							</td>
+							<td id="dp_STEELPLATESSPRINGS">
+								2/3
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23.外廓尺寸(mm)
+							</td>
+							<td>
+								<span id="dp_EXTERNALLENGTH">
+								</span>
+								-
+								<span id="dp_EXTERNALWIDTH">
+								</span>
+								-
+								<span id="dp_EXTERNALHEIGHT">
+								</span>
+							</td>
+							<td>
+								24.总质量(kg)
+							</td>
+							<td id="dp_TOTALWEIGHT">
+								-
+							</td>
+						</tr>
+						<tr>
+							<td>
+								25.整备质量(kg)
+							</td>
+							<td id="dp_HOSTWEIGHT">
+							</td>
+							<td>
+								26.准牵引总质量(kg)
+							</td>
+							<td id="dp_TRACTIONWEIGHT">
+								40000
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27.半挂车鞍座最大允许总质量(kg)
+							</td>
+							<td id="dp_SEMITRAILERSADDLEWEIGHT">
+							</td>
+							<td rowspan="5">
+								31.二维条码
+							</td>
+							<td rowspan="5">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								28.驾驶室准乘人数(人)
+							</td>
+							<td id="dp_PASSENGER">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								34.最高设计车速(km/h)
+							</td>
+							<td id="dp_MAXSPEED">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								35.车辆制造日期
+							</td>
+							<td id="dp_PRODUCTTIME">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								备注：
+								<span id="dp_REMARK">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								车辆制造企业信息:
+								<br>
+								本产品经过检车符合
+								<span id="dp_COMPANYSTANDARD">
+								</span>
+								要求,准予出厂,特此证明。
+								<br>
+								车辆生产单位名称:
+								<span id="dp_ZCPRODUCTIONCOMPANY">
+								</span>
+								<br>
+								车辆生产单位地址:
+								<span id="dp_ZCPRODUCTADDRESS">
+								</span>
+								<br>
+								车辆制造企业其他信息:
+								<br>
+								<span id="dp_COMPANYOTHERINFO">
+								</span>
+								<br>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_zc" class="active-content">	
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								机动车整车出厂合格证
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="2" align="center">
+								<img id="zc_Base64_ZCCERTIFICATIONNO" />
+							</td>
+							<td colspan="2">
+								公告批次:
+								<span id="zc_NOTICELOT">
+								</span>
+								，公告生效日期:
+								<span id="zc_NOTICEEFFECTTIME">
+								</span>
+								<br>
+								产品号:
+								<span id="zc_PRODUCTNOTICENO">
+								</span>
+								<br>
+								配置序列号:
+								<span id="zc_CONFIGURATIONSEQ">
+								</span>
+								<br>
+								减免税标识:
+								<span id="zc_MBXNYQCJMSBS">
+								</span>
+								《0﹣否；1﹣是》
+								<br>
+								换电模式标识:
+								<span id="zc_MBHDMSBS">
+								</span>
+								《0﹣否；1﹣是》
+								<br>
+								新能源汽车种类标识:
+								<span id="zc_MBXNYQCZL">
+								</span>
+								《00﹣非新能源汽车；10﹣新能源汽车．纯电动汽车；20﹣新能源汽车．插电式混合动力（含增程式）汽车；30﹣新能源汽车，燃料电池汽车》
+								<br>
+								
+							</td>
+						</tr>
+						<tr>
+							<td width="15%">
+								1.合格证编号
+							</td>
+							<td width="35%" id="zc_ZCCERTIFICATIONNO">
+							</td>
+							<td width="15%">
+								2.发证日期
+							</td>
+							<td width="35%" id="zc_ISSUEDATE">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								3.车辆制造企业名称
+							</td>
+							<td id="zc_ZCMANUFACTURECOMPANY" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								4.车辆品牌/车辆名称
+							</td>
+							<td id="zc_ZCBRAND">
+							</td>
+							<td colspan="2">
+								<span class="zc_ZCNAME" id="zc_ZCNAME">
+								</span>
+								<span class="zc_ZCNAME" id="zc_ZCNAME_CS" style="display: none;">
+								</span>
+								<span class="zc_ZCNAME" id="zc_ZCNAME_LB" style="display: none;">
+								</span>
+								<span class="zc_ZCNAME" id="zc_ZCNAME_X" style="display: none;">
+								</span>
+								<span class="zc_ZCNAME" id="zc_ZCNAME_CQ" style="display: none;">
+								</span>
+								<span class="zc_ZCNAME" id="zc_ZCNAME_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								5.车辆型号
+							</td>
+							<td id="">
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL">
+								</span>
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL_CS" style="display: none;">
+								</span>
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL_LB" style="display: none;">
+								</span>
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL_X" style="display: none;">
+								</span>
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL_CQ" style="display: none;">
+								</span>
+								<span class="zc_ZCMODEL" id="zc_ZCMODEL_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								6.车辆识别代号/车架号
+							</td>
+							<td id="zc_CARRIAGEVIN">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								7.车身颜色
+							</td>
+							<td id="zc_ZCCOLOR" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								8.底盘型号/底盘ID
+							</td>
+							<td id="zc_" colspan="3">
+								<span id="zc_CHASISMODEL">
+								</span>
+								-
+								<span id="zc_CHASISID">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								9.底盘合格证编号
+							</td>
+							<td id="zc_CHASISCETIFICATIONNO">
+								-
+							</td>
+							<td>
+								10.发动机型号
+							</td>
+							<td id="zc_ZCENGINEMODEL">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								11.发动机号
+							</td>
+							<td id="zc_ENGINENO" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12.燃油种类
+							</td>
+							<td>							
+							<span id="zc_FUELTYPE">
+							</td>
+							<td>
+								13.排量和功率(ml/kW)
+							</td>
+							<td>
+								<span id="zc_DISPLACEMENT">
+								</span>
+								/
+								<span id="zc_RATE">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								14.排放标准
+							</td>
+							<td id="zc_EMISSIONSTANDARD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15.油耗
+							</td>
+							<td id="zc_FUELCOMSUMPTION" colspan="3">
+								-
+							</td>
+						</tr>
+						<tr>
+							<td>
+								16.外廓尺寸(mm)
+							</td>
+							<td>
+								<span id="zc_EXTERNALLENGTH">
+								</span>
+						        <span class="zc_EXTERNALLENGTH" id="zc_EXTERNALLENGTH_CS" style="display: none;">
+								</span> 
+						        <span class="zc_EXTERNALLENGTH" id="zc_EXTERNALLENGTH_LB" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALLENGTH" id="zc_EXTERNALLENGTH_X" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALLENGTH" id="zc_EXTERNALLENGTH_CQ" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALLENGTH" id="zc_EXTERNALLENGTH_LC" style="display: none;">
+								</span>
+								-
+								<span id="zc_EXTERNALWIDTH">
+								</span>
+						        <span class="zc_EXTERNALWIDTH" id="zc_EXTERNALWIDTH_CS" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALWIDTH" id="zc_EXTERNALWIDTH_LB" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALWIDTH" id="zc_EXTERNALWIDTH_X" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALWIDTH" id="zc_EXTERNALWIDTH_CQ" style="display: none;">
+								</span>
+						        <span class="zc_EXTERNALWIDTH" id="zc_EXTERNALWIDTH_LC" style="display: none;">
+								</span>
+								-
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT">
+								</span>
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT_CS" style="display: none;">
+								</span>
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT_LB" style="display: none;">
+								</span>
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT_X" style="display: none;">
+								</span>
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT_CQ" style="display: none;">
+								</span>
+								<span class="zc_EXTERNALHEIGHT" id="zc_EXTERNALHEIGHT_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								17.厢货内部尺寸(mm)
+							</td>
+							<td>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								18.钢板弹簧片数(片)
+							</td>
+							<td id="zc_STEELPLATESSPRINGS">
+							</td>
+							<td>
+								19.轮胎数
+							</td>
+							<td id="zc_TIRENUMBER">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20.轮胎规格
+							</td>
+							<td id="zc_TIRETYPE" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								21.轮距(前/后)(mm)
+							</td>
+							<td id="zc_FRONTGAUGE">
+							</td>
+							<td id="zc_RACKREAR" colspan="2">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								22.轴距
+							</td>
+							<td id="zc_AXIESPREAD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23.轴荷(kg)
+							</td>
+							<td id="zc_AXIELOAD" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								24.轴数
+							</td>
+							<td id="zc_AXIENUMBER">
+							</td>
+							<td>
+								25.转向型式
+							</td>
+							<td id="zc_STEERINGMODE">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								26.总质量(kg)
+							</td>
+							<td id="zc_TOTALWEIGHT">
+							</td>
+							<td>
+								27.整备质量(kg)
+							</td>
+							<td id="">
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT">
+								</span>
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT_CS" style="display: none;">
+								</span>
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT_LB" style="display: none;">
+								</span>
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT_X" style="display: none;">
+								</span>
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT_CQ" style="display: none;">
+								</span>
+								<span class="zc_HOSTWEIGHT" id="zc_HOSTWEIGHT_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								28.额定载质量(kg)
+							</td>
+							<td id="">
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT">
+								</span>
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT_CS" style="display: none;">
+								</span>
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT_LB" style="display: none;">
+								</span>
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT_X" style="display: none;">
+								</span>
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT_CQ" style="display: none;">
+								</span>
+								<span class="zc_RATELOADWEIGHT" id="zc_RATELOADWEIGHT_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								29.载质量利用系数
+							</td>
+							<td id="">
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR">
+								</span>
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR_CS" style="display: none;">
+								</span>
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR_LB" style="display: none;">
+								</span>
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR_X" style="display: none;">
+								</span>
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR_CQ" style="display: none;">
+								</span>
+								<span class="zc_LOADWEIGHTFACTOR" id="zc_LOADWEIGHTFACTOR_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								30.准牵引总质量(kg)
+							</td>
+							<td id="zc_TRACTIONWEIGHT">
+							</td>
+							<td>
+								31.半挂车鞍座最大允许总质量
+							</td>
+							<td id="zc_SEMITRAILERSADDLEWEIGHT">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								32.驾驶室准乘人数(人)
+							</td>
+							<td id="zc_PASSENGER">
+							</td>
+							<td rowspan="5">
+								36.二维条码
+							</td>
+							<td rowspan="5">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33.额定载客(人)
+							</td>
+							<td id="zc_RATEPASSENGERS">
+								-
+							</td>
+						</tr>
+						<tr>
+							<td>
+								34.最高设计车速(km/h)
+							</td>
+							<td id="zc_MAXSPEED">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								35.车辆制造日期
+							</td>
+							<td id="zc_PRODUCTTIME">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								备注：
+								<span id="zc_REMARK">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								车辆制造企业信息:
+								<br>
+								本产品经过检车符合
+								<span id="zc_COMPANYSTANDARD">
+								</span>
+								要求,准予出厂,特此证明。
+								<br>
+								车辆生产单位名称:
+								<span id="zc_ZCPRODUCTIONCOMPANY">
+								</span>
+								<br>
+								车辆生产单位地址:
+								<span id="zc_ZCPRODUCTADDRESS">
+								</span>
+								<br>
+								车辆制造企业其他信息:
+								<br>
+								<span id="zc_COMPANYOTHERINFO">
+								</span>
+								<br>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_hb">
+				<table id="hb_g6_rq" align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								机动车环保信息随车清单
+							</th>
+						</tr>
+						<tr>
+							<th colspan="3" rowspan="2" align="center">
+								信息公开编号：
+								<span class="hb_g6_rq_InfoPublicNo" id="hb_g6_rq_InfoPublicNo">
+								</span>
+							
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="3">
+								湖南汽车制造有限责任公司声明：本清单为本企业依据《中华人民共和国大气污染防治法》和生态环
+								<br/>
+								境部相关规定公开的机动车环保信息，本企业对本清单所有内容的真实性、准确性、及时性和完整性负
+								<br/>
+								责。本企业承诺：VIN码（见封页条形码）的重型燃气车符合《重型柴油车污染物排放限值及测量方法（中
+								<br/>
+								国第六阶段）》（GB 17691-2018）b阶段、《汽油车污染物排放限值及测量方法（双怠速法及简易工况
+								<br/>
+								法）》（GB18285-2018）和《汽车加速行驶车外噪声限值及测量方法》（GB 1495）的相关要求，同时符合
+								<br/>
+								相关标准规定的环境保护耐久性要求。
+							</td>
+							<td>
+								<img class="hb_Base64_QR_Code" />
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第一部分 车辆信息
+							</th>
+						</tr>
+						<tr>
+							<td width="15%">
+								01 车辆型号：
+							</td>
+							<td width="35%" id="">
+								<span class="hb_g6_rq_VehicleModel" id="hb_g6_rq_VehicleModel">
+								</span>
+								
+							</td>
+							<td width="15%">
+								06 生产厂地址：
+							</td>
+							<td width="35%" id="hb_g6_rq_HbProductAddress">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								02 商 标：
+							</td>
+							<td id="hb_g6_rq_Trademark">
+							</td>
+							<td>
+								07 车辆铭牌位置:
+							</td>
+							<td id="hb_g6_rq_VehicleplateLocation">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								03 汽车分类：
+							</td>
+							<td id="hb_g6_rq_VehicleCagetory">
+							</td>
+							<td>
+								08 OBD接口位置：
+							</td>
+							<td id="hb_g6_rq_OBDInterfaceLocation">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								04 排放阶段：
+							</td>
+							<td id="hb_g6_rq_EmissionStage">
+							</td>
+							<td>
+								09 排气管口位置：
+							</td>
+							<td id="hb_g6_rq_ExhaustPortPosition">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								05 车辆制造商名称：
+							</td>
+							<td id="hb_g6_rq_VehicleManufacture">
+							</td>
+							<td>
+								10 排气管口朝向：
+							</td>
+							<td id="hb_g6_rq_ExhaustPortOrientation">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第二部分 发动机信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								11 发动机型号：
+							</td>
+							<td id="hb_g6_rq_EngineModel">
+							</td>
+							<td>
+								14 厂牌：
+							</td>
+							<td id="hb_g6_rq_EngineBrand">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12 制造商名称：
+							</td>
+							<td id="hb_g6_rq_EngineManufacturer">
+							</td>
+							<td>
+								15 发动机编码：
+							</td>
+							<td id="hb_g6_rq_EngineNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13 生产厂地址：
+							</td>
+							<td colspan="3" id="hb_g6_rq_EngineFacilityAddress">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第三部分 检验信息
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4" id="hb_g6_rq_">
+								16 型式检验信息
+							</td>
+						</tr>
+						<tr>
+							<td>
+								依据的标准
+							</td>
+							<td colspan="2">
+								检测机构
+							</td>
+							<td>
+								检测结论
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_rq_DependStandard01">
+							</td>
+							<td id="hb_g6_rq_Orgnazation01" colspan="2">
+							</td>
+							<td id="hb_g6_rq_Verdict01">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_rq_DependStandard02">
+							</td>
+							<td id="hb_g6_rq_Orgnazation02" colspan="2">
+							</td>
+							<td id="hb_g6_rq_Verdict02">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_rq_DependStandard03">
+							</td>
+							<td id="hb_g6_rq_Orgnazation03" colspan="2">
+							</td>
+							<td id="hb_g6_rq_Verdict03">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								17 出厂检验依据：
+							</td>
+							<td id="hb_g6_rq_DependLevel">
+							</td>
+							<td>
+								结论：
+							</td>
+							<td id="hb_g6_rq_VerdictLevel">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								18 车型环保生产一致性保证计划及执行情况，详见本公司官方网站和生态环境部信息公开平台（网址附后）。
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第四部分 污染控制技术信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								19 燃料供给系统型式：
+							</td>
+							<td colspan="3" id="hb_g6_rq_FuelSupply">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20 蒸发器或压力调节器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Evaporator">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								21 混合装置型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_MixingDevice">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								22 喷射器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Ejector">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23 EGR型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_EGRType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								24 增压器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_TurboCharger">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								25 中冷器型式：
+							</td>
+							<td colspan="3" id="hb_g6_rq_InterCooler">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								26 曲轴箱排放控制装置型式/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Crankcase">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27 ECU型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_ECUTypeVersion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								28 OBD系统供应商：
+							</td>
+							<td colspan="3" id="hb_g6_rq_ODBType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								29 氧化传感器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_OxidationSensor">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								30 排气后处理系统型式：
+							</td>
+							<td colspan="3" id="hb_g6_rq_AfterType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								31 催化转化器（三元）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_SYCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_SYCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								32 催化转化器（SCR）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_SCRCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_SCRCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33 催化转化器（ASC）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_ASCCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_ASCCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								34 排气消声器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_rq_AfterMuffler">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第五部分 制造商/进口企业信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								35 法人代表：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Legal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								36 地 址：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Address">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								37 联系电话：
+							</td>
+							<td colspan="3" id="hb_g6_rq_Phone">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								本清单内容及相关信息已上传至本公司官方网站（http://www.sanygroup.com/）
+								</br>
+								生态环境部机动车和非道路移动机械环保信息公开平台（http://www.vecc.org.cn）。
+							</td>
+							<td>
+								车辆生产日期 ：
+							</td>
+							<td ID="hb_g6_rq_ZCProductTime">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<table id="hb_g6_ry" align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								机动车环保信息随车清单
+							</th>
+						</tr>
+						<tr>
+							<th colspan="3" rowspan="2" align="center">
+								信息公开编号：
+								<span class="hb_g6_ry_InfoPublicNo" id="hb_g6_ry_InfoPublicNo">
+								</span>
+							
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="3">
+								湖南汽车制造有限责任公司声明：本清单为本企业依据《中华人民共和国大气污染防治法》和生态环
+								<br/>
+								境部相关规定公开的机动车环保信息，本企业对本清单所有内容的真实性、准确性、及时性和完整性
+								<br/>
+								负责。本企业诺：VIN码（见封面条形码）的重型柴油车符合《重型柴油车污染物排放限值及测量方法（中国
+								<br/>
+								第六阶段）》（GB 17691-2018）b阶段、《柴油车污染物排放限值及测量方法（自由加速法及加载减速法
+								<br/>
+								）》（GB 3847）和《汽车加速行驶车外噪声限值及测量方法》（GB 1495）的相关要求，同时符合相关
+								<br/>
+								标准规定的环境保护耐久性要求。
+							</td>
+							<td>
+								<img class="hb_Base64_QR_Code" />
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第一部分 车辆信息
+							</th>
+						</tr>
+						<tr>
+							<td width="15%">
+								01 车辆型号：
+							</td>
+							<td width="35%" id="">
+								<span class="hb_g6_ry_VehicleModel" id="hb_g6_ry_VehicleModel">
+								</span>
+								
+							</td>
+							<td width="15%">
+								06 生产厂地址：
+							</td>
+							<td width="35%" id="hb_g6_ry_HbProductAddress">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								02 商 标：
+							</td>
+							<td id="hb_g6_ry_Trademark">
+							</td>
+							<td>
+								07 车辆铭牌位置:
+							</td>
+							<td id="hb_g6_ry_VehicleplateLocation">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								03 汽车分类：
+							</td>
+							<td id="hb_g6_ry_VehicleCagetory">
+							</td>
+							<td>
+								08 OBD接口位置：
+							</td>
+							<td id="hb_g6_ry_OBDInterfaceLocation">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								04 排放阶段：
+							</td>
+							<td id="hb_g6_ry_EmissionStage">
+							</td>
+							<td>
+								09 排气管口位置：
+							</td>
+							<td id="hb_g6_ry_ExhaustPortPosition">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								05 车辆制造商名称：
+							</td>
+							<td id="hb_g6_ry_VehicleManufacture">
+							</td>
+							<td>
+								10 排气管口朝向：
+							</td>
+							<td id="hb_g6_ry_ExhaustPortOrientation">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第二部分 发动机信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								11 发动机型号：
+							</td>
+							<td id="hb_g6_ry_EngineModel">
+							</td>
+							<td>
+								14 厂牌：
+							</td>
+							<td id="hb_g6_ry_EngineBrand">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12 制造商名称：
+							</td>
+							<td id="hb_g6_ry_EngineManufacturer">
+							</td>
+							<td>
+								15 发动机编码：
+							</td>
+							<td id="hb_g6_ry_EngineNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13 生产厂地址：
+							</td>
+							<td colspan="3" id="hb_g6_ry_EngineFacilityAddress">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第三部分 检验信息
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4" id="hb_g6_ry_">
+								16 型式检验信息
+							</td>
+						</tr>
+						<tr>
+							<td>
+								依据的标准
+							</td>
+							<td colspan="2">
+								检测机构
+							</td>
+							<td>
+								检测结论
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard01">
+							</td>
+							<td id="hb_g6_ry_Orgnazation01" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict01">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard02">
+							</td>
+							<td id="hb_g6_ry_Orgnazation02" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict02">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard03">
+							</td>
+							<td id="hb_g6_ry_Orgnazation03" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict03">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard04">
+							</td>
+							<td id="hb_g6_ry_Orgnazation04" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict04">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard05">
+							</td>
+							<td id="hb_g6_ry_Orgnazation05" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict05">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard06">
+							</td>
+							<td id="hb_g6_ry_Orgnazation06" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict06">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g6_ry_DependStandard07">
+							</td>
+							<td id="hb_g6_ry_Orgnazation07" colspan="2">
+							</td>
+							<td id="hb_g6_ry_Verdict07">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								17 出厂检验项目:
+							</td>
+							<td id="hb_g6_ry_DependLevel">
+							</td>
+							<td>
+								结论：
+							</td>
+							<td id="hb_g6_ry_VerdictLevel">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								18 车型环保生产一致性保证计划及执行情况，详见本公司官方网站和生态环境部信息公开平台（网址附后）。
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第四部分 污染控制技术信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								19 燃料供给系统型式：
+							</td>
+							<td colspan="3" id="hb_g6_ry_FuelSupply">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20 喷油泵型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_FuelPump">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								21 喷油器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_FuelInjector">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								22 共轨管型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_CommonRailTube">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23 增压器型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_TurboCharger">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								24 中冷器型式：
+							</td>
+							<td colspan="3" id="hb_g6_ry_InterCooler">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								25 EGR型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_EGRType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								26 曲轴箱排放控制装置型式/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_Crankcase">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27 ECU型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_ECUTypeVersion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								28 OBD系统供应商：
+							</td>
+							<td colspan="3" id="hb_g6_ry_ODBType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								29 排气后处理系统型式：
+							</td>
+							<td colspan="3" id="hb_g6_ry_ExhaustAfter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								30 催化转化器（DOC）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_DOCCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_DOCCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								31 催化转化器（SCR）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_SCRCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_SCRCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								32 催化转化器（ASC）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_ASCCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_ASCCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33 颗粒捕集器（DPF）型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_DPFCatalyticConverter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								封装/载体/涂层生产企业：
+							</td>
+							<td colspan="3" id="hb_g6_ry_DPFCoating">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								34 排气消声器型号/生产企业
+							</td>
+							<td colspan="3" id="hb_g6_ry_AfterMuffler">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第五部分 制造商/进口企业信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								35 法人代表：
+							</td>
+							<td colspan="3" id="hb_g6_ry_Legal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								36 地 址：
+							</td>
+							<td colspan="3" id="hb_g6_ry_Address">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								37 联系电话：
+							</td>
+							<td colspan="3" id="hb_g6_ry_Phone">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								本清单内容及相关信息已上传至本公司官方网站（http://www.sanygroup.com/）
+								</br>
+								生态环境部机动车和非道路移动机械环保信息公开平台（http://www.vecc.org.cn）。
+							</td>
+							<td>
+								车辆生产日期 ：
+							</td>
+							<td ID="hb_g6_ry_ZCProductTime">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<table id="hb_g5" align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="3" rowspan="2" align="center">
+								重型柴油车环保信息随车清单
+							</th>
+							<th rowspan="4">
+								二维码
+							</th>
+						</tr>
+						<tr>
+						</tr>
+						<tr>
+							<th colspan="3" rowspan="2" align="center">
+								信息公开编号：
+								<span class="hb_g5_InfoPublicNo" id="hb_g5_InfoPublicNo">
+								</span>
+							
+							</th>
+						</tr>
+						<tr>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th colspan="4">
+								湖南汽车制造有限责任公司声明：本清单为本企业依据《中华人民共和国大气污染防治法》和生态环境部相关规定公开的机动车环
+								<br />
+								保信息，本企业对本清单所有内容的真实性、准确性、及时性和完整性负责。本公司承诺：我公司 VIN码（见本页条形码）的重型柴油
+								<br />
+								车符合《车用压燃式、气体燃料点燃式发动机与汽车排气污染物排放限值及测量方法（中国Ⅲ、Ⅳ、Ⅴ阶段）》（GB 17691-2005）第
+								<br />
+								Ⅴ阶段、《柴油车污染物排放限值及测量方法（自由加速法及加载减速法）》（GB3847）和《汽车加速行驶车外噪声限值及测量方法
+								<br />
+								》（GB 1495-2002）第Ⅱ阶段的要求，同时符合相关标准规定的环境保护耐久性要求。 第一部分 车辆信息
+							</th>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第一部分 车辆信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								1 车辆型号
+							</td>
+							<td id="">
+								<span class="hb_g5_VehicleModel" id="hb_g5_VehicleModel">
+								</span>
+							
+							</td>
+							<td colspan="2" rowspan="6">
+								条形码
+							</td>
+						</tr>
+						<tr>
+							<td>
+								2 商 标
+							</td>
+							<td id="hb_g5_Trademark">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								3 汽车分类
+							</td>
+							<td id="hb_g5_VehicleCagetory">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								4 排放阶段
+							</td>
+							<td id="hb_g5_EmissionStage">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								5 车型的识别方法和位置：
+							</td>
+							<td id="hb_g5_VehicleIDMethodLocation">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								6 车辆制造商名称：
+							</td>
+							<td id="hb_g5_VehicleManufacture">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								7 生产厂地址
+							</td>
+							<td colspan="3" id="hb_g5_HbProductAddress">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第二部分 发动机信息
+							</th>
+						</tr>
+						<tr>
+							<td width="15%">
+								8 发动机型号：
+							</td>
+							<td width="35%" id="hb_g5_EngineModel">
+							</td>
+							<td width="15%">
+								9 发动机编号：
+							</td>
+							<td width="35%" id="hb_g5_EngineNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								10 制造商名称：
+							</td>
+							<td id="hb_g5_EngineManufacturer">
+							</td>
+							<td>
+								11 系族名称：
+							</td>
+							<td id="hb_g5_EngineSeries">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12 生产厂地址：
+							</td>
+							<td id="hb_g5_EngineFacilityAddress">
+							</td>
+							<td>
+								13 厂 牌：
+							</td>
+							<td id="hb_g5_EngineBrand">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第三部分 检验信息
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4" id="hb_g5_">
+								14 型式检验信息
+							</td>
+						</tr>
+						<tr>
+							<td>
+								依据的标准
+							</td>
+							<td colspan="2">
+								检测机构
+							</td>
+							<td>
+								检测结论
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard01">
+							</td>
+							<td id="hb_g5_Orgnazation01" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict01">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard02">
+							</td>
+							<td id="hb_g5_Orgnazation02" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict02">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard03">
+							</td>
+							<td id="hb_g5_Orgnazation03" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict03">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard04">
+							</td>
+							<td id="hb_g5_Orgnazation04" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict04">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard05">
+							</td>
+							<td id="hb_g5_Orgnazation05" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict05">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard06">
+							</td>
+							<td id="hb_g5_Orgnazation06" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict06">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard07">
+							</td>
+							<td id="hb_g5_Orgnazation07" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict07">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard08">
+							</td>
+							<td id="hb_g5_Orgnazation08" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict08">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_g5_DependStandard09">
+							</td>
+							<td id="hb_g5_Orgnazation09" colspan="2">
+							</td>
+							<td id="hb_g5_Verdict09">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15 出厂检验项目及结论:
+							</td>
+							<td id="hb_g5_DependLevel">
+							</td>
+							<td colspan="2" id="hb_g5_VerdictLevel">
+								结论：
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								16 车型环保生产一致性保证计划及执行情况，详见本公司官方网站和生态环境部信息公开平台（网址附后）。
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第四部分 污染控制技术信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								17 最大净功率/转速（kW/r/min）：
+							</td>
+							<td id="hb_g5_MaxNetPower_Speed" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								18 最大净扭矩/转速（Nm/r/min）：
+							</td>
+							<td id="hb_g5_MaxNetTorque_Speed" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								19 燃料供给系统型式：
+							</td>
+							<td id="hb_g5_FuelSupply" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20 喷油泵型号/生产厂：
+							</td>
+							<td id="hb_g5_FuelPump" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								21 喷油器型号/生产厂：
+							</td>
+							<td id="hb_g5_FuelInjector" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								22 增压器型号/生产厂：
+							</td>
+							<td id="hb_g5_TurboCharger" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23 中冷器型式：
+							</td>
+							<td id="hb_g5_InterCooler" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								24 OBD型号/生产厂：
+							</td>
+							<td id="hb_g5_ODBType" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								25 EGR型号/生产厂：
+							</td>
+							<td id="hb_g5_EGRType" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								26 ECU型号/版本号/生产厂：
+							</td>
+							<td id="hb_g5_ECUTypeVersion" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27 排气后处理系统型号/生产厂：
+							</td>
+							<td id="hb_g5_ExhaustAfter" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								　　封装/载体/涂层生产厂：
+							</td>
+							<td id="hb_g5_Coating" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								28 排气后处理系统型式：
+							</td>
+							<td id="hb_g5_AfterType" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								29 空气滤清器型号/生产厂：
+							</td>
+							<td id="hb_g5_AirFilter" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								30 进气消声器型号/生产厂：
+							</td>
+							<td id="hb_g5_IntakeMuffler" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								31 排气消声器型号/生产厂：
+							</td>
+							<td id="hb_g5_AfterMuffler" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								本车辆环保关键零部件（发动机、喷油泵、喷油器、增压器、EGR、ECU、排气后处理系统、空气滤清器、进气消声器、排气消声器） 明显标注了永久性标识，标识内容包括该零部件的型号和生产企业名称（全称、缩写或徽标），详见本公司官方网站和生态环境部信息
+								公开平台（网址附后）。
+							</th>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第五部分 制造商/进口企业信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								32 法人代表：
+							</td>
+							<td colspan="3" id="hb_g5_Legal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33 地 址：
+							</td>
+							<td colspan="3" id="hb_g5_Address">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								34 联系电话：
+							</td>
+							<td colspan="3" id="hb_g5_Phone">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								本清单内容及相关信息已上传至本公司官方网站（http://www.sanygroup.com/）
+								</br>
+								生态环境部机动车和非道路移动机械环保信息公开平台（http://www.vecc.org.cn）。
+							</td>
+							<td>
+								车辆生产日期 ：
+							</td>
+							<td ID="hb_g5_ZCProductTime">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_cl">
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								车辆一致性证书
+								<br>
+								(用于完整车辆)
+								<br>
+							</th>
+						</tr>
+						<tr>
+							<th colspan="4" align="center">
+								第一部分 车辆整体信息
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								车辆一致性证书编号：
+							</td>
+							<td colspan="3">
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo">
+								</span>
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo_CS" style="display: none;">
+								</span>
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo_LB" style="display: none;">
+								</span>
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo_X" style="display: none;">
+								</span>
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarConfirmityCertNo" id="cl_CarConfirmityCertNo_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								01 车辆生产厂名称 :
+							</td>
+							<td colspan="3" id="cl_CarFactoryName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								02 车辆制造国 :
+							</td>
+							<td colspan="3" id="cl_CarMakeCountry">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								03 车型系列代号/名称:
+							</td>
+							 <td colspan="3" id="">
+							    <span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName">
+								</span>
+								<span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName_CS" style="display: none;">
+								</span>
+								<span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName_LB" style="display: none;">
+								</span>
+								<span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName_X" style="display: none;">
+								</span>
+								<span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarTypeCodeName" id="cl_CarTypeCodeName_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								04 单元代号/名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName">
+								</span>
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName_CS" style="display: none;">
+								</span>
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName_LB" style="display: none;">
+								</span>
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName_X" style="display: none;">
+								</span>
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName_CQ" style="display: none;">
+								</span>
+								<span class="cl_UnitCodeName" id="cl_UnitCodeName_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								05 车型代号/名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_CarCodeName" id="cl_CarCodeName">
+								</span>
+								<span class="cl_CarCodeName" id="cl_CarCodeName_CS" style="display: none;">
+								</span>
+								<span class="cl_CarCodeName" id="cl_CarCodeName_LB" style="display: none;">
+								</span>
+								<span class="cl_CarCodeName" id="cl_CarCodeName_X" style="display: none;">
+								</span>
+								<span class="cl_CarCodeName" id="cl_CarCodeName_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarCodeName" id="cl_CarCodeName_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								06.车型名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_CarName" id="cl_CarName">
+								</span>
+								<span class="cl_CarName" id="cl_CarName_CS" style="display: none;">
+								</span>
+								<span class="cl_CarName" id="cl_CarName_LB" style="display: none;">
+								</span>
+								<span class="cl_CarName" id="cl_CarName_X" style="display: none;">
+								</span>
+								<span class="cl_CarName" id="cl_CarName_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarName" id="cl_CarName_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								07.车辆中文品牌 :
+							</td>
+							<td colspan="3" id="cl_CarChineseName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								08.车辆英文品牌 :
+							</td>
+							<td colspan="3" id="cl_CarEnglishName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								09 车辆类别:
+							</td>
+							<td colspan="3" id="">
+							         <span class="cl_CarType1" id="cl_CarType1">
+								</span>
+								<span class="cl_CarType1" id="cl_CarType1_CS" style="display: none;">
+								</span>
+								<span class="cl_CarType1" id="cl_CarType1_LB" style="display: none;">
+								</span>
+								<span class="cl_CarType1" id="cl_CarType1_X" style="display: none;">
+								</span>
+								<span class="cl_CarType1" id="cl_CarType1_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarType1" id="cl_CarType1_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								10 最终制造阶段制造商的名称 :
+							</td>
+							<td colspan="3" id="cl_EndMakeManufacturesName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								11 最终制造阶段制造商的地址 :
+							</td>
+							<td colspan="3" id="cl_EndMakeManufacturersAddress">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12 法定铭牌的位置:
+							</td>
+							<td colspan="3" id="cl_LegalNameplateLocaltion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13 车辆识别代号 :
+							</td>
+							<td colspan="3" id="cl_CarIdentifyCode">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								14 车辆识别代号的打刻位置 :
+							</td>
+							<td colspan="3" id="cl_CarIdentifyCodeLocaltion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15 发动机编号:
+							</td>
+							<td colspan="3" id="cl_EngineNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								16 发动机编号在发动机上的打刻位置:
+							</td>
+							<td colspan="3" id="cl_EngineNoToEnginePostion">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4" align="left">
+								CCC认证过程中车辆的制造阶段
+							</th>
+						</tr>
+						<tr>
+							<td>
+								17 最终阶段 制造商名称 :
+							</td>
+							<td colspan="3" id="cl_ManufacturerName">
+							</td>
+						</tr>
+						<tr>
+							<td width="15%">
+								18 型号:
+							</td>
+							<td width="35%" id="">
+								<span class="cl_Model" id="cl_Model">
+								</span>
+								<span class="cl_Model" id="cl_Model_CS" style="display: none;">
+								</span>
+								<span class="cl_Model" id="cl_Model_LB" style="display: none;">
+								</span>
+								<span class="cl_Model" id="cl_Model_X" style="display: none;">
+								</span>
+								<span class="cl_Model" id="cl_Model_CQ" style="display: none;">
+								</span>
+								<span class="cl_Model" id="cl_Model_LC" style="display: none;">
+								</span>
+							</td>
+							<td width="15%">
+								19 类别:
+							</td>
+							<td width="35%" id="">
+							    <span class="cl_CarType2" id="cl_CarType2">
+								</span>
+								<span class="cl_CarType2" id="cl_CarType2_CS" style="display: none;">
+								</span>
+								<span class="cl_CarType2" id="cl_CarType2_LB" style="display: none;">
+								</span>
+								<span class="cl_CarType2" id="cl_CarType2_X" style="display: none;">
+								</span>
+								<span class="cl_CarType2" id="cl_CarType2_CQ" style="display: none;">
+								</span>
+								<span class="cl_CarType2" id="cl_CarType2_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								20 CCC证书编号:
+							</td>
+							<td id="">
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo">
+								</span>
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo_CS" style="display: none;">
+								</span>
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo_LB" style="display: none;">
+								</span>
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo_X" style="display: none;">
+								</span>
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo_CQ" style="display: none;">
+								</span>
+								<span class="cl_CCCCertNo" id="cl_CCCCertNo_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								21 签发日期
+							</td>
+							<td id="">
+								<span class="cl_IssuDate" id="cl_IssuDate">
+								</span>
+								<span class="cl_IssuDate" id="cl_IssuDate_CS" style="display: none;">
+								</span>
+								<span class="cl_IssuDate" id="cl_IssuDate_LB" style="display: none;">
+								</span>
+								<span class="cl_IssuDate" id="cl_IssuDate_X" style="display: none;">
+								</span>
+								<span class="cl_IssuDate" id="cl_IssuDate_CQ" style="display: none;">
+								</span>
+								<span class="cl_IssuDate" id="cl_IssuDate_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="3">
+								22 在所有方面与本证书第二部分描述的技术参数相符合的完整多阶段制成车辆 :
+							</td>
+							<td id="cl_ProductDate">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第二部分 车辆一致性证书参数
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4">
+								(以下所示数值和单位是相应 CCC认证文件中给出的 。对于生产一致性 （COP）试验，这些值必须按照相应标准中所描述的方法进行核对，并考虑这些标准中
+								COP试验的允差。)
+							</td>
+						</tr>
+						<tr>
+							<td>
+								23 车轴数量
+							</td>
+							<td id="cl_NumberOfAxle">
+							</td>
+							<td>
+								24 车轮数量
+							</td>
+							<td id="cl_NumberOfWheel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								25 驱动轴位置
+							</td>
+							<td id="cl_DriverAlxeLocal">
+							</td>
+							<td>
+								26 轴距(mm)
+							</td>
+							<td id="cl_AxleDistince">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27 牵引座前置距最大值(mm）
+							</td>
+							<td id="cl_MaxDistanceBefore">
+							</td>
+							<td>
+								28 牵引座前置距最小值(mm)
+							</td>
+							<td id="cl_MinDistanceBefore">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								29 轮距(mm)
+							</td>
+							<td id="cl_WheelDistance">
+							</td>
+							<td>
+								30 长度(mm)
+							</td>
+							<td id="">
+							    <span class="cl_Length" id="cl_Length">
+								</span>
+								<span class="cl_Length" id="cl_Length_CS" style="display: none;">
+								</span>
+								<span class="cl_Length" id="cl_Length_LB" style="display: none;">
+								</span>
+								<span class="cl_Length" id="cl_Length_X" style="display: none;">
+								</span>
+								<span class="cl_Length" id="cl_Length_CQ" style="display: none;">
+								</span>
+								<span class="cl_Length" id="cl_Length_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								31 车辆最前端与牵引装置中心之间的距离(mm)
+							</td>
+							<td id="cl_FrontCenterDistance">
+							</td>
+							<td>
+								32 装载区域长度(mm)
+							</td>
+							<td id="cl_ShippingAreaLength">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33 宽度(mm)
+							</td>
+							<td id="">
+							    <span class="cl_Width" id="cl_Width">
+								</span>
+								<span class="cl_Width" id="cl_Width_CS" style="display: none;">
+								</span>
+								<span class="cl_Width" id="cl_Width_LB" style="display: none;">
+								</span>
+								<span class="cl_Width" id="cl_Width_X" style="display: none;">
+								</span>
+								<span class="cl_Width" id="cl_Width_CQ" style="display: none;">
+								</span>
+								<span class="cl_Width" id="cl_Width_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								34 高度(mm)
+							</td>
+							<td id="">
+							    <span class="cl_Height" id="cl_Height">
+								</span>
+								<span class="cl_Height" id="cl_Height_CS" style="display: none;">
+								</span>
+								<span class="cl_Height" id="cl_Height_LB" style="display: none;">
+								</span>
+								<span class="cl_Height" id="cl_Height_X" style="display: none;">
+								</span>
+								<span class="cl_Height" id="cl_Height_CQ" style="display: none;">
+								</span>
+								<span class="cl_Height" id="cl_Height_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								35 车辆在地面上的投影面积 (仅适用于N2和N3类车辆)(㎡)
+							</td>
+							<td id="cl_ShadowArea">
+							    <span class="cl_ShadowArea" id="cl_ShadowArea">
+								</span>
+								<span class="cl_ShadowArea" id="cl_ShadowArea_CS" style="display: none;">
+								</span>
+								<span class="cl_ShadowArea" id="cl_ShadowArea_LB" style="display: none;">
+								</span>
+								<span class="cl_ShadowArea" id="cl_ShadowArea_X" style="display: none;">
+								</span>
+								<span class="cl_ShadowArea" id="cl_ShadowArea_CQ" style="display: none;">
+								</span>
+								<span class="cl_ShadowArea" id="cl_ShadowArea_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								36 前悬(mm)
+							</td>
+							<td id="cl_FrontHang">
+							
+							</td>
+						</tr>
+						<tr>
+							<td>
+								37 后悬(mm)
+							</td>
+							<td id="cl_BackHang">
+							
+							</td>
+							<td>
+								38 接近角(º)
+							</td>
+							<td id="cl_ApproachAngle">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								39 离去角(º)
+							</td>
+							<td id="cl_LeaveAngle">
+							</td>
+							<td>
+								40 行驶状态下带车身的车辆质量(kg)
+							</td>
+							<td id="">
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight">
+								</span>
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight_CS" style="display: none;">
+								</span>
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight_LB" style="display: none;">
+								</span>
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight_X" style="display: none;">
+								</span>
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight_CQ" style="display: none;">
+								</span>
+								<span class="cl_OnDriverWeight" id="cl_OnDriverWeight_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								41 额定总质量(kg)
+							</td>
+							<td id="cl_TotalWeight">
+							</td>
+							<td>
+								42 该质量的轴荷分配(kg)
+							</td>
+							<td id="cl_WeightAxleDistibute">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								43 载质量利用系数
+							</td>
+							<td id="">
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio">
+								</span>
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio_CS" style="display: none;">
+								</span>
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio_LB" style="display: none;">
+								</span>
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio_X" style="display: none;">
+								</span>
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio_CQ" style="display: none;">
+								</span>
+								<span class="cl_LoadingWeightRatio" id="cl_LoadingWeightRatio_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								44 各车轴或车轴组技术上允许的最大质量(kg)
+							</td>
+							<td id="cl_AxleAllowWeight">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								45 可伸缩车轴的位置
+							</td>
+							<td id="cl_ScaleAxleLocal">
+							</td>
+							<td>
+								46 可承载车轴的位置
+							</td>
+							<td id="cl_LoadingAxleLocal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								47 下列车辆技术上允许的最大牵引质量
+							</td>
+							<td colspan="3" id="cl_MaxDragWeightList">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								48 牵引车与挂车的最大组合质量(kg)
+							</td>
+							<td id="cl_DragAndTrailerWeight">
+							</td>
+							<td>
+								49 牵引车与挂车连接点处的最大垂直负荷(kg)
+							</td>
+							<td id="cl_ConnectPointWeight">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								50 ABS造商名称
+							</td>
+							<td id="cl_ABSManufacture">
+							</td>
+							<td>
+								51 ABS型号
+							</td>
+							<td id="cl_ABSModel">
+							</td>
+						</tr>
+						<tr>
+							
+							<td>
+								53 发动机型号
+							</td>
+							<td id="cl_EngineModel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								54 发动机工作原理
+							</td>
+							<td id="cl_EngineWorkingPrinciple">
+							</td>
+							<td>
+								55 直接喷射
+							</td>
+							<td id="cl_DirectInjection">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								56 汽缸数量
+							</td>
+							<td id="cl_NumberOfCylinder">
+							</td>
+							<td>
+								57 汽缸排列形式
+							</td>
+							<td id="cl_CylinderArrange">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								58 排量(ml)
+							</td>
+							<td id="cl_Displacement">
+							</td>
+							<td>
+								59 燃料种类
+							</td>
+							<td id="cl_FuelType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								60 最大净功率(kW)
+							</td>
+							<td id="cl_MaxPower">
+							</td>
+							<td>
+								61 对应的发动机转速 (min-1)
+							</td>
+							<td id="cl_EngineRotateSpeed">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								62 离合器型式
+							</td>
+							<td id="cl_CutchType">
+							</td>
+							<td>
+								63 变速器型式
+							</td>
+							<td id="cl_TransmissionType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								64 速比
+							</td>
+							<td colspan="3" id="cl_SpeedProportion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								65 主传动比
+							</td>
+							<td id="cl_MainTransmissionRatio">
+							</td>
+							<td>
+								66 轮胎规格
+							</td>
+							<td id="cl_MainTransmissionRatio">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								67 驱动轴是否安装有空气悬挂
+							</td>
+							<td id="cl_IsAirSuspension">
+							</td>
+							<td>
+								68 驱动轴是否安装有等效与空气悬挂的装置
+							</td>
+							<td id="cl_IsEquivalentAir">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								69 钢板弹簧片数
+							</td>
+							<td id="cl_NumberOfLeafSpring">
+							</td>
+							<td>
+								70 转向助力型式
+							</td>
+							<td id="cl_PowerStreeringType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								71 转向型式
+							</td>
+							<td id="cl_TurnToType">
+							</td>
+							<td>
+								72 制动装置简要说明
+							</td>
+							<td id="">
+							      <span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice">
+								</span>
+								<span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice_CS" style="display: none;">
+								</span>
+								<span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice_LB" style="display: none;">
+								</span>
+								<span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice_X" style="display: none;">
+								</span>
+								<span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice_CQ" style="display: none;">
+								</span>
+								<span class="cl_BrakingDriverNotice" id="cl_BrakingDriverNotice_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								73 牵引车内，挂车制动系统供气管内压力(kPa)
+							</td>
+							<td id="cl_PressureInPipe">
+							</td>
+							<td>
+								74 车身型式
+							</td>
+							<td id="cl_BodyType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								75 车辆颜色
+							</td>
+							<td id="cl_VehicleColor">
+							</td>
+							<td>
+								76 罐体有效容积(仅适用于罐式车辆)(m3)
+							</td>
+							<td id="cl_BoxVolume">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								77 内部货箱尺寸
+							</td>
+							<td id="">
+							 <span class="cl_BoxInnerSize" id="cl_BoxInnerSize">
+							 	</span>
+								<span class="cl_BoxInnerSize" id="cl_BoxInnerSize_CS" style="display: none;">
+								</span>
+								<span class="cl_BoxInnerSize" id="cl_BoxInnerSize_LB" style="display: none;">
+								</span>
+								<span class="cl_BoxInnerSize" id="cl_BoxInnerSize_X" style="display: none;">
+								</span>
+								<span class="cl_BoxInnerSize" id="cl_BoxInnerSize_CQ" style="display: none;">
+								</span>
+								<span class="cl_BoxInnerSize" id="cl_BoxInnerSize_LC" style="display: none;">
+									</span>
+							</td>
+							<td>
+								78 起重机的最大力矩能力(kNm)
+							</td>
+							<td id="cl_CraneTorque">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								79 车门数量
+							</td>
+							<td id="cl_NumberOfDoors">
+							</td>
+							<td>
+								车门构造
+							</td>
+							<td id="cl_DoorsStructure">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								80 座位数(包括驾驶员座)
+							</td>
+							<td id="cl_NumberOfSeats">
+							</td>
+							<td>
+								81 如装有牵引装置，其CCC证书编号
+							</td>
+							<td id="cl_CCCCertNo2">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								82 或试验报告编号
+							</td>
+							<td id="cl_CCCExperimentReportNo">
+							</td>
+							<td>
+								83 最高车速(km/h)
+							</td>
+							<td id="cl_MaxSpeed">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								84 声级
+							</td>
+							<td colspan="3" id="">
+							    <span class="cl_NoiseLevel" id="cl_NoiseLevel">
+							 	</span>
+								<span class="cl_NoiseLevel" id="cl_NoiseLevel_CS" style="display: none;">
+								</span>
+								<span class="cl_NoiseLevel" id="cl_NoiseLevel_LB" style="display: none;">
+								</span>
+								<span class="cl_NoiseLevel" id="cl_NoiseLevel_X" style="display: none;">
+								</span>
+								<span class="cl_NoiseLevel" id="cl_NoiseLevel_CQ" style="display: none;">
+								</span>
+								<span class="cl_NoiseLevel" id="cl_NoiseLevel_LC" style="display: none;">
+									</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								85 排气排放物
+							</td>
+							<td colspan="3" id="">
+							    <span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions">
+							 	</span>
+								<span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions_CS" style="display: none;">
+								</span>
+								<span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions_LB" style="display: none;">
+								</span>
+								<span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions_X" style="display: none;">
+								</span>
+								<span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions_CQ" style="display: none;">
+								</span>
+								<span class="cl_ExhaustEmissions" id="cl_ExhaustEmissions_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								86　按照运输危险货物的结构要求的实验报告编号
+							</td>
+							<td id="">
+							      <span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo">
+							 	</span>
+								<span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo_CS" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo_LB" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo_X" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo_CQ" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsStructureNo" id="cl_DangerousGoodsStructureNo_LC" style="display: none;">
+								</span>
+							</td>
+							<td>
+								87 级别
+							</td>
+							<td id="">
+							   <span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel">
+							 	</span>
+								<span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel_CS" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel_LB" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel_X" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel_CQ" style="display: none;">
+								</span>
+								<span class="cl_DangerousGoodsLevel" id="cl_DangerousGoodsLevel_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								88　按照运输动物的结构要求的实验报告的编号
+							</td>
+							<td id="cl_AnimalsTransportReportNo">
+							</td>
+							<td>
+								89 级别
+							</td>
+							<td id="cl_AnimalsTransportReportLevel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								90 备注
+							</td>
+							<td colspan="3" id="cl_Remark">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_wx">
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								卫星定位装置（前装）安装凭证
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								车辆制造企业名称
+							</td>
+							<td colspan="3" id="wx_VehicleFacility">
+							</td>
+						</tr>
+						<tr>
+							<td width="15%">
+								车辆品牌
+							</td>
+							<td width="35%" id="wx_CarBrand">
+							</td>
+							<td width="15%">
+								车辆型号
+							</td>
+							<td width="35%">
+								<span class="wx_VehicleModel" id="wx_VehicleModel">
+								</span>
+								<span class="wx_VehicleModel" id="wx_VehicleModel_CS" style="display: none;">
+								</span>
+								<span class="wx_VehicleModel" id="wx_VehicleModel_LB" style="display: none;">
+								</span>
+								<span class="wx_VehicleModel" id="wx_VehicleModel_X" style="display: none;">
+								</span>
+								<span class="wx_VehicleModel" id="wx_VehicleModel_CQ" style="display: none;">
+								</span>
+								<span class="wx_VehicleModel" id="wx_VehicleModel_LC" style="display: none;">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								车辆识别代码/车架号
+							</td>
+							<td colspan="3" id="wx_VIN">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								种类
+							</td>
+							<td colspan="3" id="wx_GPSType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								卫星定位
+								<br>
+								装置参数
+							</td>
+							<td colspan="3" id="wx_GPSParameter">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								终端型号
+							</td>
+							<td colspan="3" id="wx_ClientModel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								定位模式
+							</td>
+							<td colspan="3" id="wx_PositionType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								无线通信方式
+							</td>
+							<td colspan="3" id="wx_CommunicationType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								卫星定位装置制造企业编号
+							</td>
+							<td colspan="3" id="wx_EnterpriceNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								交通运输部公告批次
+							</td>
+							<td colspan="3" id="wx_GovBatchNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								适用车型
+							</td>
+							<td colspan="3" id="wx_ApplicableModel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								SIM 卡种类
+							</td>
+							<td colspan="3" id="wx_SIMType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								卫星定位装置 ID
+							</td>
+							<td colspan="3" id="wx_GPSDeviceID">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								安装日期
+							</td>
+							<td id="wx_Date">
+							</td>
+							<td>
+								免费保质日期
+							</td>
+							<td id="wx_WarrantyDate">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								其他
+							</td>
+							<td colspan="3" id="wx_Other">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_ry">
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="8" align="center">
+								重型柴油车燃料消耗量参数表
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="2">
+								产品型号
+							</td>
+							<td colspan="6">
+								<span class="ry_HGZ_CPXH" id="ry_HGZ_CPXH">
+								</span>
+								
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								发动机型号
+							</td>
+							<td colspan="6" id="ry_HGZ_FDJXH">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2" >
+								执行标准
+							</td>
+							<td colspan="6" id="ry_HGZ_ZXBZ">
+							</td>
+						</tr>
+						<tr>
+							<td width="25%" rowspan="3">
+								等速燃油消耗量
+							</td>
+							<td width="25%">
+								车速 km/h
+							</td>
+							<td width="8.3%" id="ry_Speed1">
+							</td>
+							<td width="8.3%" id="ry_Speed2">
+							</td>
+							<td width="8.3%" id="ry_Speed3">
+							</td>
+							<td width="8.3%" id="ry_Speed4">
+							</td>
+							<td width="8.3%" id="ry_Speed5">
+							</td>
+							<td width="8.3%" id="ry_Speed6">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								挡位
+							</td>
+							<td id="ry_Gear1">
+							</td>
+							<td id="ry_Gear2">
+							</td>
+							<td id="ry_Gear3">
+							</td>
+							<td id="ry_Gear4">
+							</td>
+							<td id="ry_Gear5">
+							</td>
+							<td id="ry_Gear6">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								油耗L/100km
+							</td>
+							<td id="ry_FuelConsumption1">
+							</td>
+							<td id="ry_FuelConsumption2">
+							</td>
+							<td id="ry_FuelConsumption3">
+							</td>
+							<td id="ry_FuelConsumption4">
+							</td>
+							<td id="ry_FuelConsumption5">
+							</td>
+							<td id="ry_FuelConsumption6">
+							</td>
+						</tr>
+						<tr>
+							<td rowspan="3">
+								加速燃油消耗量
+							</td>
+							<td>
+								车速,km/h
+							</td>
+							<td colspan="2">
+								档位
+							</td>
+							<td colspan="2">
+								加速距离（m）
+							</td>
+							<td colspan="2">
+								加速时间（s）
+							</td>
+						</tr>
+						<tr>
+							<td>
+								50-70
+							</td>
+							<td colspan="2" id="ry_Gear">
+							</td>
+							<td colspan="2" id="ry_AccelerationDistance">
+							</td>
+							<td colspan="2" id="ry_AccelerationTime">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								油耗L/100km
+							</td>
+							<td colspan="6" id="ry_FuelConsumption">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								怠速燃油消耗量 L/h
+							</td>
+							<td colspan="6" id="ry_IdleFuel">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								单位周转量燃油消耗量L/T100km
+							</td>
+							<td colspan="6"  id="ry_UnitTurnoverFuel">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								车辆生产企业
+							</td>
+							<td colspan="6">
+								湖南汽车制造有限责任公司
+							</td>
+						</tr>
+					</tbody>
+			</div>
+			<div id="content_cl_dd">
+				<table align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								车辆一致性证书-电动
+								<br>
+								(用于完整车辆)
+								<br>
+							</th>
+						</tr>
+						<tr>
+							<th colspan="4" align="center">
+								第一部分 车辆整体信息
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								车辆一致性证书编号：
+							</td>
+							<td colspan="3">
+								<span class="cl_dd_CarConfirmityCertNo" id="cl_dd_CarConfirmityCertNo">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								01 车辆生产厂名称:
+							</td>
+							<td colspan="3" id="cl_dd_CarFactoryName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								02 车辆制造国:
+							</td>
+							<td colspan="3" id="cl_dd_CarMakeCountry">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								03 车型系列代号/名称:
+							</td>
+							 <td colspan="3" id="">
+							    <span class="cl_dd_CarTypeCodeName" id="cl_dd_CarTypeCodeName">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								04 单元代号/名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_dd_UnitCodeName" id="cl_dd_UnitCodeName">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								05 车型代号/名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_dd_CarCodeName" id="cl_dd_CarCodeName">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								06.车型名称:
+							</td>
+							<td colspan="3" id="">
+								<span class="cl_dd_CarName" id="cl_dd_CarName">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								07.车辆中文品牌:
+							</td>
+							<td colspan="3" id="cl_dd_CarChineseName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								08.车辆英文品牌:
+							</td>
+							<td colspan="3" id="cl_dd_CarEnglishName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								09 车辆类别:
+							</td>
+							<td colspan="3" id="">
+							    <span class="cl_dd_CarType1" id="cl_dd_CarType1">
+								</span>
+							</td>
+						</tr>
+                        <tr>
+							<td>
+								10 基本车辆制造商的名称:
+							</td>
+							<td colspan="3" id="cl_dd_BaseMakeManufacturesName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								11 基本车辆制造商的地址:
+							</td>
+							<td colspan="3" id="cl_dd_BaseMakeManufacturersAddress">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								12 最终制造阶段制造商的名称:
+							</td>
+							<td colspan="3" id="cl_dd_EndMakeManufacturesName">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13 最终制造阶段制造商的地址:
+							</td>
+							<td colspan="3" id="cl_dd_EndMakeManufacturersAddress">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								14 法定铭牌的位置:
+							</td>
+							<td colspan="3" id="cl_dd_LegalNameplateLocaltion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15 车辆识别代号:
+							</td>
+							<td colspan="3" id="cl_dd_CarIdentifyCode">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								16 车辆识别代号的打刻位置:
+							</td>
+							<td colspan="3" id="cl_dd_CarIdentifyCodeLocaltion">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								17 电动机编号:
+							</td>
+							<td colspan="3" id="cl_dd_EngineNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								18 电动机编号打刻位置:
+							</td>
+							<td colspan="3" id="cl_dd_EngineNoToEnginePostion">
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4" align="left">
+								CCC认证过程中车辆的制造阶段
+							</th>
+						</tr>
+						<tr>
+							<td>
+								19 阶段1 制造商名称:
+							</td>
+							<td colspan="3" id="cl_dd_ManufacturerName">
+							</td>
+						</tr>
+						<tr>
+							<td width="15%">
+								20 型号:
+							</td>
+							<td width="35%" id="">
+								<span class="cl_dd_Model" id="cl_dd_Model">
+								</span>
+							</td>
+							<td width="15%">
+								21 类别:
+							</td>
+							<td width="35%" id="">
+							    <span class="cl_dd_CarType2" id="cl_dd_CarType2">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								22 CCC证书编号:
+							</td>
+							<td id="">
+								<span class="cl_dd_CCCCertNo" id="cl_dd_CCCCertNo">
+								</span>
+							</td>
+							<td>
+								23 签发日期: 
+							</td>
+							<td id="">
+								<span class="cl_dd_IssuDate" id="cl_dd_IssuDate">
+								</span>
+							</td>
+						</tr>
+                        <tr>
+							<td colspan="3" >
+								24 最终阶段 在所有方面与本证书第二部分描述的技术参数相符合的完整多阶段制成车辆 :
+							</td>
+						</tr>
+						<tr>
+							<td>        
+								25 CCC证书编号（版本号）:
+							</td>
+							<td id="">
+								<span class="cl_dd_CCCCertNo3" id="cl_dd_CCCCertNo3">
+								</span>
+							</td>
+							<td>
+								26 签发日期: 
+							</td>
+							<td id="">
+								<span class="cl_dd_IssuDate2" id="cl_dd_IssuDate2">
+								</span>
+							</td>
+						</tr>
+
+						<tr>
+							<th colspan="4">
+								第二部分 车辆一致性证书参数
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4">
+								(以下所示数值和单位是相应 CCC认证文件中给出的 。对于生产一致性 （COP）试验，这些值必须按照相应标准中所描述的方法进行核对，并考虑这些标准中
+								COP试验的允差。)
+							</td>
+						</tr>
+						<tr>
+							<td>
+								27 车轴数量:
+							</td>
+							<td id="cl_dd_NumberOfAxle">
+							</td>
+							<td>
+								28 车轮数量:
+							</td>
+							<td id="cl_dd_NumberOfWheel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								29 驱动轴位置:
+							</td>
+							<td id="cl_dd_DriverAlxeLocal">
+							</td>
+							<td>
+								30 轴距(mm):
+							</td>
+							<td id="cl_dd_AxleDistince">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								31 牵引座前置距最大值(mm):
+							</td>
+							<td id="cl_dd_MaxDistanceBefore">
+							</td>
+							<td>
+								32 牵引座前置距最小值(mm):
+							</td>
+							<td id="cl_dd_MinDistanceBefore">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								33 轮距(mm):
+							</td>
+							<td id="cl_dd_WheelDistance">
+							</td>
+							<td>
+								34 长度(mm):
+							</td>
+							<td id="">
+							    <span class="cl_dd_Length" id="cl_dd_Length">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								35 车辆最前端与牵引装置中心之间的距离(mm):
+							</td>
+							<td id="cl_dd_FrontCenterDistance">
+							</td>
+							<td>
+								36 装载区域长度(mm):
+							</td>
+							<td id="cl_dd_ShippingAreaLength">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								37 宽度(mm):
+							</td>
+							<td id="">
+							    <span class="cl_dd_Width" id="cl_dd_Width">
+							</td>
+							<td>
+								38 高度(mm):
+							</td>
+							<td id="">
+							    <span class="cl_dd_Height" id="cl_dd_Height">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								39 车辆在地面上的投影面积 (仅适用于N2和N3类车辆)(㎡):
+							</td>
+							<td colspan="3" id="cl_dd_ShadowArea">
+							    <span class="cl_dd_ShadowArea" id="cl_dd_ShadowArea">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								40 前悬(mm):
+							</td>
+							<td id="cl_dd_FrontHang">
+							
+							</td>
+							<td>
+								41 后悬(mm):
+							</td>
+							<td id="cl_dd_BackHang">
+							
+							</td>
+						</tr>
+						<tr>
+							<td>
+								42 接近角(º):
+							</td>
+							<td id="cl_dd_ApproachAngle">
+							</td>
+							<td>
+								43 离去角(º):
+							</td>
+							<td id="cl_dd_LeaveAngle">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								44 行驶状态下带车身的车辆质量(kg):
+							</td>
+							<td id="">
+								<span class="cl_dd_OnDriverWeight" id="cl_dd_OnDriverWeight">
+							</td>
+							<td>
+								45 额定总质量(kg):
+							</td>
+							<td id="cl_dd_TotalWeight">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								46 该质量的轴荷分配(kg):
+							</td>
+							<td id="cl_dd_WeightAxleDistibute">
+							</td>
+							<td>
+								47 载质量利用系数:
+							</td>
+							<td id="">
+								<span class="cl_dd_LoadingWeightRatio" id="cl_dd_LoadingWeightRatio">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								48 各车轴或车轴组技术上允许的最大质量(kg):
+							</td>
+							<td id="cl_dd_AxleAllowWeight">
+							</td>
+							<td>
+								49 可伸缩车轴的位置:
+							</td>
+							<td id="cl_dd_ScaleAxleLocal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								50 可承载车轴的位置:
+							</td>
+							<td  colspan="3" id="cl_dd_LoadingAxleLocal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								51 下列车辆技术上允许的最大牵引质量:
+							</td>
+							<td colspan="3" id="cl_dd_MaxDragWeightList">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								52 牵引车与挂车的最大组合质量(kg):
+							</td>
+							<td id="cl_dd_DragAndTrailerWeight">
+							</td>
+							<td>
+								53 牵引车与挂车连接点处的最大垂直负荷(kg):
+							</td>
+							<td id="cl_dd_ConnectPointWeight">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								54 电动机生产厂名称:
+							</td>
+							<td id="cl_dd_EngineManufacture">
+							</td>
+							<td>
+								55 电动机型号:
+							</td>
+							<td id="cl_dd_EngineModel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								56 电动机工作电压（V）:
+							</td>
+							<td id="cl_dd_EngineWorkVoltage">
+							</td>
+							<td>
+								57 最大输出功率（kW）:
+							</td>
+							<td id="cl_dd_MaxPower">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								58 动力电池型号:
+							</td>
+							<td id="cl_dd_PowerBatteryModel">
+							</td>
+							<td>
+								59 动力电池额定电压（V）:
+							</td>
+							<td id="cl_dd_PowerBatteryVoltage">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								60 动力电池额定容量（Ah）:
+							</td>
+							<td id="cl_dd_PowerBatteryCapacity">
+							</td>
+							<td>
+								61 动力电池生产厂名称:
+							</td>
+							<td id="cl_dd_PowerBatteryManufacture">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								62 离合器型式:
+							</td>
+							<td id="cl_dd_CutchType">
+							</td>
+							<td>
+								63 变速器型式:
+							</td>
+							<td id="cl_dd_TransmissionType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								64 速比:
+							</td>
+							<td id="cl_dd_SpeedProportion">
+							</td>
+                            <td>
+								65 主传动比:
+							</td>
+							<td id="cl_dd_MainTransmissionRatio">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								66 轮胎规格:
+							</td>
+							<td id="cl_dd_TireSpecifications">
+							</td>
+							<td>
+								67 驱动轴是否安装有空气悬挂:
+							</td>
+							<td id="cl_dd_IsAirSuspension">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								68 驱动轴是否安装有等效与空气悬挂的装置:
+							</td>
+							<td id="cl_dd_IsEquivalentAir">
+							</td>
+							<td>
+								69 钢板弹簧片数:
+							</td>
+							<td id="cl_dd_NumberOfLeafSpring">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								70 转向助力型式:
+							</td>
+							<td id="cl_dd_PowerStreeringType">
+							</td>
+							<td>
+								71 转向型式:
+							</td>
+							<td id="cl_dd_TurnToType">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								72 制动装置简要说明:
+							</td>
+							<td id="">
+							      <span class="cl_dd_BrakingDriverNotice" id="cl_dd_BrakingDriverNotice">
+							</td>
+							<td>
+								73 牵引车内，挂车制动系统供气管内压力(kPa):
+							</td>
+							<td id="cl_dd_PressureInPipe">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								74 车身型式:
+							</td>
+							<td id="cl_dd_BodyType">
+							</td>
+							<td>
+								75 车辆颜色:
+							</td>
+							<td id="cl_dd_VehicleColor">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								76 罐体有效容积(仅适用于罐式车辆)(m3):
+							</td>
+							<td colspan="3" id="cl_dd_BoxVolume">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								77 内部货箱尺寸:
+							</td>
+							<td  colspan="3" id="">
+							 <span class="cl_dd_BoxInnerSize" id="cl_dd_BoxInnerSize">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								78 起重机的最大力矩能力(kNm):
+							</td>
+							<td  colspan="3" id="cl_dd_CraneTorque">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								79 车门数量:
+							</td>
+							<td id="cl_dd_NumberOfDoors">
+							</td>
+							<td>
+								80 车门构造:
+							</td>
+							<td id="cl_dd_DoorsStructure">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								81 座位数(包括驾驶员座):
+							</td>
+							<td colspan="3" id="cl_dd_NumberOfSeats">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								82 如装有牵引装置，其CCC证书编号:
+							</td>
+							<td id="cl_dd_CCCCertNo2">
+							</td>
+							<td>
+								83 或试验报告编号:
+							</td>
+							<td id="cl_dd_CCCExperimentReportNo">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								84 最高车速(km/h):
+							</td>
+							<td colspan="3" id="cl_dd_MaxSpeed">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								85 声级:
+							</td>
+							<td colspan="3" >
+							    <span class="cl_dd_NoiseLevel" id="cl_dd_NoiseLevel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								86 按照运输危险货物的结构要求的实验报告编号:
+							</td>
+							<td id="">
+							    <span class="cl_dd_DangerousGoodsStructureNo" id="cl_dd_DangerousGoodsStructureNo">
+							</td>
+							<td>
+								87 级别:
+							</td>
+							<td id="">
+							   <span class="cl_dd_DangerousGoodsLevel" id="cl_dd_DangerousGoodsLevel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								88 按照运输动物的结构要求的实验报告的编号:
+							</td>
+							<td id="cl_dd_AnimalsTransportReportNo">
+							</td>
+							<td>
+								89 级别:
+							</td>
+							<td id="cl_dd_AnimalsTransportReportLevel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								90 专为越野车设计的底盘:
+							</td>
+							<td colspan="3" id="cl_dd_OffRoadVehicleChassis">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								91 备注:
+							</td>
+							<td colspan="3" id="cl_dd_Remark">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div id="content_hb_dd">
+				<table id="hb_dd" align="center" style="word-break:break-all;" class="pure-table pure-table-bordered">
+					<thead>
+						<tr>
+							<th colspan="4" align="center">
+								电动车环保信息随车清单
+							</th>
+						</tr>
+						<tr>
+							<th colspan="4" rowspan="2" align="center">
+								信息公开编号：
+								<span class="hb_dd_InfoPublicNo" id="hb_dd_InfoPublicNo">
+								</span>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="3">
+								<span id="hb_dd_VehicleManufacturesm">
+								</span>
+								<br/>
+								本清单为本企业依据《中华人民共和国大气污染防治法》和生态环境部相关规定公开的机动车环保信息，
+								<br/>
+								本企业对本清单所有内容的真实性、准确性、及时性和完整性负责。本公司承诺：我公司 VIN 码
+								<br/>
+								（见本页条形码）的电动车符合《汽车加速行驶车外噪声限值及测量方法》（GB 1495-2002）第Ⅱ阶段的要求。
+								
+							</td>
+							<td>
+								<img class="hb_Base64_QR_Code" />
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第一部分 车辆信息
+							</th>
+						</tr>
+						<tr>
+							<td width="15%">
+								01 车辆型号：
+							</td>
+							<td colspan="3">
+								<span class="hb_dd_VehicleModel" id="hb_dd_VehicleModel">
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								02 商 标：
+							</td>
+							<td id="hb_dd_Trademark" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								03 汽车分类：
+							</td>
+							<td id="hb_dd_VehicleCagetory" colspan="3">
+							</td>
+						</tr>
+						<!--隐藏-->
+						<tr style="display: none;">
+							<td>
+								04 车型的识别方法和位置：
+							</td>
+							<td id="hb_dd_VehicleplateLocation" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								04 车辆制造商名称：
+							</td>
+							<td id="hb_dd_VehicleManufacture" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								05 生产厂地址：
+							</td>
+							<td id="hb_dd_HbProductAddress" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								06 驱动电机顺序号：
+							</td>
+							<td id="hb_dd_EngineNo" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								07 底盘型号：
+							</td>
+							<td id="hb_dd_DPModel" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								08 底盘生产企业：
+							</td>
+							<td id="hb_dd_DPManufacture" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								09 车用空调制冷剂种类：
+							</td>
+							<td id="hb_dd_RefrigerantType" colspan="3">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								10 车用空调制冷剂加注量：
+							</td>
+							<td id="hb_dd_RefrigerantAmount" colspan="3">
+							</td>
+						</tr>
+						
+						<tr>
+							<th colspan="4">
+								第二部分 检验信息
+							</th>
+						</tr>
+						<tr>
+							<td colspan="4" id="hb_dd_">
+								11 型式检验信息
+							</td>
+						</tr>
+						<tr>
+							<td>
+								依据的标准
+							</td>
+							<td colspan="2">
+								检测机构
+							</td>
+							<td>
+								检测结论
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_dd_DependStandard01">
+							</td>
+							<td id="hb_dd_Orgnazation01" colspan="2">
+							</td>
+							<td id="hb_dd_Verdict01">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_dd_DependStandard02">
+							</td>
+							<td id="hb_dd_Orgnazation02" colspan="2">
+							</td>
+							<td id="hb_dd_Verdict02">
+							</td>
+						</tr>
+						<tr>
+							<td id="hb_dd_DependStandard03">
+							</td>
+							<td id="hb_dd_Orgnazation03" colspan="2">
+							</td>
+							<td id="hb_dd_Verdict03">
+							</td>
+						</tr>
+						<!--隐藏-->
+						<tr style="display: none;">
+							<td width="15%">
+								08 出厂检验项目：
+							</td>
+							<td width="35%" id="hb_dd_DependLevel">
+							</td>
+							<td width="15%">
+								结论：
+							</td>
+							<td width="35%" id="hb_dd_VerdictLevel">
+							</td>
+						</tr>
+						<!--隐藏-->
+						<tr style="display: none;">
+							<td colspan="4">
+								09 车型环保生产一致性保证计划及执行情况，详见本公司官方网站和生态环境部信息公开平台（网址附后）。
+							</td>
+						</tr>
+
+						
+						<tr>
+							<th colspan="4">
+								第三部分 环保关键技术信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								12 驱动电动机型号/生产厂：
+							</td>
+							<td colspan="3" id="hb_dd_EngineModel">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								13 整车控制器型号/版本号/生产厂：
+							</td>
+							<td colspan="3" id="hb_dd_VehicleController">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								14 储能装置型号/生产企业：
+							</td>
+							<td colspan="3" id="hb_dd_EnergyStorage">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								15 电池容量（储能装置总储电量）：
+							</td>
+							<td colspan="3" id="hb_dd_BatteryCapacity">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								16 续航里程及对应工况：
+							</td>
+							<td colspan="3" id="hb_dd_Range">
+							</td>
+						</tr>
+						<!--隐藏-->
+						<tr style="display: none;">
+							<td colspan="4">
+								本车辆环保关键零部件（电动机、整车控制器、储能装置）明显标注了永久性标识，标识内容包括该零部件的型号和生产企业名称（全称、缩写或徽标），详见本公司官方网站和生态环境部信息公开平台（网址附后）。
+							</td>
+						</tr>
+						<tr>
+							<th colspan="4">
+								第四部分 制造商/进口企业信息
+							</th>
+						</tr>
+						<tr>
+							<td>
+								17 法人代表：
+							</td>
+							<td colspan="3" id="hb_dd_Legal">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								18 地 址：
+							</td>
+							<td colspan="3" id="hb_dd_Address">
+							</td>
+						</tr>
+						<tr>
+							<td>
+								19 联系电话：
+							</td>
+							<td colspan="3" id="hb_dd_Phone">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								本清单内容及相关信息已上传至本公司官方网站
+								<span class="hb_dd_SanyHomeAddress" id="hb_dd_SanyHomeAddress">
+								</span>
+								
+								生态环境部机动车和非道路移动机械环保信息公开平台（http://www.vecc.org.cn）。
+							</td>
+							<td>
+								车辆生产日期 ：
+							</td>
+							<td ID="hb_dd_ZCProductTime">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+<div align="right" style="  margin: 10px 20px ; ">
+	<input type="button" align="right" value="审核" class="Primary ReviewButton" />
+	<input type="button" value="返回" class="Primary BackButton"  />
+</div>
+<script>
+    //日期格式化只能单个
+
+function formatDate(d) {
+        var dt = new Date($(d).text());
+        $(d).text(dt.getFullYear() + '年' + (dt.getMonth() + 1) + '月' + dt.getDate() + '日');
+    }
+    //重新加载载货车数据  根据样式 
+
+function reloadZHC(t) { 
+     if(!t){
+	   return;
+	 }
+	 if($Context.inputs.ISCARGOTRUCK ==false){
+	   return;
+	 }
+    //卫星
+    $(".wx_VehicleModel").hide();
+    $("#wx_VehicleModel_" + t).show();
+    //车辆一致性
+    $(".cl_CarConfirmityCertNo").hide();
+    $("#cl_CarConfirmityCertNo_" + t).show();
+	$(".cl_CarTypeCodeName").hide();
+    $("#cl_CarTypeCodeName_" + t).show();
+    $(".cl_UnitCodeName").hide();
+    $("#cl_UnitCodeName_" + t).show();
+    $(".cl_CarCodeName").hide();
+    $("#cl_CarCodeName_" + t).show();
+    $(".cl_CarName").hide();
+    $("#cl_CarName_" + t).show();
+    $(".cl_Model").hide();
+    $("#cl_Model_" + t).show();
+    $(".cl_CCCCertNo").hide();
+    $("#cl_CCCCertNo_" + t).show();
+    $(".cl_IssuDate").hide();
+    $("#cl_IssuDate_" + t).show();
+    $(".cl_OnDriverWeight").hide();
+    $("#cl_OnDriverWeight_" + t).show();
+    $(".cl_LoadingWeightRatio").hide();
+    $("#cl_LoadingWeightRatio_" + t).show();
+	$(".cl_BrakingDriverNotice").hide();
+    $("#cl_BrakingDriverNotice_" + t).show();
+	$(".cl_NoiseLevel").hide();
+    $("#cl_NoiseLevel_" + t).show();
+	$(".cl_ExhaustEmissions").hide();
+    $("#cl_ExhaustEmissions_" + t).show();
+	$(".cl_DangerousGoodsStructureNo").hide();
+    $("#cl_DangerousGoodsStructureNo_" + t).show();
+	$(".cl_DangerousGoodsLevel").hide();
+    $("#cl_DangerousGoodsLevel_" + t).show();
+	$(".cl_BoxInnerSize").hide();
+    $("#cl_BoxInnerSize_" + t).show();
+	$(".cl_CarType1").hide();
+    $("#cl_CarType1_" + t).show();
+	$(".cl_CarType2").hide();
+    $("#cl_CarType2_" + t).show();
+	$(".cl_ShadowArea").hide();
+    $("#cl_ShadowArea_" + t).show();
+	$(".cl_Length").hide();
+    $("#cl_Length_" + t).show();
+	$(".cl_Width").hide();
+    $("#cl_Width_" + t).show();
+	$(".cl_Height").hide();
+    $("#cl_Height_" + t).show();
+	
+   
+    //整车
+    $(".zc_PRODUCTNOTICENO").hide();
+    $("#zc_PRODUCTNOTICENO_" + t).show();
+    $(".zc_ZCMODEL").hide();
+    $("#zc_ZCMODEL_" + t).show();
+    $(".zc_ZCNAME").hide();
+    $("#zc_ZCNAME_" + t).show();
+    $(".zc_EXTERNALLENGTH").hide();
+    $("#zc_EXTERNALLENGTH_" + t).show();
+    $(".zc_EXTERNALWIDTH").hide();
+    $("#zc_EXTERNALWIDTH_" + t).show();
+    $(".zc_EXTERNALHEIGHT").hide();
+    $("#zc_EXTERNALHEIGHT_" + t).show();
+    $(".zc_HOSTWEIGHT").hide();
+    $("#zc_HOSTWEIGHT_" + t).show();
+    $(".zc_LOADWEIGHTFACTOR").hide();
+    $("#zc_LOADWEIGHTFACTOR_" + t).show();
+    $(".zc_COMPANYSTANDARD").hide();
+    $("#zc_COMPANYSTANDARD_" + t).show();
+    $(".zc_NOTICELOT").hide();
+    $("#zc_NOTICELOT_" + t).show();
+    $(".zc_NOTICEEFFECTTIME").hide();
+    $("#zc_NOTICEEFFECTTIME_" + t).show();
+    $(".zc_ZCCLASSIFY").hide();
+    $("#zc_ZCCLASSIFY_" + t).show();
+    $(".zc_CONFIGURATIONSEQ").hide();
+    $("#zc_CONFIGURATIONSEQ_" + t).show();
+    $(".zc_RATELOADWEIGHT").hide();
+    $("#zc_RATELOADWEIGHT_" + t).show();
+	
+	//加载环保和燃油参数信息
+	loadHBAndRYData(t);
+}
+
+function initTabClick() {
+    $(".tab-box li").each(function(index) {
+        $(this).click(function() {
+            $("li.active").removeClass("active"); //移除所有选项卡样式
+            $(this).addClass("active"); //添加当前的点击样式
+            $(".tab-content div.active-content").removeClass("active-content");
+            $(".tab-content div").eq(index).addClass("active-content");
+        });
+    })
+}
+
+//加载环保和燃油参数数据
+//type 是合格证类型  ZC-牵引车整车   CS-仓栅载货车   LB-栏板式载货车  X-厢式载货车  CQ-畜禽式载货车  LC-冷藏式载货车
+function loadHBAndRYData(type){
+      debugger;
+    //加载燃油数据
+	 if ($Context.inputs.RY != '') {
+        var ry = JSON.parse($Context.inputs.RY);
+		var ryTemplate=null;
+		var oldRyTemplate=null;
+		if ($Context.inputs.ISCARGOTRUCK ==false) //牵引车
+        {
+		   ryTemplate=ry.ZC
+		}
+		else{
+		   ryTemplate=ry[type];
+		}
+		if(!!$Context.inputs.Old_RY) 
+		{
+		       var  old_ry= JSON.parse($Context.inputs.Old_RY);
+				if ($Context.inputs.ISCARGOTRUCK ==false) //牵引车
+		        {
+				   oldRyTemplate=old_ry.ZC
+				}
+				else{
+				   oldRyTemplate=old_ry[type];
+				}
+		}
+		if(ryTemplate!=null)
+		{
+	        $.each(ryTemplate, function(name, value) {
+	            $('#ry_' + name).text(value);
+				//如果需要展示不同，特别标识颜色
+				if(isShowDiff(5)){
+				     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+				    if(!!oldRyTemplate){
+					   if(oldRyTemplate[name]!=value)
+					     flagDiff('#ry_' + name);
+					}
+					else{
+					     flagDiff('#ry_' + name);
+					
+					}
+				   
+				}
+				
+	        });
+		}
+
+    }
+	  //加载环保数据
+    if ($Context.inputs.HB != '') {
+
+        var hb = JSON.parse($Context.inputs.HB);
+		var hbTemplate=null;
+		var oldHbTemplate=null;
+		if ($Context.inputs.ISCARGOTRUCK ==false) //牵引车
+        {
+	
+		   hbTemplate=hb.ZC
+		}
+		else{
+		   hbTemplate=hb[type];
+		}
+		if(!!$Context.inputs.Old_HB) 
+		{
+		     var old_hb = JSON.parse($Context.inputs.Old_HB);
+			if ($Context.inputs.ISCARGOTRUCK ==false) //牵引车
+	        {
+			   oldHbTemplate=old_hb.ZC
+			}
+			else{
+			   oldHbTemplate=old_hb[type];
+			}
+		}
+        if ($Context.inputs.MODETYPE == '国五') {
+            $("#hb_g6_ry,#hb_g6_rq").hide();
+            $.each(hbTemplate, function(name, value) {
+                $('#hb_g5_' + name).text(value);
+				//如果需要展示不同，特别标识颜色
+				if(isShowDiff(2)){
+				     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+				    if(!!oldHbTemplate){
+					   if(oldHbTemplate[name]!=value)
+					     flagDiff('#hb_g5_' + name);
+					}
+					else{
+					     flagDiff('#hb_g5_' + name);
+					
+					}
+				   
+				}
+            });
+        }
+        if ($Context.inputs.MODETYPE == '国六-燃气') {
+            $("#hb_g5,#hb_g6_ry").hide();
+            $.each(hbTemplate, function(name, value) {
+                $('#hb_g6_rq_' + name).text(value);
+			   //如果需要展示不同，特别标识颜色
+				if(isShowDiff(2)){
+				     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+				    if(!!oldHbTemplate){
+					   if(oldHbTemplate[name]!=value)
+					     flagDiff('#hb_g6_rq_' + name);
+					}
+					else{
+					     flagDiff('#hb_g6_rq_' + name);
+					
+					}
+				   
+				}
+            });
+        }
+        if ($Context.inputs.MODETYPE == '国六') {
+            $("#hb_g5,#hb_g6_rq").hide();
+            $.each(hbTemplate, function(name, value) {
+                $('#hb_g6_ry_' + name).text(value);
+				//如果需要展示不同，特别标识颜色
+				if(isShowDiff(2)){
+				     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+				    if(!!oldHbTemplate){
+					   if(oldHbTemplate[name]!=value)
+					     flagDiff('#hb_g6_ry_' + name);
+					}
+					else{
+					     flagDiff('#hb_g6_ry_' + name);
+					
+					}
+				   
+				}
+            });
+        }
+		
+		if ($Context.inputs.MODETYPE == '电动') {
+            $.each(hbTemplate, function(name, value) {
+				debugger;
+                $('#hb_dd_' + name).text(value);
+				if(name=='VehicleManufacture')
+				{$('#hb_dd_VehicleManufacturesm').text(value+'声明：')}
+				//如果需要展示不同，特别标识颜色
+				if(isShowDiff(2)){
+				     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+				    if(!!oldHbTemplate){
+					   if(oldHbTemplate[name]!=value)
+					   {
+					   if(name!='EngineNo'&&name!='ZCProductTime')
+					     flagDiff('#hb_dd_' + name);
+						 }
+					}
+					else{
+					     flagDiff('#hb_dd_' + name);
+					
+					}
+				   
+				}
+            });
+        }
+		
+        $(".hb_Base64_QR_Code").attr("src", $Context.inputs.Base64_QRCode)
+
+    }
+
+}
+//判断研发抽检的单（同一个配置第一次出现的单）是否展示出不同
+//certType  0：底盘  1：整车  2：环保  3：一致性 4：卫星定位  5：燃油 
+function isShowDiff(certType){
+    //如果是研发抽检的单且生成没有报错，则需要展示出新老版本差异，方便审核
+    if($Context.inputs.RDSPOTFALG==1&&isCertSuccess(certType)){
+	  return true;
+	}
+	else {
+	   return false;
+	}
+	
+}
+//判断某个合格证是否报错
+//certType  0：底盘  1：整车  2：环保  3：一致性 4：卫星定位  5：燃油 
+function isCertSuccess(certType){
+      var b=true;
+     $.each(JSON.parse($Context.inputs.CHECK_CONTENT), function(index, item) {
+            if (item.CertType==certType&&item.IsSuccess === false) {
+               b= false;
+			   return false;
+            }
+       });
+	   return b;
+}
+
+function flagDiff(htmlItem){
+       $(htmlItem).css({"color": "#FF0000", "font-weight": "bold" });
+}
+
+
+$(document).ready(function() {
+	debugger;
+    initTabClick();
+	var modeType = $Context.inputs.MODETYPE;
+	var tempType = '#cl_';
+	if(modeType == '电动'){
+		tempType = '#cl_dd_';
+	}
+	$('.BackButton').on('click',function(){
+	
+	     //根据跳转过来的主界面，判断返回时跳回的主界面
+		 if( $Context.inputs.FromIndexType=="CertPrintIndex")  
+		 {
+           $Context.outputs.Action = 'GOBACKCERTPRINT';
+		 }
+		 else if($Context.inputs.FromIndexType=="RDSpotCheckIndex"){
+           $Context.outputs.Action = 'GOBACKRDSPOSTCHCECK';
+		 
+		 }
+		 else if($Context.inputs.FromIndexType=="FirstCheckIndex"){
+           $Context.outputs.Action = 'GOBACK';
+		 
+		 }
+         $Context.submit();
+	})
+    //来自研发抽检界面需要展示审核按钮,其它需要隐藏
+	if($Context.inputs.FromIndexType!="RDSpotCheckIndex")
+	{
+	      $('.ReviewButton').hide();
+	}
+	else{
+	
+	   $('.ReviewButton').on('click',function(){
+		 $Context.outputs.Action = 'RDSPOTCHECKREVIEW';
+		 $Context.submit();
+	   })
+	}
+    var arrayCertType = ['机动车底盘出厂合格证', '机动车整车出厂合格证', '机动车环保信息随车清单', '车辆一致性证书', '卫星定位装置（前装）安装凭证', '重型柴油车燃料消耗量参数表']
+        //检验信息
+    if ($Context.inputs.FRISTTRIALSTATUS == '0') {
+        var content = '';
+		var checkContent = $Context.inputs.CHECK_CONTENT;
+		if(checkContent != null && checkContent!= ''){
+	        $.each(JSON.parse(checkContent), function(index, item) {
+	            if (item.IsSuccess === false) {
+	                content += '<p><span style="color:black;font-weight:bold;">' + arrayCertType[item.CertType] + '：</span>' + item.Msg + '</p>';
+	            }
+	        });
+		}
+        $("#check_content").html(content);
+    }else{
+		//$("#check_content").html($Context.inputs.MSG);
+		 var content = '';
+		var parts = ($Context.inputs.MSG).split("*****"); 
+		for (var i=0;i<parts.length;i++)
+		{
+			 content += '<p>' +parts[i] + '</p>';
+		}
+		$("#check_content").html(content);
+	}
+
+
+
+    $("#span_WIPORDERNO").text($Context.inputs.WIPORDERNO);
+    $("#span_MODETYPE").text($Context.inputs.MODETYPE);
+    $("#span_PRODUCTNO").text($Context.inputs.PRODUCTNO);
+    $("#span_GROUPNO").text($Context.inputs.GROUPNO);
+    $("#span_CHECK_Date").text($Context.inputs.CHECK_Date);
+    $("#span_SINGLEVEHICLEMODELNO").text($Context.inputs.SINGLEVEHICLEMODELNO||"");
+    $("#span_SPECIALSALECOMMONT").text($Context.inputs.SPECIALSALECOMMONT||"");
+	if($Context.inputs.SINGLEVEHICLEMODELNO !=$Context.inputs.Old_SINGLEVEHICLEMODELNO )
+	{
+	 flagDiff('#span_SINGLEVEHICLEMODELNO');
+	}
+    if ($Context.inputs.ISCARGOTRUCK ==true) //载货车
+    {
+        $('.zh_type').show();
+        if (modeType == '国五') {
+            $("#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+        if (modeType == '国六-燃气') {
+            $("#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+        if (modeType == '国六') {
+            $("#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+    } else {
+
+        $('.zh_type').hide();
+        if (modeType == '国五') {
+            $("#tab_dp,#content_dp,#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+        if (modeType == '国六-燃气') {
+            $("#tab_dp,#content_dp,#tab_ry,#content_ry,#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+        if (modeType == '国六') {
+            $("#tab_dp,#content_dp,#tab_cl_dd,#content_cl_dd,#tab_hb_dd,#content_hb_dd,#tab_cl").hide();
+        }
+		if (modeType == '电动') {
+            $("#tab_dp,#content_dp,#tab_hb,#content_hb,#tab_cl,#content_cl,#tab_ry,#content_ry,#tab_cl_dd").hide();
+        }
+    }
+	//底盘合格证
+    if ($Context.inputs.DP != '') {
+        $.each(JSON.parse($Context.inputs.DP), function(name, value) {
+            $('#dp_' + name).text(value);
+			//如果需要展示不同，特别标识颜色
+			if(isShowDiff(0)){
+			     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+			    if(!!$Context.inputs.Old_DP){
+				   if(JSON.parse($Context.inputs.Old_DP)[name]!=value)
+				     flagDiff('#dp_' + name);
+				}
+				else{
+				     flagDiff('#dp_' + name);
+				
+				}
+			   
+			}
+        });
+       
+
+
+    }
+	//整车合格证
+    if ($Context.inputs.ZC != '') {
+	
+        $.each(JSON.parse($Context.inputs.ZC), function(name, value) {
+            if(value.length==0)
+			{
+			$('#zc_' + name).text('-');
+			}else{
+			$('#zc_' + name).text(value);
+			}
+			//如果需要展示不同，特别标识颜色
+			if(isShowDiff(1)){
+			     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+			    if(!!$Context.inputs.Old_ZC){
+				   if(JSON.parse($Context.inputs.Old_ZC)[name]!=value)
+				   { if(name!='ZCCERTIFICATIONNO'&&name!='ISSUEDATE'&&name!='ENGINENO'&&name!='PRODUCTTIME'&&name!='ZCCOLOR'&&name!='COMPANYOTHERINFO'&&name!='CARRIAGEVIN')
+				     flagDiff('#zc_' + name);
+					 }
+				}
+				else{
+				     flagDiff('#zc_' + name);
+				
+				}
+			   
+			}
+        });
+        $("#zc_Base64_ZCCERTIFICATIONNO").attr("src", $Context.inputs.Base64_ZCCERTIFICATIONNO)
+      
+    }
+	//卫星定位证书
+    if ($Context.inputs.WX != '') {
+        $.each(JSON.parse($Context.inputs.WX), function(name, value) {
+            $('#wx_' + name).text(value);
+		  //如果需要展示不同，特别标识颜色
+			if(isShowDiff(4)){
+			     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+			    if(!!$Context.inputs.Old_WX){
+				   if(JSON.parse($Context.inputs.Old_WX)[name]!=value)
+				   {
+				    if(name!='Date'&&name!='VIN')
+				     flagDiff('#wx_' + name);
+					 }
+				}
+				else{
+				     flagDiff('#wx_' + name);
+				
+				}
+			   
+			}
+        });
+    }
+    
+    //车辆一致性
+    if ($Context.inputs.CL != '') {
+        $.each(JSON.parse($Context.inputs.CL), function(name, value) {
+            $(tempType + name).text(value);
+			//如果需要展示不同，特别标识颜色
+			if(isShowDiff(3)){
+			     //历史版本存在，就针对差异的项标识颜色；否则所有都标识颜色
+			    if(!!$Context.inputs.Old_CL){
+				   if(JSON.parse($Context.inputs.Old_CL)[name]!=value)
+				     flagDiff(tempType + name);
+				}
+				else{
+				     flagDiff(tempType + name);
+				
+				}
+			   
+			}
+        });
+    }
+    //选择的载货车类型
+	var chkType = $(".zh_type input[type='radio']:checked").val(); 
+	//加载燃油和环保参数
+	loadHBAndRYData(chkType);
+	//加载载货车特殊参数
+    reloadZHC(chkType);
+	
+	 
+    //加载合格证打印处修改的信息 begin
+	//如果颜色有修改，替换颜色
+	if(!!$Context.inputs.ZCCOLOR){
+	  $(tempType + "VehicleColor").text($Context.inputs.ZCCOLOR);
+	  $("#zc_ZCCOLOR").text($Context.inputs.ZCCOLOR);
+	  $("#dp_ZCCOLOR").text($Context.inputs.ZCCOLOR);
+	}
+	
+  //设置生产日期和发证日期
+  $("#dp_ISSUEDATE").text($Context.inputs.ISSUEDATE);
+  $("#dp_PRODUCTTIME").text($Context.inputs.PRODUCTTIME);
+  $("#zc_ISSUEDATE").text($Context.inputs.ISSUEDATE);
+  $("#zc_PRODUCTTIME").text($Context.inputs.PRODUCTTIME);
+  formatDate("#dp_ISSUEDATE");
+  formatDate("#dp_PRODUCTTIME");
+  formatDate("#zc_ISSUEDATE");
+  formatDate("#zc_PRODUCTTIME");
+	
+    //加载合格证处修改的信息 end
+	
+
+
+});
+</script>
+<div data-flx-subop="Call_StringToBarcodBase64_ZCCERTIFICATIO" />
+<div data-flx-subop="Call_StringToQRCodeBase64" />
+</body>
+</html>

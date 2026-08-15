@@ -1,0 +1,13 @@
+# 工具/编辑器产物
+.zcode/
+.idea/
+.vscode/
+.DS_Store
+
+# 临时文件
+tmp.*
+*.log
+
+# 构建产物（当前无构建链，预留）
+node_modules/
+dist/

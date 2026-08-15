@@ -1,0 +1,147 @@
+body {
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 14px;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  margin: 0;
+}
+
+.main {
+  margin: 10px;
+}
+
+.tab-box {
+  width: 100%;
+  margin: 0;
+}
+
+.tab-box ul {
+  list-style-type: none;
+}
+
+.tab-box li {
+  float: left;
+  padding-right: 10px;
+  padding-left: 10px;
+  background: #ccc;
+  color: #787878;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  cursor: pointer;
+  margin-right: 3px;
+  font-weight: bold;
+}
+
+.tab-box li.active {
+  color: #000;
+}
+
+.tab-content div {
+  width: 100%;
+  height: 100%;
+  padding: 5px 0px;
+
+  clear: left;
+  display: none;
+}
+
+/*//注意这里设置整个容器里的div为不可见的*/
+
+.tab-box div.active-content {
+  display: block;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+td,
+th {
+  padding: 0;
+}
+
+.pure-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  empty-cells: show;
+  border: 1px solid #000000;
+  width: 100%;
+}
+
+.pure-table caption {
+  color: #000;
+  font:
+    italic 85%/1 arial,
+    sans-serif;
+  padding: 1em 0;
+  text-align: center;
+}
+
+.pure-table td,
+.pure-table th {
+  border: 1px solid black;
+
+  font-size: inherit;
+  margin: 0;
+  overflow: visible;
+  padding: 0.5em 1em;
+}
+
+.pure-table thead {
+  color: #000;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+.pure-table-bordered tbody > tr:last-child > td {
+  border-bottom-width: 0;
+}
+
+.tdName {
+  background-color: #cbcbcb;
+}
+
+.checkMsg {
+  color: red;
+}
+
+.orderInfo {
+  padding-top: 5px;
+  font-weight: bold;
+}
+
+.zh_type {
+  padding-top: 15px;
+}
+
+/* ============================================================
+   校验错误边框（由 index.js 校验引擎动态添加）
+   ============================================================ */
+.validate-error-force {
+  border: 3px solid #ff0000 !important;
+}
+
+.validate-error-normal {
+  border: 3px solid #ffa500 !important;
+}
+
+/* ============================================================
+   校验 Tooltip
+   ============================================================ */
+#vld-tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  z-index: 99999;
+  pointer-events: none;
+  display: none;
+  max-width: 420px;
+  word-break: break-all;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  line-height: 1.5;
+}
