@@ -1,0 +1,11 @@
+# HTML 一律不交给 prettier（含第三方只读的 mom-cert/index.html）
+*.html
+
+# 工具/编辑器产物
+.zcode/
+.idea/
+.vscode/
+
+# 临时文件
+tmp.*
+*.log

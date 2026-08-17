@@ -27,7 +27,7 @@
 | 版本管理 | git | 常规 git 命令；改完即提交 |
 | 本地预览 | python3（内置，零安装） | `python3 -m http.server 3817`（需常驻时用后台任务） |
 | JS 静态检查 | ESLint 9.39.5 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；基线 0 error / 48 warning，只降不升 |
-| 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`（不要作用于 *.html） |
+| 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 *.html，勿对 HTML 用） |
 | HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids yes <html文件>` |
 | 自动化测试/冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（脚本内容会话中生成） |
 | 接口联调 | curl + jq 1.8.1 | `curl <url> \| jq` |
