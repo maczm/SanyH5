@@ -1365,7 +1365,11 @@ function handleSubmit(saveType) {
     return;
   }
 
-  // 二次确认：全部工位铭牌是否上传完毕
+  // 保存：无需二次确认，直接提交；提交检测：需二次确认
+  if (saveType == "save") {
+    doSubmit(saveType);
+    return;
+  }
   showConfirmDialog("车辆所有工位铭牌是否全部上传", function () {
     doSubmit(saveType);
   });
