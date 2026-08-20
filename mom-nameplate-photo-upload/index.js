@@ -25,16 +25,15 @@ var CONFIG = {
  *   API 1 (工位列表) : 返回模拟工位数据
  *   API 2 (照片配置) : 返回照片类型（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 直接返回 base64 当作 URL（生产需上传到 CDN/OSS）
- *   API 4 (记录提交) : 随机 10% 概率失败模拟异常（提交检测，二次确认后触发）
- *   API 5 (记录保存) : 随机 10% 概率失败模拟异常（草稿保存，不触发检测）
+ *   API 4 (记录提交) : 随机 10% 概率失败模拟异常。提交与保存共用本 API，
+ *                      通过 data.saveType 区分：'submit'=提交检测（二次确认后触发），'save'=草稿保存（不触发检测）
  *   window.Operator  : 默认 "开发用户"（生产由 Portal 注入真实工号）
  *
- * 生产环境中，Portal 必须注入以下 6 个 window 属性：
+ * 生产环境中，Portal 必须注入以下 5 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
  *   window.getPhotoConfig     — API 2：获取照片类型配置 + 订单信息
  *   window.uploadPhoto        — API 3：照片上传
- *   window.submitPhotoRecord  — API 4：照片记录提交（提交检测）
- *   window.savePhotoRecord    — API 5：照片记录保存（草稿）
+ *   window.submitPhotoRecord  — API 4：照片记录提交/保存（data.saveType 区分：'submit' / 'save'）
  *   window.Operator           — 当前操作员姓名
  */
 
@@ -157,27 +156,14 @@ if (typeof window.uploadPhoto != "function") {
   };
 }
 
-// -- Mock API 4：记录提交 --
+// -- Mock API 4：记录提交/保存（saveType 区分） --
 if (typeof window.submitPhotoRecord != "function") {
   window.submitPhotoRecord = function (data, callback) {
     setTimeout(function () {
       if (Math.random() < 0.1) {
         callback({ code: 1, msg: "系统繁忙，请稍后重试" });
       } else {
-        callback({ code: 0, msg: "提交成功" });
-      }
-    }, 800);
-  };
-}
-
-// -- Mock API 5：记录保存（草稿，不触发检测） --
-if (typeof window.savePhotoRecord != "function") {
-  window.savePhotoRecord = function (data, callback) {
-    setTimeout(function () {
-      if (Math.random() < 0.1) {
-        callback({ code: 1, msg: "系统繁忙，请稍后重试" });
-      } else {
-        callback({ code: 0, msg: "保存成功" });
+        callback({ code: 0, msg: data.saveType == "save" ? "保存成功" : "提交成功" });
       }
     }, 800);
   };
@@ -1320,7 +1306,7 @@ function buildPhotoList() {
   return photoList;
 }
 
-function buildSubmitData(photoList) {
+function buildSubmitData(photoList, saveType) {
   return {
     stationCode: state.stationCode,
     orderNo: state.orderNo,
@@ -1329,6 +1315,7 @@ function buildSubmitData(photoList) {
     vin: state.orderInfo.vin,
     templateId: state.selectedTemplateId,
     templateImageUrl: state.selectedTemplateUrl,
+    saveType: saveType, // 'submit'=提交检测 / 'save'=草稿保存
     photos: photoList,
   };
 }
@@ -1382,14 +1369,14 @@ function handleSave() {
     return;
   }
 
-  var submitData = buildSubmitData(buildPhotoList());
+  var submitData = buildSubmitData(buildPhotoList(), "save");
 
   state.submitting = true;
   showLoading("保存中...");
 
-  console.log("[API] savePhotoRecord", submitData);
-  window.savePhotoRecord(submitData, function (res) {
-    console.log("[API] savePhotoRecord 返回", res);
+  console.log("[API] submitPhotoRecord(save)", submitData);
+  window.submitPhotoRecord(submitData, function (res) {
+    console.log("[API] submitPhotoRecord(save) 返回", res);
     hideLoading();
     state.submitting = false;
 
@@ -1436,7 +1423,7 @@ function handleSubmit() {
 
 function doSubmit() {
   var photoList = buildPhotoList();
-  var submitData = buildSubmitData(photoList);
+  var submitData = buildSubmitData(photoList, "submit");
 
   state.submitting = true;
   var $btn = $("#btn-confirm");
