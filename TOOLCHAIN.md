@@ -22,10 +22,10 @@
 
 | 环节 | 工具 | 调用方式 |
 |---|---|---|
-| 设计/原型 | 浏览器（Windows 侧 Chrome/Edge） | 访问 `http://<WSL-IP>:3817/<页面目录>/` |
+| 设计/原型 | 浏览器（Windows 侧 Chrome/Edge） | 访问 `http://localhost:8080/wsl/projects/SanyH5/<页面目录>/` |
 | 编码 | VS Code | `code /home/wangzm/projects/SanyH5` |
 | 版本管理 | git | 常规 git 命令；改完即提交 |
-| 本地预览 | python3（内置，零安装） | `python3 -m http.server 3817`（需常驻时用后台任务） |
+| 本地预览 | nginx（已运行，配置 `/etc/nginx/conf.d/wsl-projects.conf`，端口 8080） | `http://localhost:8080/wsl/projects/SanyH5/<页面目录>/`（不改 nginx 路径） |
 | JS 静态检查 | ESLint 9.39.5 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；基线 0 error / 48 warning，只降不升 |
 | 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 *.html，勿对 HTML 用） |
 | HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids yes <html文件>` |
@@ -50,5 +50,5 @@
 ```bash
 git log --oneline | head -1
 eslint --version && playwright --version
-curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3817/
+curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/wsl/projects/SanyH5/mom-packing/index.html
 ```
