@@ -28,7 +28,8 @@
 | mom-nameplate-photo-upload | `getStationList` | function | 获取工位列表 |
 | mom-nameplate-photo-upload | `getPhotoConfig` | function | 获取照片类型配置 + 订单信息 |
 | mom-nameplate-photo-upload | `uploadPhoto` | function | 上传单张照片 |
-| mom-nameplate-photo-upload | `submitPhotoRecord` | function | 提交整笔照片记录 |
+| mom-nameplate-photo-upload | `submitPhotoRecord` | function | 提交整笔照片记录（提交检测） |
+| mom-nameplate-photo-upload | `savePhotoRecord` | function | 保存整笔照片记录（草稿，不触发检测） |
 
 ### 1.4 扫码能力（两个页面共用）
 
@@ -289,6 +290,29 @@ window.submitPhotoRecord({ stationCode, orderNo, operator, machineCode, vin,
 | `urlList` | string[] | 该类型所有照片 URL，按拍摄顺序 |
 
 **出参**：仅 `code`、`msg`，无 `data`。
+
+**页面行为**：点击"提交检测"按钮 → 照片齐全校验通过后弹二次确认（"车辆所有工位铭牌是否全部上传"）→ 确认后调用本 API。
+
+### API-N5：保存照片记录（草稿，不触发检测）
+
+```
+window.savePhotoRecord({ stationCode, orderNo, operator, machineCode, vin,
+                         templateId, templateImageUrl, photos }, callback)
+```
+
+**入参**：与 API-N4 完全一致（同结构）。
+
+**差异语义**：
+
+| 项 | API-N4 提交检测 | API-N5 保存 |
+|---|---|---|
+| 触发方式 | 底部"提交检测"按钮，二次确认后 | 底部"保存"按钮，无确认 |
+| 照片完整性 | 必须全部达到 minCount | 不强制（至少 1 张即可存草稿） |
+| 业务动作 | 触发铭牌检测流程 | 仅持久化草稿，不触发检测 |
+
+**出参**：仅 `code`、`msg`，无 `data`。
+
+**页面行为**：保存成功后 Toast 提示，**不重置表单**（可继续补拍后提交检测）。
 
 ### Mock 清理清单（mom-nameplate-photo-upload）
 

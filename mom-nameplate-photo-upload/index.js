@@ -25,14 +25,16 @@ var CONFIG = {
  *   API 1 (工位列表) : 返回模拟工位数据
  *   API 2 (照片配置) : 返回照片类型（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 直接返回 base64 当作 URL（生产需上传到 CDN/OSS）
- *   API 4 (记录提交) : 随机 10% 概率失败模拟异常
+ *   API 4 (记录提交) : 随机 10% 概率失败模拟异常（提交检测，二次确认后触发）
+ *   API 5 (记录保存) : 随机 10% 概率失败模拟异常（草稿保存，不触发检测）
  *   window.Operator  : 默认 "开发用户"（生产由 Portal 注入真实工号）
  *
- * 生产环境中，Portal 必须注入以下 5 个 window 属性：
+ * 生产环境中，Portal 必须注入以下 6 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
  *   window.getPhotoConfig     — API 2：获取照片类型配置 + 订单信息
  *   window.uploadPhoto        — API 3：照片上传
- *   window.submitPhotoRecord  — API 4：照片记录提交
+ *   window.submitPhotoRecord  — API 4：照片记录提交（提交检测）
+ *   window.savePhotoRecord    — API 5：照片记录保存（草稿）
  *   window.Operator           — 当前操作员姓名
  */
 
@@ -163,6 +165,19 @@ if (typeof window.submitPhotoRecord != "function") {
         callback({ code: 1, msg: "系统繁忙，请稍后重试" });
       } else {
         callback({ code: 0, msg: "提交成功" });
+      }
+    }, 800);
+  };
+}
+
+// -- Mock API 5：记录保存（草稿，不触发检测） --
+if (typeof window.savePhotoRecord != "function") {
+  window.savePhotoRecord = function (data, callback) {
+    setTimeout(function () {
+      if (Math.random() < 0.1) {
+        callback({ code: 1, msg: "系统繁忙，请稍后重试" });
+      } else {
+        callback({ code: 0, msg: "保存成功" });
       }
     }, 800);
   };
@@ -361,10 +376,11 @@ function initPage() {
   // 照片类型卡片区域（初始隐藏）
   $app.append('<div class="photo-cards-area" id="photo-cards-area" style="display:none;"></div>');
 
-  // 确认按钮区（初始隐藏）
+  // 确认按钮区（初始隐藏）：保存 + 提交检测
   $app.append(
     '<div class="confirm-section" id="confirm-section" style="display:none;">' +
-      '<button type="button" class="btn-confirm" id="btn-confirm">确认提交</button>' +
+      '<button type="button" class="btn-save" id="btn-save">保存</button>' +
+      '<button type="button" class="btn-confirm" id="btn-confirm">提交检测</button>' +
       "</div>",
   );
 
@@ -667,7 +683,12 @@ function initEvents() {
     $(this).val("");
   });
 
-  // 确认提交按钮
+  // 保存按钮
+  $("#confirm-section").on("click", "#btn-save", function () {
+    handleSave();
+  });
+
+  // 确认提交检测按钮
   $("#confirm-section").on("click", "#btn-confirm", function () {
     handleSubmit();
   });
@@ -1230,11 +1251,30 @@ function showPhotoPreview(url) {
   }
 }
 
-// ============== 提交按钮状态 ==============
+// ============== 按钮状态（保存 + 提交检测） ==============
 function updateSubmitButton() {
   var $btn = $("#btn-confirm");
+  var $save = $("#btn-save");
+
+  // 保存：有配置且至少一张照片即可用（草稿语义）
+  var hasPhoto = false;
+  if (state.configLoaded) {
+    for (var k in state.photos) {
+      if (state.photos[k] && state.photos[k].length) {
+        hasPhoto = true;
+        break;
+      }
+    }
+  }
+  if (!state.configLoaded || !state.photoTypes.length || !hasPhoto) {
+    $save.prop("disabled", true).addClass("btn-disabled");
+  } else {
+    $save.prop("disabled", false).removeClass("btn-disabled");
+  }
+
+  // 提交检测：模板已选 + 全部达到 minCount
   if (!state.configLoaded || !state.photoTypes.length) {
-    $btn.prop("disabled", true).text("确认提交");
+    $btn.prop("disabled", true).text("提交检测");
     return;
   }
 
@@ -1262,7 +1302,107 @@ function updateSubmitButton() {
   }
 }
 
-// ============== 提交 ==============
+// ============== 数据构建（保存/提交共用） ==============
+function buildPhotoList() {
+  var photoList = [];
+  for (var i = 0; i < state.photoTypes.length; i++) {
+    var pt = state.photoTypes[i];
+    var photosOfType = state.photos[pt.typeCode] || [];
+    var urlList = [];
+    for (var j = 0; j < photosOfType.length; j++) {
+      urlList.push(photosOfType[j].url);
+    }
+    photoList.push({
+      photoType: pt.typeCode,
+      urlList: urlList,
+    });
+  }
+  return photoList;
+}
+
+function buildSubmitData(photoList) {
+  return {
+    stationCode: state.stationCode,
+    orderNo: state.orderNo,
+    operator: window.Operator,
+    machineCode: state.orderInfo.machineCode,
+    vin: state.orderInfo.vin,
+    templateId: state.selectedTemplateId,
+    templateImageUrl: state.selectedTemplateUrl,
+    photos: photoList,
+  };
+}
+
+// ============== 二次确认弹窗 ==============
+function showConfirmDialog(message, onConfirm) {
+  $(".toast-mask,.template-picker-mask,.confirm-mask").remove();
+
+  var $mask = $(
+    '<div class="confirm-mask">' +
+      '<div class="confirm-box">' +
+        '<div class="confirm-title">提示</div>' +
+        '<div class="confirm-content">' + escapeHtml(message) + "</div>" +
+        '<div class="confirm-btns">' +
+          '<button type="button" class="confirm-btn-cancel">取消</button>' +
+          '<button type="button" class="confirm-btn-ok">确定</button>' +
+        "</div>" +
+      "</div>" +
+    "</div>",
+  ).appendTo("#mom-photo-upload");
+
+  function close() {
+    $mask.remove();
+  }
+
+  $mask.find(".confirm-btn-ok").on("click", function () {
+    close();
+    if (onConfirm) onConfirm();
+  });
+  $mask.find(".confirm-btn-cancel").on("click", close);
+  $mask.on("click", function (e) {
+    if (e.target == this) close();
+  });
+}
+
+// ============== 保存（草稿，不触发检测） ==============
+function handleSave() {
+  if (state.submitting) return;
+  if (!state.configLoaded || !state.photoTypes.length) return;
+
+  // 至少有一张照片才允许保存
+  var hasPhoto = false;
+  for (var k in state.photos) {
+    if (state.photos[k] && state.photos[k].length) {
+      hasPhoto = true;
+      break;
+    }
+  }
+  if (!hasPhoto) {
+    showToast("提示", "暂无可保存的照片", "error");
+    return;
+  }
+
+  var submitData = buildSubmitData(buildPhotoList());
+
+  state.submitting = true;
+  showLoading("保存中...");
+
+  console.log("[API] savePhotoRecord", submitData);
+  window.savePhotoRecord(submitData, function (res) {
+    console.log("[API] savePhotoRecord 返回", res);
+    hideLoading();
+    state.submitting = false;
+
+    if (res.code != 0) {
+      showToast("保存失败", res.msg || "请稍后重试", "error");
+      return;
+    }
+    // 保存成功：保留当前页面，便于继续补拍后提交检测
+    showToast("保存成功", "", "success");
+  });
+}
+
+// ============== 提交检测（二次确认后执行） ==============
 function handleSubmit() {
   if (state.submitting) return;
 
@@ -1288,19 +1428,15 @@ function handleSubmit() {
     return;
   }
 
-  var photoList = [];
-  for (var i = 0; i < state.photoTypes.length; i++) {
-    var pt = state.photoTypes[i];
-    var photosOfType = state.photos[pt.typeCode] || [];
-    var urlList = [];
-    for (var j = 0; j < photosOfType.length; j++) {
-      urlList.push(photosOfType[j].url);
-    }
-    photoList.push({
-      photoType: pt.typeCode,
-      urlList: urlList,
-    });
-  }
+  // 二次确认：全部工位铭牌是否上传完毕
+  showConfirmDialog("车辆所有工位铭牌是否全部上传", function () {
+    doSubmit();
+  });
+}
+
+function doSubmit() {
+  var photoList = buildPhotoList();
+  var submitData = buildSubmitData(photoList);
 
   state.submitting = true;
   var $btn = $("#btn-confirm");
@@ -1308,23 +1444,12 @@ function handleSubmit() {
 
   showLoading("提交中...");
 
-  var submitData = {
-    stationCode: state.stationCode,
-    orderNo: state.orderNo,
-    operator: window.Operator,
-    machineCode: state.orderInfo.machineCode,
-    vin: state.orderInfo.vin,
-    templateId: state.selectedTemplateId,
-    templateImageUrl: state.selectedTemplateUrl,
-    photos: photoList,
-  };
-
   console.log("[API] submitPhotoRecord", submitData);
   window.submitPhotoRecord(submitData, function (res) {
     console.log("[API] submitPhotoRecord 返回", res);
     hideLoading();
     state.submitting = false;
-    $btn.prop("disabled", false).text("确认提交");
+    $btn.prop("disabled", false).text("提交检测");
 
     if (res.code != 0) {
       showToast("提交失败", res.msg || "请稍后重试", "error");

@@ -876,16 +876,41 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* ==================== 确认按钮 ==================== */
+/* ==================== 底部按钮区（保存 + 提交检测） ==================== */
 #mom-photo-upload .confirm-section {
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   background: #fff;
   border-top: 1px solid #eee;
   box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  gap: 10px;
+}
+#mom-photo-upload .btn-save {
+  flex: 1;
+  padding: 15px;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  transition: background 0.15s, opacity 0.15s;
+}
+#mom-photo-upload .btn-save:active {
+  background: var(--primary-bg);
+}
+#mom-photo-upload .btn-save:disabled,
+#mom-photo-upload .btn-save.btn-disabled {
+  border-color: #d5d7da;
+  color: #b0b3b7;
+  background: #fafbfc;
+  cursor: not-allowed;
 }
 #mom-photo-upload .btn-confirm {
-  width: 100%;
+  flex: 2;
   padding: 15px;
   border: none;
   border-radius: 12px;
@@ -908,6 +933,70 @@ body {
   box-shadow: none;
   color: #fff;
   cursor: not-allowed;
+}
+
+/* ==================== 二次确认弹窗 ==================== */
+#mom-photo-upload .confirm-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+#mom-photo-upload .confirm-box {
+  background: #fff;
+  border-radius: 16px;
+  width: 82%;
+  max-width: 360px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.25s ease;
+}
+#mom-photo-upload .confirm-title {
+  padding: 18px 18px 6px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+#mom-photo-upload .confirm-content {
+  padding: 8px 18px 20px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+#mom-photo-upload .confirm-btns {
+  display: flex;
+  border-top: 1px solid #eee;
+}
+#mom-photo-upload .confirm-btns button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#mom-photo-upload .confirm-btn-cancel {
+  color: var(--text-secondary);
+  border-right: 1px solid #eee;
+}
+#mom-photo-upload .confirm-btn-ok {
+  color: var(--primary);
+}
+#mom-photo-upload .confirm-btns button:active {
+  background: #f1f3f4;
 }
 
 /* ==================== 加载动画 ==================== */
