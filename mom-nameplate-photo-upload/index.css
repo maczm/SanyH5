@@ -886,31 +886,8 @@ body {
   display: flex;
   gap: 10px;
 }
-#mom-photo-upload .btn-save {
-  flex: 1;
-  padding: 15px;
-  border: 1.5px solid var(--primary);
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
-  background: #fff;
-  color: var(--primary);
-  letter-spacing: 0.5px;
-  transition: background 0.15s, opacity 0.15s;
-}
-#mom-photo-upload .btn-save:active {
-  background: var(--primary-bg);
-}
-#mom-photo-upload .btn-save:disabled,
-#mom-photo-upload .btn-save.btn-disabled {
-  border-color: #d5d7da;
-  color: #b0b3b7;
-  background: #fafbfc;
-  cursor: not-allowed;
-}
 #mom-photo-upload .btn-confirm {
-  flex: 2;
+  flex: 1;
   padding: 15px;
   border: none;
   border-radius: 12px;
@@ -932,6 +909,29 @@ body {
   background: #d5d7da;
   box-shadow: none;
   color: #fff;
+  cursor: not-allowed;
+}
+#mom-photo-upload .btn-save {
+  flex: 2;
+  padding: 15px;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  transition: background 0.15s, opacity 0.15s;
+}
+#mom-photo-upload .btn-save:active {
+  background: var(--primary-bg);
+}
+#mom-photo-upload .btn-save:disabled,
+#mom-photo-upload .btn-save.btn-disabled {
+  border-color: #d5d7da;
+  color: #b0b3b7;
+  background: #fafbfc;
   cursor: not-allowed;
 }
 

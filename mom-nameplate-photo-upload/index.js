@@ -362,11 +362,11 @@ function initPage() {
   // 照片类型卡片区域（初始隐藏）
   $app.append('<div class="photo-cards-area" id="photo-cards-area" style="display:none;"></div>');
 
-  // 确认按钮区（初始隐藏）：保存 + 提交检测
+  // 确认按钮区（初始隐藏）：提交检测 + 保存
   $app.append(
     '<div class="confirm-section" id="confirm-section" style="display:none;">' +
-      '<button type="button" class="btn-save" id="btn-save">保存</button>' +
       '<button type="button" class="btn-confirm" id="btn-confirm">提交检测</button>' +
+      '<button type="button" class="btn-save" id="btn-save">保存</button>' +
       "</div>",
   );
 
