@@ -362,11 +362,11 @@ function initPage() {
   // 照片类型卡片区域（初始隐藏）
   $app.append('<div class="photo-cards-area" id="photo-cards-area" style="display:none;"></div>');
 
-  // 确认按钮区（初始隐藏）：提交检测 + 保存
+  // 确认按钮区（初始隐藏）：提交AI检测 + 保存工位照片信息
   $app.append(
     '<div class="confirm-section" id="confirm-section" style="display:none;">' +
-      '<button type="button" class="btn-confirm" id="btn-confirm">提交检测</button>' +
-      '<button type="button" class="btn-save" id="btn-save">保存</button>' +
+      '<button type="button" class="btn-confirm" id="btn-confirm">提交AI检测</button>' +
+      '<button type="button" class="btn-save" id="btn-save">保存工位照片信息</button>' +
       "</div>",
   );
 
@@ -1244,7 +1244,7 @@ function updateSubmitButton() {
 
   // 两按钮可用条件一致：已加载配置 + 模板已选（如有）+ 全部达到 minCount
   if (!state.configLoaded || !state.photoTypes.length) {
-    $btn.prop("disabled", true).text("提交检测");
+    $btn.prop("disabled", true).text("提交AI检测");
     $save.prop("disabled", true).addClass("btn-disabled");
     return;
   }
@@ -1383,7 +1383,14 @@ function doSubmit(saveType) {
 
   state.submitting = true;
   var $btn = $("#btn-confirm");
-  $btn.prop("disabled", true).text(actionText + "中...");
+  var $save = $("#btn-save");
+  $btn.prop("disabled", true);
+  $save.prop("disabled", true);
+  if (isSave) {
+    $save.text("保存中...");
+  } else {
+    $btn.text("提交中...");
+  }
 
   showLoading(actionText + "中...");
 
@@ -1392,7 +1399,8 @@ function doSubmit(saveType) {
     console.log("[API] submitPhotoRecord(" + saveType + ") 返回", res);
     hideLoading();
     state.submitting = false;
-    $btn.prop("disabled", false).text("提交检测");
+    $btn.prop("disabled", false).text("提交AI检测");
+    $save.prop("disabled", false).text("保存工位照片信息");
 
     if (res.code != 0) {
       showToast(actionText + "失败", res.msg || "请稍后重试", "error");

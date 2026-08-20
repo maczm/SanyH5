@@ -293,10 +293,10 @@ window.submitPhotoRecord({ stationCode, orderNo, operator, machineCode, vin,
 
 **saveType 两种取值的差异**：**前端交互基本一致**（同样的模板/照片齐全校验 → 成功后重置表单），仅两处不同：
 
-| 项 | `saveType: "submit"`（提交检测） | `saveType: "save"`（保存） |
+| 项 | `saveType: "submit"`（提交AI检测） | `saveType: "save"`（保存工位照片信息） |
 |---|---|---|
 | 二次确认 | 有（"车辆所有工位铭牌是否全部上传"） | **无**（校验通过直接提交） |
-| 后台逻辑 | 触发铭牌检测流程 | 仅持久化记录，不触发检测 |
+| 后台逻辑 | 触发 AI 铭牌检测流程 | 仅持久化工位照片信息，不触发检测 |
 
 ### Mock 清理清单（mom-nameplate-photo-upload）
 
