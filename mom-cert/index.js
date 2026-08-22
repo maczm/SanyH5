@@ -9,7 +9,7 @@
  */
 /**
  * 开发模式开关（运行时判断，部署无需改代码）：
- *   - URL 带 dev=1（如 ?dev=1 或 &dev=1）→ 开发模式（Mock 数据 + 调试日志）
+ *   - URL 查询串含 dev=1（?dev=1 或查询串中追加 dev=1）→ 开发模式（Mock 数据 + 调试日志）
  *   - 宿主注入 window.__DEV__ === true → 开发模式
  *   - 其余（生产）→ 使用宿主注入的 $Context
  */
@@ -491,19 +491,17 @@ if (__DEV__) {
     IdleFuel:        { rule: "一般", value: ["2.5", "2.8", "3.0"],                  color: "#FFA500" },
   });
 } else {
-  // __DEV__ 结束，进入生产模式
 
   // ============================================================
   // 生产模式：$Context 由宿主容器注入，此处做防御性检查
   // ============================================================
   if (typeof $Context === "undefined") {
-    if (__DEV__) console.error("[index.js] 生产模式下 $Context 未由宿主注入，使用空壳兜底");
     var $Context = { inputs: {}, outputs: {}, submit: function () {} };
   }
   if (!$Context.inputs) {
     $Context.inputs = {};
   }
-} // __DEV__ / else
+}
 
 // ============================================================
 // 输入归一化（顶层同步执行，先于内联脚本的 $(document).ready）
@@ -540,10 +538,10 @@ function cleanNulls(value) {
 
 /**
  * 归一化 $Context.inputs：
- *   1. 内联脚本裸 parse 的 JSON 字段缺失补 ''（undefined 会穿透 != '' 守卫）
- *   2. CHECK_CONTENT 空串补 '[]'（isCertSuccess 无守卫）
- *   3. 普通字符串字段缺失补 ''
- *   4. JSON 内容清洗 null → ''（内联脚本 value.length 对 null 抛 TypeError）
+ *   1. 内联脚本裸 parse 的 JSON 字段缺失补空串（undefined 会穿透非空判断）
+ *   2. CHECK_CONTENT 空串补 []（isCertSuccess 无守卫）
+ *   3. 普通字符串字段缺失补空串
+ *   4. JSON 内容清洗 null → 空串（内联脚本 value.length 对 null 抛 TypeError）
  */
 function normalizeInputs() {
   var inputs = $Context.inputs;
@@ -623,7 +621,7 @@ function sanitizeHtmlString(html) {
 
 // ============================================================
 // Validate 校验规则
-//   格式：{ "字段名": { "rule": "强制"|"一般"|"特殊", "value": [...] } }
+//   格式：{ 字段名: { rule: 强制|一般|特殊, value: [...] } }
 //   强制=红色边框, 一般=黄色边框, 特殊=不校验
 //
 //   校验规则通过 $Context.inputs.*_Validate 下发：
@@ -651,11 +649,10 @@ function safeParse(jsonStr) {
 /**
  * 对单个合格证执行字段校验
  *
- * @param {string} prefix    - DOM id 前缀，如 '#dp_'、'#zc_'
- * @param {Array}  validateArray - 校验规则数组
- * @param {Object} certDataObj   - 已解析的合格证 JSON 对象
+ * @param {string} prefix      - DOM id 前缀，如 #dp_、#zc_
+ * @param {Object} validateMap - 校验规则映射（字段名 → 规则项）
  */
-function validateCert(prefix, validateMap, certDataObj) {
+function validateCert(prefix, validateMap) {
   // 防御：若为 JSON 字符串则先解析（服务端注入场景）
   if (typeof validateMap === "string") {
     validateMap = safeParse(validateMap);
@@ -663,7 +660,7 @@ function validateCert(prefix, validateMap, certDataObj) {
   if (!validateMap || typeof validateMap !== "object") return;
 
   // 使用 Object.keys 替代 $.each，避免 jQuery isArrayLike 内部
-  // "length" in obj 对 null/undefined/非预期类型抛出 TypeError
+  // length in obj 对 null/undefined/非预期类型抛出 TypeError
   var fields = Object.keys(validateMap);
   for (var i = 0; i < fields.length; i++) {
     var fieldName = fields[i];
@@ -674,7 +671,7 @@ function validateCert(prefix, validateMap, certDataObj) {
     if (!item.color) continue;
 
     var $el = $(prefix + fieldName);
-    if (!$el.length) continue; // DOM 元素不存在则跳过
+    if (!$el.length) continue;
 
     // 如果是 span，找最近父级 td/th
     // 若父单元格有多个带 id 的 span，边框精确到 span 自身；否则整格高亮
@@ -689,7 +686,6 @@ function validateCert(prefix, validateMap, certDataObj) {
     }
     if (!$cell.length) continue;
 
-    // 直接用 color 设置边框
     $cell.css("border", "3px solid " + item.color);
     $cell.attr("data-vld-values", JSON.stringify(item.value || []));
     $cell.attr("title", ""); // 清除原生 title 避免冲突
@@ -698,8 +694,8 @@ function validateCert(prefix, validateMap, certDataObj) {
 
 /**
  * 获取当前选中的车型 key
- * 牵引车(ISCARGOTRUCK=false) 固定返回 'ZC'
- * 载货车(ISCARGOTRUCK=true)  返回当前选中的 radio 值，默认 'CS'
+ * 牵引车(ISCARGOTRUCK=false) 固定返回 ZC
+ * 载货车(ISCARGOTRUCK=true)  返回当前选中的 radio 值，默认 CS
  */
 function getCurrentVehicleType() {
   var ctx = $Context.inputs;
@@ -720,7 +716,6 @@ function validateHB() {
 
   var modeType = ctx.MODETYPE;
 
-  // 根据 MODETYPE 选择 DOM id 前缀
   var prefixMap = {
     国五: "#hb_g5_",
     "国六-燃气": "#hb_g6_rq_",
@@ -739,8 +734,8 @@ function validateHB() {
   var template = data[vehicleType];
   if (!template) return;
 
-  var hbVld = safeParse($Context.inputs.HB_Validate);
-  if (hbVld) validateCert(prefix, hbVld, template);
+  var hbValidate = safeParse($Context.inputs.HB_Validate);
+  if (hbValidate) validateCert(prefix, hbValidate);
 }
 
 /**
@@ -760,8 +755,8 @@ function validateRY() {
   var template = data[vehicleType];
   if (!template) return;
 
-  var ryVld = safeParse($Context.inputs.RY_Validate);
-  if (ryVld) validateCert("#ry_", ryVld, template);
+  var ryValidate = safeParse($Context.inputs.RY_Validate);
+  if (ryValidate) validateCert("#ry_", ryValidate);
 }
 
 /**
@@ -775,14 +770,14 @@ function runAllValidations() {
   if (VALIDATION_SWITCH.DP && ctx.DP) {
     var dpData = safeParse(ctx.DP);
     var dpVld = safeParse(ctx.DP_Validate);
-    if (dpData && dpVld) validateCert("#dp_", dpVld, dpData);
+    if (dpData && dpVld) validateCert("#dp_", dpVld);
   }
 
   // ZC - 整车
   if (VALIDATION_SWITCH.ZC && ctx.ZC) {
     var zcData = safeParse(ctx.ZC);
     var zcVld = safeParse(ctx.ZC_Validate);
-    if (zcData && zcVld) validateCert("#zc_", zcVld, zcData);
+    if (zcData && zcVld) validateCert("#zc_", zcVld);
   }
 
   // CL - 一致性（电动用 #cl_dd_ 前缀）
@@ -791,7 +786,7 @@ function runAllValidations() {
     var clVld = safeParse(ctx.CL_Validate);
     if (clData && clVld) {
       var clPrefix = modeType === "电动" ? "#cl_dd_" : "#cl_";
-      validateCert(clPrefix, clVld, clData);
+      validateCert(clPrefix, clVld);
     }
   }
 
@@ -799,7 +794,7 @@ function runAllValidations() {
   if (VALIDATION_SWITCH.WX && ctx.WX) {
     var wxData = safeParse(ctx.WX);
     var wxVld = safeParse(ctx.WX_Validate);
-    if (wxData && wxVld) validateCert("#wx_", wxVld, wxData);
+    if (wxData && wxVld) validateCert("#wx_", wxVld);
   }
 
   // HB - 环保（嵌套结构，子开关在 validateHB 内部按车型判断）
@@ -813,7 +808,7 @@ function runAllValidations() {
  * 创建全局 tooltip div
  */
 function initTooltip() {
-  window.$vldTooltip = $('<div id="vld-tooltip"></div>').appendTo("body");
+  window.$validationTooltip = $('<div id="vld-tooltip"></div>').appendTo("body");
 }
 
 /**
@@ -825,17 +820,17 @@ function bindTooltipEvents() {
       var values = $(this).attr("data-vld-values");
       try {
         var arr = JSON.parse(values);
-        window.$vldTooltip
+        window.$validationTooltip
           .text("公告值：" + arr.join("、"))
           .css({ left: e.clientX + 15, top: e.clientY + 15 })
           .show();
       } catch (_) {}
     })
     .on("mousemove", "[data-vld-values]", function (e) {
-      window.$vldTooltip.css({ left: e.clientX + 15, top: e.clientY + 15 });
+      window.$validationTooltip.css({ left: e.clientX + 15, top: e.clientY + 15 });
     })
     .on("mouseleave", "[data-vld-values]", function () {
-      window.$vldTooltip.hide();
+      window.$validationTooltip.hide();
     })
     // 触屏支持：点击切换显示/隐藏（无 hover 的设备）
     .on("click", "[data-vld-values]", function (e) {
@@ -843,11 +838,11 @@ function bindTooltipEvents() {
       var values = $(this).attr("data-vld-values");
       try {
         var arr = JSON.parse(values);
-        if (window.$vldTooltip.is(":visible") && window.$vldTooltip.data("owner") === this) {
-          window.$vldTooltip.hide();
+        if (window.$validationTooltip.is(":visible") && window.$validationTooltip.data("owner") === this) {
+          window.$validationTooltip.hide();
           return;
         }
-        window.$vldTooltip
+        window.$validationTooltip
           .text("公告值：" + arr.join("、"))
           .css({ left: e.clientX + 15, top: e.clientY + 15 })
           .data("owner", this)
@@ -855,14 +850,14 @@ function bindTooltipEvents() {
       } catch (_) {}
     })
     .on("click", function () {
-      if (window.$vldTooltip) window.$vldTooltip.hide();
+      if (window.$validationTooltip) window.$validationTooltip.hide();
     });
 }
 
 /**
  * 消毒 #check_content（内联脚本用 .html() 渲染服务端 Msg，存在 XSS 注入面）。
  * DOM 级白名单清洗：移除脚本/iframe/object/embed/style 等元素，
- * 剔除全部 on* 属性与 javascript: 链接，保留 <p><span> 结构与内联样式。
+ * 剔除全部 on* 属性与 javascript: 链接，保留 p/span 结构与内联样式。
  */
 function sanitizeCheckContent() {
   var $content = $("#check_content");
