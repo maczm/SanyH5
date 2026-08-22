@@ -214,31 +214,29 @@ var PhotoUpload = {
   },
 
   // ============== 表单渲染（骨架已静态化，此处仅切换状态与回填值） ==============
+  // 与订单信息一致：查询后显示卡片头（点击折叠/展开），查询前无头完整显示
   renderForm: function () {
     var s = PhotoUpload.state;
-    var $card = $("#form-card");
-    var $summary = $("#form-summary");
-    var $btnRow = $("#form-btn-row");
+    var $header = $("#btn-toggle-form");
+    var $body = $("#form-card-body");
     var $clearBefore = $("#btn-clear-before");
 
-    if (s.formCollapsed && s.configLoaded) {
-      $card.addClass("hidden");
-      $btnRow.addClass("hidden");
+    if (s.configLoaded) {
+      $header.removeClass("hidden");
+      $(".form-arrow .arrow-down").toggleClass("hidden", !s.formCollapsed);
+      $(".form-arrow .arrow-up").toggleClass("hidden", s.formCollapsed);
+      $body.toggleClass("hidden", s.formCollapsed);
       $clearBefore.addClass("hidden");
-      // 折叠摘要：骨架在 index.html，仅填值
-      $("#summary-station").text(s.stationCode);
-      $("#summary-order").text(s.orderNo);
-      $summary.removeClass("hidden");
     } else {
-      $card.removeClass("hidden");
-      $btnRow.toggleClass("hidden", !s.configLoaded);
-      $clearBefore.toggleClass("hidden", s.configLoaded);
-      $summary.addClass("hidden");
-      // 回填当前值
-      $("#input-station").val(s.stationCode ? PhotoUpload.getStationDisplay(s.stationCode) : "");
-      $("#input-station-code").val(s.stationCode);
-      $("#input-order").val(s.orderNo);
+      $header.addClass("hidden");
+      $body.removeClass("hidden");
+      $clearBefore.removeClass("hidden");
     }
+
+    // 回填当前值
+    $("#input-station").val(s.stationCode ? PhotoUpload.getStationDisplay(s.stationCode) : "");
+    $("#input-station-code").val(s.stationCode);
+    $("#input-order").val(s.orderNo);
   },
 
   getStationDisplay: function (stationCode) {
@@ -319,14 +317,9 @@ var PhotoUpload = {
     $("#confirm-section").addClass("hidden");
   },
 
-  // ============== 表单折叠/展开/清空 ==============
-  collapseForm: function () {
-    PhotoUpload.state.formCollapsed = true;
-    PhotoUpload.renderForm();
-  },
-
-  expandForm: function () {
-    PhotoUpload.state.formCollapsed = false;
+  // ============== 表单折叠/清空（折叠交互与订单信息一致：点卡片头切换） ==============
+  toggleForm: function () {
+    PhotoUpload.state.formCollapsed = !PhotoUpload.state.formCollapsed;
     PhotoUpload.renderForm();
   },
 
@@ -434,8 +427,8 @@ var PhotoUpload = {
         s.photos[s.photoTypes[i].typeCode] = [];
       }
 
-      // 折叠表单，订单信息默认展开
-      s.formCollapsed = true;
+      // 查询成功：表单与订单信息默认展开（折叠交互一致：点卡片头切换）
+      s.formCollapsed = false;
       s.orderInfoCollapsed = false;
       PhotoUpload.renderForm();
       PhotoUpload.renderOrderInfo();
@@ -465,6 +458,10 @@ var PhotoUpload = {
     // 折叠箭头双态切换
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !s.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", s.orderInfoCollapsed);
+
+    // 折叠：body 收起（多态块全部隐藏）
+    $("#order-info-body").toggleClass("hidden", s.orderInfoCollapsed);
+    if (s.orderInfoCollapsed) return;
 
     // 态A：主机编码 + VIN
     var hasMachVin = !!(s.orderInfo.machineCode || s.orderInfo.vin);
@@ -1077,13 +1074,12 @@ var PhotoUpload = {
       PhotoUpload.doQueryPhotoConfig();
     });
 
-    // 收起/展开/清空（class 委托，覆盖展开态与折叠态两处按钮）
-    $("#form-area").on("click", ".btn-collapse-form", function () {
-      PhotoUpload.collapseForm();
+    // 表单卡片头：点击折叠/展开（与订单信息一致）
+    $("#form-area").on("click", "#btn-toggle-form", function () {
+      PhotoUpload.toggleForm();
     });
-    $("#form-area").on("click", ".btn-expand-form", function () {
-      PhotoUpload.expandForm();
-    });
+
+    // 清空（header 清空图标 + 查询前清空按钮，class 委托）
     $("#form-area").on("click", ".btn-clear-form", function () {
       PhotoUpload.clearForm();
     });
