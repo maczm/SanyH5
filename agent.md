@@ -7,24 +7,24 @@
 
 ## 1. 项目概览
 
-SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），无构建链、无 package.json、无 CI。
+SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），无构建链、无 package.json、无 CI。
 
-| 页面 | 目录 | 说明 |
-|---|---|---|
-| 合格证查看 | mom-cert/ | 静态大 HTML + 内联脚本 + index.js 校验引擎 |
-| 装箱作业 | mom-packing/ | JS 全量渲染，4 个 window API |
-| 铭牌照片上传 | mom-nameplate-photo-upload/ | JS 全量渲染，4 个 window API |
-| 铭牌检查结果 | mom-nameplate-check-result/ | 纯展示页，读 `window.checkResultData` |
+| 子项目 | 目录 | 架构 | API 数 |
+|---|---|---|---|
+| 合格证查看 | mom-cert/ | 第三方静态 HTML + index.js 叠加引擎（HTML 只读） | 0（读 $Context.inputs） |
+| 装箱作业 | mom-packing/ | 骨架 + template + `Packing` 命名空间 | 4 |
+| 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
+| 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData） |
 
-所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信，本地 `#MOCK-START`~`#MOCK-END` 兜底。
+所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
 ## 2. 硬约束（违反即事故）
 
 1. **mom-cert/index.html 第三方只读，禁止修改**——该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）
-2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（生产不部署该文件，Portal 只取 3 文件）
+2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（Portal 只取 3 文件，mock.js 不进生产）
 3. **项目根无 package.json、无 node_modules**；工具一律全局安装
-4. **不得格式化/批量修改任何 *.html**（.prettierignore 已排除）
-5. 文档类文件放根目录（如本文件、TOOLCHAIN.md、API接口对接文档.md），不塞进页面目录
+4. **不得格式化/批量修改任何 *.html**（.prettierignore 已排除；mom-cert HTML 尤其只读）
+5. 文档类文件放根目录（agent.md / TOOLCHAIN.md / API接口对接文档.md），不塞进页面目录
 6. 不删除/重命名任何现有文件，除非用户明确要求
 
 ## 3. 协作规则（权限相关）
@@ -35,55 +35,68 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 
 ## 4. 标准工作流（每项改动必须走完）
 
-1. **改前**：`git status` 确认工作区干净，`git log --oneline` 确认基线
-2. **改后静态检查**：`eslint <改动文件>`——基线 0 error / 48 warning，只降不升
-3. **冒烟验证**：Playwright 内联脚本访问对应页面（`NODE_PATH=$(npm root -g) node -e '...'`），JS 错误数须为 0；页面通过 nginx 8080 提供（`http://localhost:8080/SanyH5/<页面目录>/`）
-4. **提交**：`git add -A && git commit`，一次提交一件事，信息格式见 §5
-5. **汇报**：说明改了什么、验证结果（eslint 数字 + 冒烟结果）、提交号
+### 4.1 改动分级与验证范围
+
+| 级别 | 改动类型 | 验证范围 |
+|---|---|---|
+| 小 | 文案/样式微调、注释 | eslint 该文件 + 冒烟（0 JS 错误） |
+| 中 | 单页逻辑/结构改动 | 该子项目回归脚本全绿 + eslint 0/0 |
+| 大 | 重构/新功能/多页改动 | 波及的**全部子项目**回归 + eslint 0/0 |
+| 横切 | 公共文件（eslint.config/工具/跨页同步组件） | **所有被波及子项目**全验证 |
+
+> 子项目互不影响：改动只在单页内时，只验证该页，不跑其他页回归。
+> 结构变更（骨架/模板/id 变化）**必须同步更新对应回归脚本**再重跑。
+
+### 4.2 步骤
+
+1. **改前**：`git status` 工作区干净（可回滚基线）+ `git log --oneline` 确认位置
+2. **影响面分析**：改公共函数/组件前，先 `rg` 找全部引用，列影响面
+3. **编码**：按 §8 编码准则（架构/命名/UI/平台约束）
+4. **验证**：按 4.1 分级执行（eslint → 回归脚本 → 冒烟）
+5. **自查留痕**：`git diff` 复查改动；commit body 写验证摘要（lint 数/回归结果）
+6. **提交**：一次提交一件事，格式见 §5
+7. **失败回滚**：验证不通过立即修复；无法快速修复则 `git reset`/`checkout` 回滚到基线，不带着半成品继续
 
 ## 5. 提交规范
 
 - 格式：`<type>: <中文描述>`
 - type：`fix` 修 bug / `refactor` 重构 / `docs` 文档 / `chore` 配置工具 / `feat` 新功能
-- 示例：`fix: mom-cert 输入归一化，消除裸 JSON.parse 崩点`
+- commit body 附验证摘要：`验证：eslint 0/0，tests/<脚本> REGRESSION OK（N 项）`
 
 ### 5.1 发布 Tag 规范
 
-- 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-nameplate-photo-upload-v0.1.0`），带 `-a` 附注说明
-- 子项目名与页面目录名一致：`mom-cert` / `mom-packing` / `mom-nameplate-photo-upload` / `mom-nameplate-check-result`
-- 时机：每次**可交付/可部署/里程碑**节点（日常提交不打 tag）
-- 版本号递增（SemVer）
-- 现有：`mom-nameplate-photo-upload-v0.1.0`（功能完整）/ `-v0.2.0`（部署形态定型）/ `-v0.3.0`（样板页定型）
+- 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-packing-v0.1.0`），带 `-a` 附注说明
+- 子项目名 = 页面目录名；版本号 SemVer 递增
+- **前置**：该子项目验证全绿（eslint 0/0 + 对应回归脚本 OK）
+- 时机：可交付/可部署/里程碑节点（日常提交不打 tag）
+- 全量体检（TOOLCHAIN §全量体检）：可选，用于整体确认/定期体检，不绑定 tag 流程
+- 现有：photo-upload v0.1.0~0.3.0 / mom-cert v0.1.0 / mom-packing v0.1.0 / check-result v0.1.0
 
 ## 6. 文档地图
 
 | 文档 | 内容 | 维护责任 |
 |---|---|---|
-| TOOLCHAIN.md | 环境事实、环节-工具映射、环境坑、自检命令 | 工具/环境变化时更新 |
+| TOOLCHAIN.md | 环境事实、环节-工具映射、环境坑、全量体检命令 | 工具/环境变化时更新 |
 | API接口对接文档.md | Portal window API 契约（两模块合并版） | 接口变化时更新（先改文档后改代码） |
 | agent.md | 本文档 | 规则变化时更新 |
 
 ## 7. 当前整改状态
 
-- mom-nameplate-photo-upload：重构完成（HTML 骨架 + template 克隆 + 命名空间），已知 bug 全部修复 ✅（tag: v0.1.0/v0.2.0/v0.3.0）
-- mom-cert：P0 完成（输入归一化/XSS 前置拦截/`__DEV__` 运行时判断/触屏 tooltip）✅（tag: v0.1.0）
-- mom-packing：重构完成（骨架 + Packing 命名空间），已知 bug 全部修复 ✅（tag: v0.1.0）
-- mom-nameplate-check-result：重构完成（骨架 + 命名空间），未知枚举/轮询修复 ✅（tag: v0.1.0）
-- 一致性证书 tab 显示矛盾：**待业务确认**（确认后由 index.js 侧处理）
+- 4 个子项目：改造完成、已知 bug 全部修复、回归脚本落盘 ✅
+- 一致性证书 tab 显示矛盾（mom-cert）：**待业务确认**（确认后由 index.js 侧处理）
 
-## 8. 编码准则（平台与工具相关）
+## 8. 编码准则
 
 ### 8.1 生产平台语法高亮兼容（平台约束）
 
-- 生产平台的高亮器对**正则字面量中的裸特殊字符**（`<` `>` `&` `"` `'`）识别有缺陷：会把 `<` 当 HTML 标签开始、把引号当字符串边界，导致**从该行起后续全部代码高亮错乱**（运行不受影响，仅高亮问题）
-- 规避：优先用 `split/join` 链式替换实现字符替换；确需正则时用 `new RegExp("...", "g")` 字符串构造，**禁止在正则字面量中出现上述字符**
-- 排查线索：代码高亮从某行起全部错乱 → 向上找最近的正则字面量，检查其中是否含裸特殊字符
+- 平台高亮器对**正则字面量中的裸特殊字符**（`<` `>` `&` `"` `'`）识别有缺陷：会把 `<` 当 HTML 标签开始、把引号当字符串边界，导致**从该行起后续全部代码高亮错乱**（运行不受影响，仅高亮问题）
+- 规避：优先用 `split/join` 链式替换；确需正则时用 `new RegExp("...", "g")` 字符串构造，**禁止在正则字面量中出现上述字符**
+- 排查线索：高亮从某行起全部错乱 → 向上找最近的正则字面量检查裸特殊字符
 
 ### 8.2 工具使用约定
 
-- 修改跨文件重复的公共代码后，必须用 `rg` 全局搜索同模式代码，逐一确认所有副本已同步（漏改一处 = 隐患）
-- 页面改动后必须走 TOOLCHAIN.md 标准流程验证：`eslint` → Playwright 回归（nginx 8080 路径）
-- 删除/重构骨架元素必须 HTML/CSS/JS 三处同步清理，`rg` 确认无残留引用
+- 修改跨文件重复的公共代码后，必须 `rg` 全局搜索同模式代码，逐一确认所有副本已同步
+- 删除/重构骨架元素必须 HTML/CSS/JS 三处同步清理，`rg` 确认无残留
 
 ### 8.3 页面开发模式（项目标准）
 
@@ -93,16 +106,15 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 |---|---|
 | 固定结构（表单/卡片头/按钮区） | HTML 直接写 |
 | 多态结构（同一区域多种形态） | HTML 预埋 `.hidden` 块，JS 切换显示 |
-| 循环结构（卡片/缩略图/下拉选项/详情行） | `<template>` 预埋 + `cloneTpl()` 克隆赋值 |
+| 循环结构（卡片/缩略图/下拉选项/详情行） | `<template>` 预埋 + `cloneTemplate()` 克隆赋值 |
 | 弹窗（toast/确认/模板选择/预览/loading） | 骨架常驻 HTML（hidden），JS 只显隐 + 填值 |
 
 - 赋值一律用 `.text()/.val()/.attr()`（天然防 XSS，**不需要转义函数**）
 - 列表/多态块中同功能按钮用 **class 委托**，禁止重复 id
-- 后续页面（mom-packing / mom-nameplate-check-result）照此模式改造
 
 ### 8.4 技术坑（工具/平台相关）
 
-- **`cloneTpl` 必须取 `firstElementChild`**：`$(fragment)` 上 `.data()` 存在 DocumentFragment 节点，append 进 DOM 后元素读不到 → 模板必须单根结构
+- **`cloneTemplate` 必须取 `firstElementChild`**：`$(fragment)` 上 `.data()` 存在 DocumentFragment 节点，append 进 DOM 后元素读不到 → 模板必须单根结构
 - **`.hidden`（display:none !important）与 jQuery `show()/hide()/toggle()` 冲突**：统一用 `addClass/removeClass/toggleClass("hidden")`
 - **骨架常驻后的事件策略**：动态克隆元素一律委托绑定；弹窗回调数据挂 `.data()`；预览缩放等实例状态每次打开先 `off()` 再 `on()` 重新绑定
 - 页面初次渲染（初始显隐状态）必须在 `initPage` 中显式执行一次
@@ -129,26 +141,28 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 4. **事件**：一次性委托绑定；弹窗回调挂 `.data()`；实例状态（预览缩放）每次打开 `off()+on()`
 5. **样式归 CSS**：内联 style 仅限动态值（如进度条宽度）；初始隐藏用 `.hidden`
 6. **Mock**：独立 `mock.js`（生产不部署），业务 JS 零 Mock 代码
-7. **验证**：`eslint`（0/0）→ `tests/` 回归脚本 → Playwright 冒烟（nginx 8080）
+7. **回归脚本**：编写 `tests/<子项目>.regress.cjs` 并加入 §11 表格
 
 ## 10. Definition of Done（改动完成标准）
 
 每项改动（修 bug / 重构 / 新功能）完成前逐项自检：
 
 - [ ] ESLint **0 error 0 warning**
-- [ ] `tests/` 回归脚本全绿（有覆盖该页的脚本时）+ 0 JS 错误
+- [ ] 对应回归脚本全绿 + 0 JS 错误（横切改动：全部波及子项目）
+- [ ] 结构变更已同步更新回归脚本
 - [ ] 命名符合 §8.6（全称、易懂、业务语义）
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
-- [ ] 提交符合 §5 规范，工作区干净
+- [ ] 提交符合 §5（含验证摘要），工作区干净
 
-## 11. 页面回归必测清单（tests/ 脚本覆盖）
+## 11. 页面回归必测清单（tests/ 脚本）
 
-| 页面 | 脚本 | 覆盖点 |
+| 子项目 | 脚本 | 覆盖点 |
 |---|---|---|
-| mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(无确认+saveType)/提交(确认+saveType)/折叠/空态/清空 |
+| mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(saveType)/提交(saveType)/折叠/空态/清空 |
+| mom-packing | `tests/packing.regress.cjs` | 加载/单号搜索/物料搜索/选中面板/上传/数量校验/提交重置/步骤回退 |
+| mom-cert | `tests/mom-cert.regress.cjs` | dev 渲染/校验/触屏 tooltip/生产缺字段不崩/XSS 前置拦截 |
+| mom-nameplate-check-result | `tests/check-result.regress.cjs` | Mock 渲染/未知枚举显示原文/轮询自动刷新/未知任务状态 |
 
 运行：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（前置：nginx 8080）
-
-改造 mom-packing / check-result 时，参照此脚本编写对应回归脚本并加入本表。

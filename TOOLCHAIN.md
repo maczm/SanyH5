@@ -1,21 +1,16 @@
 # SanyH5 工具链手册（TOOLCHAIN.md）
 
 > 用途：记录本项目开发全链路各环节使用什么工具、如何调用。
+> 行为准则见 `agent.md`（协作规则/工作流/编码准则）；接口契约见 `API接口对接文档.md`。
 > 修改工具/环境后请同步更新本文件。
 
 ---
-
-## 协作规则（最重要）
-
-1. 遇到可能超出权限的操作（`sudo`、`apt install`、写工作区之外、系统级配置等），**先正常尝试一遍**。
-2. 若因权限失败：**立即告知用户**，给出可复制的命令（附用途说明），由用户在终端执行；用户执行完告知后，AI 再验证结果。
-3. **不得尝试绕过权限限制**（沙箱升级、`danger-full-access`、改路径规避、换工具硬闯等），一律走"尝试 → 告知 → 用户执行"流程。
 
 ## 环境事实
 
 - OS：WSL2 Ubuntu 26.04；Node v24.19.0（nvm 管理）；npm 源 npmmirror
 - git：仓库 `/home/wangzm/projects/SanyH5`，身份 wangzm <1466418631@qq.com>
-- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5
+- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；4 个独立子项目
 - WSL IP 会变：`hostname -I | awk '{print $1}'`（Windows 侧访问 WSL 服务用）
 
 ## 环节 → 工具 映射
@@ -25,15 +20,40 @@
 | 设计/原型 | 浏览器（Windows 侧 Chrome/Edge） | 访问 `http://localhost:8080/SanyH5/<页面目录>/` |
 | 编码 | VS Code | `code /home/wangzm/projects/SanyH5` |
 | 版本管理 | git | 常规 git 命令；改完即提交 |
-| 本地预览 | nginx（已运行，配置 `/etc/nginx/conf.d/wsl-projects.conf`，端口 8080，root=projects） | `http://localhost:8080/SanyH5/<页面目录>/`（旧路径 `/wsl/projects/...` 已 301 兼容） |
-| JS 静态检查 | ESLint 9.39.5 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；基线 0 error / 48 warning，只降不升 |
+| 本地预览 | nginx（已运行，端口 8080，root=projects） | `http://localhost:8080/SanyH5/<页面目录>/`（旧路径 `/wsl/projects/...` 已 301 兼容） |
+| JS 静态检查 | ESLint 9.39.5 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；标准：**0 error 0 warning** |
 | 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 *.html，勿对 HTML 用） |
 | HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids yes <html文件>` |
-| 自动化测试/冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（脚本内容会话中生成） |
+| 页面回归 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<子项目>.regress.cjs`（脚本清单见 agent.md §11） |
+| 冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（临时验证用） |
 | 接口联调 | curl + jq 1.8.1 | `curl <url> \| jq` |
 | 抓包 | mitmproxy 8.1.1 | `mitmproxy`（代理指向 WSL IP） |
 | 图片处理/EXIF | ImageMagick 7.1.2 | `convert` / `identify -verbose` |
 | 代码搜索 | ripgrep 15.1.0 | `rg <pattern>`（注意命令名是 rg） |
+
+## 全量体检（可选：整体确认/定期体检）
+
+发布或整体确认前跑一遍，**全部绿**即为健康版本（不绑定单页 tag 流程，见 agent.md §5.1）：
+
+```bash
+cd /home/wangzm/projects/SanyH5
+
+# 1. ESLint 全量（4 页 JS + mock.js）
+eslint mom-cert/index.js mom-packing/Index.js \
+  mom-nameplate-photo-upload/index.js mom-nameplate-check-result/index.js \
+  mom-packing/mock.js mom-nameplate-photo-upload/mock.js
+
+# 2. tidy 全量（4 个 HTML）
+for f in mom-cert/index.html mom-packing/index.html \
+         mom-nameplate-photo-upload/index.html mom-nameplate-check-result/index.html; do
+  tidy -q -e --show-warnings no "$f"
+done
+
+# 3. 回归全量（4 个页面脚本）
+for script in tests/*.regress.cjs; do
+  NODE_PATH=$(npm root -g) node "$script"
+done
+```
 
 ## 环境坑（调用工具时注意）
 
