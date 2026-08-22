@@ -7,7 +7,13 @@
  *   1. 同步：$Context.inputs 赋值（页面加载时立即执行）
  *   2. 异步：$(document).ready + setTimeout → 校验引擎（DOM 填充后执行）
  */
-var __DEV__ = true; // true=本地开发(Mock数据+调试日志)，false=生产环境
+/**
+ * 开发模式开关（运行时判断，部署无需改代码）：
+ *   - URL 带 dev=1（如 ?dev=1 或 &dev=1）→ 开发模式（Mock 数据 + 调试日志）
+ *   - 宿主注入 window.__DEV__ === true → 开发模式
+ *   - 其余（生产）→ 使用宿主注入的 $Context
+ */
+var __DEV__ = /[?&]dev=1(\b|$)/.test(location.search) || window.__DEV__ === true;
 
 /**
  * 校验开关配置
@@ -500,6 +506,122 @@ if (__DEV__) {
 } // __DEV__ / else
 
 // ============================================================
+// 输入归一化（顶层同步执行，先于内联脚本的 $(document).ready）
+// 内联脚本用裸 JSON.parse 解析 inputs，字段缺失（undefined）即抛错、
+// JSON 内 null 会让 value.length 抛 TypeError；归一化补齐缺失字段并清洗 null。
+// ============================================================
+
+/** 递归把对象/数组中的 null 替换为空字符串（无 null 时返回原引用） */
+function cleanNulls(value) {
+  if (value === null) return "";
+  if (Array.isArray(value)) {
+    var changed = false;
+    var arr = [];
+    for (var i = 0; i < value.length; i++) {
+      var item = cleanNulls(value[i]);
+      if (item !== value[i]) changed = true;
+      arr.push(item);
+    }
+    return changed ? arr : value;
+  }
+  if (typeof value === "object") {
+    var changedObj = false;
+    var obj = {};
+    for (var key in value) {
+      if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+      var v = cleanNulls(value[key]);
+      if (v !== value[key]) changedObj = true;
+      obj[key] = v;
+    }
+    return changedObj ? obj : value;
+  }
+  return value;
+}
+
+/**
+ * 归一化 $Context.inputs：
+ *   1. 内联脚本裸 parse 的 JSON 字段缺失补 ''（undefined 会穿透 != '' 守卫）
+ *   2. CHECK_CONTENT 空串补 '[]'（isCertSuccess 无守卫）
+ *   3. 普通字符串字段缺失补 ''
+ *   4. JSON 内容清洗 null → ''（内联脚本 value.length 对 null 抛 TypeError）
+ */
+function normalizeInputs() {
+  var inputs = $Context.inputs;
+  if (!inputs) return;
+
+  var jsonFields = ["DP", "ZC", "CL", "WX", "HB", "RY",
+                    "Old_DP", "Old_ZC", "Old_CL", "Old_WX", "Old_HB", "Old_RY",
+                    "CHECK_CONTENT"];
+  for (var i = 0; i < jsonFields.length; i++) {
+    if (inputs[jsonFields[i]] === undefined) {
+      inputs[jsonFields[i]] = "";
+    }
+  }
+  if (inputs.CHECK_CONTENT === "") {
+    inputs.CHECK_CONTENT = "[]";
+  }
+
+  var strFields = ["MSG", "ISSUEDATE", "PRODUCTTIME", "ZCCOLOR",
+                   "Base64_ZCCERTIFICATIONNO", "Base64_QRCode",
+                   "WIPORDERNO", "PRODUCTNO", "SINGLEVEHICLEMODELNO",
+                   "GROUPNO", "CHECK_Date", "SPECIALSALECOMMONT", "MODETYPE",
+                   "Old_SINGLEVEHICLEMODELNO", "FromIndexType", "FRISTTRIALSTATUS"];
+  for (var j = 0; j < strFields.length; j++) {
+    if (inputs[strFields[j]] === undefined) {
+      inputs[strFields[j]] = "";
+    }
+  }
+
+  var parseFields = ["DP", "ZC", "CL", "WX", "HB", "RY",
+                     "Old_DP", "Old_ZC", "Old_CL", "Old_WX", "Old_HB", "Old_RY"];
+  for (var k = 0; k < parseFields.length; k++) {
+    var raw = inputs[parseFields[k]];
+    if (typeof raw !== "string" || raw === "") continue;
+    try {
+      var obj = JSON.parse(raw);
+      var cleaned = cleanNulls(obj);
+      if (cleaned !== obj) {
+        inputs[parseFields[k]] = JSON.stringify(cleaned);
+      }
+    } catch (err) {
+      // 非法 JSON 保持原样（后端数据问题，由内联脚本自行报错）
+    }
+  }
+}
+
+normalizeInputs();
+
+// ============================================================
+// XSS 前置拦截：劫持 jQuery .html()，对 #check_content 渲染前做字符串级消毒。
+// 内联脚本用 $().html() 渲染服务端 Msg，script/onerror 在插入瞬间执行，
+// 后置 DOM 消毒无法挽回——必须在渲染前拦截（index.js 先于内联脚本加载）。
+// ============================================================
+
+/** 字符串级消毒：移除可执行标签块 / on* 事件属性 / javascript: 链接 */
+function sanitizeHtmlString(html) {
+  // 移除 script/style/iframe/object/embed 块（含内容）与自闭合形式
+  html = html.replace(new RegExp("<(script|style|iframe|object|embed)[^>]*>[\\s\\S]*?<\\/\\1>", "gi"), "");
+  html = html.replace(new RegExp("<(script|style|iframe|object|embed)[^>]*/?>", "gi"), "");
+  // 移除 on* 事件属性（如 onerror=...）
+  html = html.replace(new RegExp("\\son[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)", "gi"), "");
+  // 移除 javascript: 链接（href/src/action）
+  html = html.replace(new RegExp("\\s(href|src|action)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)", "gi"), function (match, attr, value) {
+    return /^\s*javascript:/i.test(value) ? "" : match;
+  });
+  return html;
+}
+
+(function hijackHtml() {
+  var originalHtml = $.fn.html;
+  $.fn.html = function (value) {
+    if (typeof value === "string" && this.is("#check_content")) {
+      value = sanitizeHtmlString(value);
+    }
+    return originalHtml.call(this, value);
+  };
+})();
+
+// ============================================================
 // Validate 校验规则
 //   格式：{ "字段名": { "rule": "强制"|"一般"|"特殊", "value": [...] } }
 //   强制=红色边框, 一般=黄色边框, 特殊=不校验
@@ -714,7 +836,51 @@ function bindTooltipEvents() {
     })
     .on("mouseleave", "[data-vld-values]", function () {
       window.$vldTooltip.hide();
+    })
+    // 触屏支持：点击切换显示/隐藏（无 hover 的设备）
+    .on("click", "[data-vld-values]", function (e) {
+      e.stopPropagation();
+      var values = $(this).attr("data-vld-values");
+      try {
+        var arr = JSON.parse(values);
+        if (window.$vldTooltip.is(":visible") && window.$vldTooltip.data("owner") === this) {
+          window.$vldTooltip.hide();
+          return;
+        }
+        window.$vldTooltip
+          .text("公告值：" + arr.join("、"))
+          .css({ left: e.clientX + 15, top: e.clientY + 15 })
+          .data("owner", this)
+          .show();
+      } catch (_) {}
+    })
+    .on("click", function () {
+      if (window.$vldTooltip) window.$vldTooltip.hide();
     });
+}
+
+/**
+ * 消毒 #check_content（内联脚本用 .html() 渲染服务端 Msg，存在 XSS 注入面）。
+ * DOM 级白名单清洗：移除脚本/iframe/object/embed/style 等元素，
+ * 剔除全部 on* 属性与 javascript: 链接，保留 <p><span> 结构与内联样式。
+ */
+function sanitizeCheckContent() {
+  var $content = $("#check_content");
+  if (!$content.length) return;
+  $content.find("script, iframe, object, embed, style, link, meta, form, input, button").remove();
+  $content.find("*").each(function () {
+    var attrs = this.attributes;
+    for (var i = attrs.length - 1; i >= 0; i--) {
+      var name = attrs[i].name.toLowerCase();
+      var value = attrs[i].value;
+      if (
+        name.indexOf("on") === 0 ||
+        ((name === "href" || name === "src" || name === "action") && /^\s*javascript:/i.test(value))
+      ) {
+        this.removeAttribute(attrs[i].name);
+      }
+    }
+  });
 }
 
 // ============================================================
@@ -747,6 +913,8 @@ function waitForDOMReady(callback, maxRetries) {
 $(document).ready(function () {
   waitForDOMReady(function () {
     initTooltip();
+    // 消毒内联脚本渲染的检验信息（XSS 防护），先于校验执行
+    sanitizeCheckContent();
     runAllValidations();
     bindTooltipEvents();
     if (__DEV__) console.log("[index.js] 校验引擎已执行。");
