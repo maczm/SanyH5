@@ -11,14 +11,14 @@
   </head>
   <body>
     <div id="mom-photo-upload" class="app-container">
-      <!-- 页面头部（静态） -->
+      <!-- ==================== 页面头部 ==================== -->
       <div class="page-header">
         <span class="header-title">照片上传</span>
         <span class="header-operator" id="header-operator"></span>
         <span class="header-time" id="header-time"></span>
       </div>
 
-      <!-- 表单区（静态骨架；折叠摘要由 JS 填充） -->
+      <!-- ==================== 表单区 ==================== -->
       <div class="form-area" id="form-area">
         <div class="form-card" id="form-card">
           <div class="form-group">
@@ -51,7 +51,7 @@
             </div>
           </div>
           <button type="button" class="btn-query" id="btn-query">查询照片配置</button>
-          <!-- 查询前：独立清空按钮（隐藏态用 .hidden 控制） -->
+          <!-- 查询前：独立清空按钮 -->
           <button type="button" class="btn-clear-form btn-clear-before hidden" id="btn-clear-before">清空</button>
           <!-- 查询后：收起/清空行 -->
           <div class="form-btn-row hidden" id="form-btn-row">
@@ -59,7 +59,7 @@
             <button type="button" class="btn-clear-form" id="btn-clear-form">清空</button>
           </div>
         </div>
-        <!-- 折叠态摘要（骨架静态化；仅值由 JS 填充） -->
+        <!-- 折叠态摘要（仅值由 JS 填充） -->
         <div class="form-summary hidden" id="form-summary">
           <div class="summary-info">
             <span class="summary-label">工位</span>
@@ -77,34 +77,177 @@
         </div>
       </div>
 
-      <!-- 订单信息区（卡片骨架静态化；body 由 JS 按配置多态渲染） -->
+      <!-- ==================== 订单信息区（body 多态块预埋） ==================== -->
       <div class="order-info-area hidden" id="order-info-area">
         <div class="order-info-card">
           <div class="order-info-header" id="btn-toggle-order-info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span>订单信息</span>
-            <span class="order-info-arrow" id="order-info-arrow"></span>
+            <span class="order-info-arrow">
+              <svg class="arrow-down hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
+              <svg class="arrow-up hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6" /></svg>
+            </span>
           </div>
-          <div class="order-info-body" id="order-info-body"></div>
+          <div class="order-info-body" id="order-info-body">
+            <!-- 态A：主机编码 + VIN 行 -->
+            <div class="field-row field-row-inline hidden" id="block-machvin">
+              <span class="field-label">主机编码</span>
+              <span class="field-value" id="val-machine-code">-</span>
+              <span class="field-label" style="margin-left:12px;">VIN</span>
+              <span class="field-value" id="val-vin">-</span>
+            </div>
+            <!-- 态B：单模板（自动选中） -->
+            <div class="hidden" id="block-tpl-single">
+              <div class="field-row">
+                <span class="field-label">铭牌模板</span>
+                <span class="field-value" id="val-tpl-single-name">-</span>
+              </div>
+              <img class="template-image" id="img-tpl-single" src="" alt="铭牌模板">
+            </div>
+            <!-- 态C：多模板已选 -->
+            <div class="hidden" id="block-tpl-selected">
+              <div class="field-row template-field-row">
+                <span class="field-label">铭牌模板</span>
+                <span class="field-value" id="val-tpl-selected-name">-</span>
+                <button type="button" class="btn-change-template-inline pick-template-btn">更换</button>
+              </div>
+              <img class="template-image" id="img-tpl-selected" src="" alt="铭牌模板">
+            </div>
+            <!-- 态D：多模板未选 -->
+            <div class="field-row hidden" id="block-tpl-none">
+              <span class="field-label">铭牌模板</span>
+              <button type="button" class="btn-pick-template-inline pick-template-btn">点击选择</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 照片类型卡片区（动态渲染容器） -->
-      <div class="photo-cards-area" id="photo-cards-area"></div>
+      <!-- ==================== 照片类型卡片区（动态容器） ==================== -->
+      <div class="photo-cards-area" id="photo-cards-area">
+        <!-- 空态提示（该工位无需拍照） -->
+        <div class="empty-state hidden" id="empty-no-photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <p>该工位无需拍照</p>
+        </div>
+      </div>
 
-      <!-- 底部按钮区（静态） -->
+      <!-- ==================== 底部按钮区 ==================== -->
       <div class="confirm-section hidden" id="confirm-section">
         <button type="button" class="btn-confirm" id="btn-confirm">提交AI检测</button>
         <button type="button" class="btn-save" id="btn-save">保存工位照片信息</button>
       </div>
 
-      <!-- 隐藏的文件选择 input（静态；隐藏样式在 index.css 的 .photo-input-hidden） -->
-      <input
-        type="file"
-        id="photo-input"
-        class="photo-input-hidden"
-        accept="image/*"
-      />
+      <!-- ==================== 隐藏的文件选择 input ==================== -->
+      <input type="file" id="photo-input" class="photo-input-hidden" accept="image/*" />
+
+      <!-- ==================== 弹窗骨架（hidden 预埋，JS 只显隐/填值） ==================== -->
+      <!-- 加载中 -->
+      <div class="loading-mask hidden" id="tpl-loading">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loading-text">加载中...</div>
+        </div>
+      </div>
+      <!-- Toast -->
+      <div class="toast-mask hidden" id="tpl-toast">
+        <div class="toast-box">
+          <div class="toast-icon-area">
+            <div class="toast-icon-error hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div class="toast-icon-success hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" /></svg>
+            </div>
+          </div>
+          <div class="toast-title" id="toast-title"></div>
+          <div class="toast-content hidden" id="toast-content"></div>
+          <button type="button" class="toast-btn">确定</button>
+        </div>
+      </div>
+      <!-- 二次确认 -->
+      <div class="confirm-mask hidden" id="tpl-confirm">
+        <div class="confirm-box">
+          <div class="confirm-title">提示</div>
+          <div class="confirm-content" id="confirm-content"></div>
+          <div class="confirm-btns">
+            <button type="button" class="confirm-btn-cancel">取消</button>
+            <button type="button" class="confirm-btn-ok">确定</button>
+          </div>
+        </div>
+      </div>
+      <!-- 模板选择弹窗 -->
+      <div class="template-picker-mask hidden" id="tpl-picker">
+        <div class="template-picker-box">
+          <div class="picker-title">请选择铭牌模板</div>
+          <div class="picker-list" id="picker-list"></div>
+          <button type="button" class="picker-btn">取消</button>
+        </div>
+      </div>
+      <!-- 照片预览 -->
+      <div class="photo-preview-mask hidden" id="tpl-preview">
+        <button type="button" class="photo-preview-close">&times;</button>
+        <div class="photo-preview-viewport" id="preview-viewport">
+          <div class="photo-preview-panner" id="preview-panner">
+            <img class="photo-preview-img" id="preview-img" src="" alt="preview">
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 循环结构模板（JS cloneNode 后填值） ==================== -->
+      <!-- 工位下拉选项 -->
+      <template id="tpl-combobox-item">
+        <div class="combobox-item">
+          <span class="combobox-item-code"></span>
+          <span class="combobox-item-name"></span>
+        </div>
+      </template>
+      <!-- 照片类型卡片 -->
+      <template id="tpl-photo-card">
+        <div class="photo-type-card">
+          <div class="card-header">
+            <div class="card-title-row">
+              <span class="card-title"></span>
+              <span class="card-badge pending">
+                <svg class="badge-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:14px;height:14px;"><path d="M5 13l4 4L19 7" /></svg>
+                <span class="badge-text"></span>
+              </span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+          <div class="photo-thumb-list">
+            <div class="photo-add hidden" data-type="">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
+              <span>拍照</span>
+            </div>
+            <div class="photo-full-tip hidden">已达上限</div>
+          </div>
+        </div>
+      </template>
+      <!-- 照片缩略图 -->
+      <template id="tpl-photo-item">
+        <div class="photo-item">
+          <img src="" alt="photo">
+          <button type="button" class="photo-delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </template>
+      <!-- 模板选择项 -->
+      <template id="tpl-picker-item">
+        <div class="picker-item">
+          <img src="" alt="">
+          <div class="picker-item-name"></div>
+        </div>
+      </template>
+      <!-- 提交成功详情行 -->
+      <template id="tpl-detail-row">
+        <div class="detail-row">
+          <span class="detail-label"></span>
+          <span class="detail-value"></span>
+        </div>
+      </template>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js"></script>
     <script src="mock.js"></script>
