@@ -27,6 +27,8 @@ export default [
         parseInt: "readonly",
         parseFloat: "readonly",
         isNaN: "readonly",
+        atob: "readonly",
+        btoa: "readonly",
         // jQuery 与宿主注入
         $: "readonly",
         $Context: "readonly",

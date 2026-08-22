@@ -57,6 +57,11 @@ body {
   flex-direction: column;
 }
 
+/* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
+#mom-photo-upload .hidden {
+  display: none !important;
+}
+
 /* ==================== 页面头部 ==================== */
 #mom-photo-upload .page-header {
   background: var(--gradient-primary);
