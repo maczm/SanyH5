@@ -182,9 +182,9 @@ var state = {
 function escapeHtml(str) {
   if (str == null) return "";
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
+    .replace(/\x26/g, "&amp;")  // \x26 = &（十六进制转义，避免高亮器将裸 & 误判）
+    .replace(/\x3C/g, "&lt;")   // \x3C = <
+    .replace(/\x3E/g, "&gt;")   // \x3E = >
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
