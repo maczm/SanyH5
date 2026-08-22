@@ -8,7 +8,7 @@
 //   }
 // 未注入时使用下方 MOCK_RESULT 演示数据。
 //
-// 页面结构：全部骨架在 index.html（含 <template> 循环模板），JS 只克隆赋值。
+// 页面结构：全部骨架在 index.html（含 template 标签循环模板），JS 只克隆赋值。
 
 // ============== 演示数据 ==============
 var MOCK_RESULT = {
@@ -53,7 +53,7 @@ var MOCK_RESULT = {
 
 // ============== 应用命名空间 ==============
 var NameplateCheckResult = {
-  _pollTimer: null, // 待处理/处理中状态的轮询定时器
+  _pollTimer: null,
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (id) {
@@ -104,7 +104,7 @@ var NameplateCheckResult = {
   },
 
   /** 检查项徽章配置 */
-  ckBadge: function (state) {
+  checkBadge: function (state) {
     var map = {
       pass: { text: "合格", cls: "ck-pass" },
       fail: { text: "不合格", cls: "ck-fail" },
@@ -133,7 +133,6 @@ var NameplateCheckResult = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
-    // 头部时钟
     function now() {
       var d = new Date();
       var pad = function (n) { return n < 10 ? "0" + n : n; };
@@ -148,6 +147,12 @@ var NameplateCheckResult = {
   },
 
   // ============== 结果渲染 ==============
+  /**
+   * 渲染检查结果页：优先取父页面注入数据（支持 JS 对象或 JSON 字符串），
+   * 注入数据缺失或解析失败时展示空态；按任务状态分支渲染——
+   * pending/processing/failed 仅展示任务横幅并视需要启动轮询，
+   * completed 展示整体结论横幅与检查项列表，终态时停止轮询。
+   */
   renderResult: function () {
     // 优先取父页面注入数据（支持 JS 对象或 JSON 字符串），否则用演示数据
     var payload = window.checkResultData || MOCK_RESULT;
@@ -200,7 +205,7 @@ var NameplateCheckResult = {
 
   /**
    * pending/processing 状态轮询：每 10s 重读 window.checkResultData 并重渲染。
-   * 宿主更新该变量后页面自动刷新结果；数据引用未变则跳过。
+   * 宿主更新该变量后页面自动刷新结果；每次轮询均无条件重渲染，不做数据引用比对。
    */
   startPollingIfNeeded: function (state) {
     if (state !== "pending" && state !== "processing") return;
@@ -250,6 +255,11 @@ var NameplateCheckResult = {
   },
 
   // ============== 整体结论横幅 ==============
+  /**
+   * 渲染整体结论横幅：按 overallConclusion 归一化状态（unrated 兜底为 unclear），
+   * 填充标题/副文案/图标/受理单号/完成时间，并按状态统计检查项（unrated/unknown 计入跳过类）。
+   * 参数 data：信封 data 部分（overallConclusion/acceptNo/completedAt/checkResults）；返回横幅 jQuery 节点。
+   */
   buildStatusBanner: function (data) {
     var state = NameplateCheckResult.conclusionState(data.overallConclusion);
     if (state === "unrated") state = "unclear"; // 整体结论缺失兜底为不确定
@@ -317,7 +327,7 @@ var NameplateCheckResult = {
   // ============== 检查项卡片 ==============
   buildCheckCard: function (item) {
     var state = NameplateCheckResult.conclusionState(item.conclusion);
-    var badge = NameplateCheckResult.ckBadge(state);
+    var badge = NameplateCheckResult.checkBadge(state);
     var cardCls = state === "fail" ? " card-fail" : (state === "skipped" || state === "unrated") ? " card-skip" : (state === "unclear" || state === "retry" || state === "unknown") ? " card-warn" : "";
 
     var $card = NameplateCheckResult.cloneTemplate("template-check-card");
@@ -329,13 +339,11 @@ var NameplateCheckResult = {
     var $badge = $card.find(".ck-badge");
     $badge.addClass(badge.cls).text(badge.text);
 
-    // 不合格原因
     if (item.reason) {
       $card.find(".check-reason").removeClass("hidden");
       $card.find(".reason-text").text(item.reason);
     }
 
-    // 字段级明细
     var $fieldList = $card.find(".field-list");
     var details = item.fieldDetails || [];
     if (details.length) {
