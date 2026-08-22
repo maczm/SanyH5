@@ -57,10 +57,10 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 
 ## 7. 当前整改状态
 
-- mom-nameplate-photo-upload：重构完成（骨架回填 + 命名空间 + 模板字符串），已知 bug 全部修复 ✅
+- mom-nameplate-photo-upload：重构完成（HTML 骨架 + template 克隆 + 命名空间），已知 bug 全部修复 ✅
 - mom-cert：归一化/XSS/`__DEV__` 运行时判断 —— 未开始
-- mom-packing：上传串单/重复提交/超时/doScan —— 未开始
-- 阶段 2 重构：mom-packing / mom-nameplate-check-result —— 未开始
+- mom-packing：上传串单/重复提交/超时/doScan + 骨架重构 —— 未开始
+- mom-nameplate-check-result：骨架重构 —— 未开始
 - 一致性证书 tab 显示矛盾：**待业务确认**
 
 ## 8. 编码准则（平台与工具相关）
@@ -75,3 +75,40 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 
 - 修改跨文件重复的公共代码后，必须用 `rg` 全局搜索同模式代码，逐一确认所有副本已同步（漏改一处 = 隐患）
 - 页面改动后必须走 TOOLCHAIN.md 标准流程验证：`eslint` → Playwright 回归（nginx 8080 路径）
+- 删除/重构骨架元素必须 HTML/CSS/JS 三处同步清理，`rg` 确认无残留引用
+
+### 8.3 页面开发模式（项目标准）
+
+页面统一采用**「HTML 骨架 + template 克隆 + JS 赋值」**架构，JS 零 HTML 拼接：
+
+| 结构类型 | 处理方式 |
+|---|---|
+| 固定结构（表单/卡片头/按钮区） | HTML 直接写 |
+| 多态结构（同一区域多种形态） | HTML 预埋 `.hidden` 块，JS 切换显示 |
+| 循环结构（卡片/缩略图/下拉选项/详情行） | `<template>` 预埋 + `cloneTpl()` 克隆赋值 |
+| 弹窗（toast/确认/模板选择/预览/loading） | 骨架常驻 HTML（hidden），JS 只显隐 + 填值 |
+
+- 赋值一律用 `.text()/.val()/.attr()`（天然防 XSS，**不需要转义函数**）
+- 列表/多态块中同功能按钮用 **class 委托**，禁止重复 id
+- 后续页面（mom-packing / mom-nameplate-check-result）照此模式改造
+
+### 8.4 技术坑（工具/平台相关）
+
+- **`cloneTpl` 必须取 `firstElementChild`**：`$(fragment)` 上 `.data()` 存在 DocumentFragment 节点，append 进 DOM 后元素读不到 → 模板必须单根结构
+- **`.hidden`（display:none !important）与 jQuery `show()/hide()/toggle()` 冲突**：统一用 `addClass/removeClass/toggleClass("hidden")`
+- **骨架常驻后的事件策略**：动态克隆元素一律委托绑定；弹窗回调数据挂 `.data()`；预览缩放等实例状态每次打开先 `off()` 再 `on()` 重新绑定
+- 页面初次渲染（初始显隐状态）必须在 `initPage` 中显式执行一次
+
+### 8.5 UI 一致性规范（用户确认的交互标准）
+
+- 折叠卡片统一形态：**左侧图标 + 标题 + 清空按钮（箭头左侧）+ 双态箭头**，点击卡片头折叠/展开
+- 同类组件（如折叠卡片）样式与交互必须完全一致（背景/内边距/字体/圆角逐项对齐）
+- 弹窗类 UI（toast/确认/选择）骨架预埋，运行时不重建 DOM
+
+### 8.6 命名规范（全称、易懂）
+
+- **禁止缩写标识符**：`cb`→`callback`、`tpl`→`template`、`pt`→`photoType`、`$dd`→`$dropdown`、`s`→`state`、`sid`→`sessionId` 等
+- 变量/函数/对象属性：用**完整单词或完整词组**（`sessionId`、`selectedTemplateId`、`renderOrderInfo`）
+- DOM id：完整语义词组（如 `machine-code-value`），**禁止拼凑缩写**（如 `machvin`）
+- CSS 类名：`btn-`/`icon-` 等行业前缀可沿用，但类名主体用完整单词（新命名不缩写）
+- 循环变量允许 `i/j/k`（惯例），其余一律全称
