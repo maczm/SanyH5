@@ -274,7 +274,10 @@ var PhotoUpload = {
       $card.addClass("hidden");
       $btnRow.addClass("hidden");
       $clearBefore.addClass("hidden");
-      $summary.html(PhotoUpload.buildSummaryHtml()).removeClass("hidden");
+      // 折叠摘要：骨架在 index.html，仅填值
+      $("#summary-station").text(s.stationCode);
+      $("#summary-order").text(s.orderNo);
+      $summary.removeClass("hidden");
     } else {
       $card.removeClass("hidden");
       $btnRow.toggleClass("hidden", !s.configLoaded);
@@ -285,23 +288,6 @@ var PhotoUpload = {
       $("#input-station-code").val(s.stationCode);
       $("#input-order").val(s.orderNo);
     }
-  },
-
-  buildSummaryHtml: function () {
-    var s = PhotoUpload.state;
-    return `<div class="summary-info">
-        <span class="summary-label">工位</span>
-        <span class="summary-value">${PhotoUpload.h(s.stationCode)}</span>
-        <span class="summary-divider">|</span>
-        <span class="summary-label">订单</span>
-        <span class="summary-value">${PhotoUpload.h(s.orderNo)}</span>
-      </div>
-      <button type="button" class="summary-clear btn-clear-form" title="清空">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
-      <button type="button" class="summary-expand btn-expand-form">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-      </button>`;
   },
 
   getStationDisplay: function (stationCode) {
@@ -517,64 +503,60 @@ var PhotoUpload = {
   // ============== 订单信息卡片渲染 ==============
   renderOrderInfo: function () {
     var $area = $("#order-info-area");
+    var $body = $("#order-info-body");
     var s = PhotoUpload.state;
-    $area.empty();
+    $body.empty();
 
+    // 无订单信息：整区隐藏（卡片骨架在 index.html）
     if (!s.orderInfo || (!s.orderInfo.machineCode && (!s.orderInfo.templates || !s.orderInfo.templates.length))) {
       $area.addClass("hidden");
       return;
     }
+    $area.removeClass("hidden");
 
-    var arrowIcon = s.orderInfoCollapsed
-      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>';
+    // 折叠箭头切换（骨架固定，仅箭头图标动态）
+    $("#order-info-arrow").html(
+      s.orderInfoCollapsed
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>',
+    );
 
-    var html = `<div class="order-info-card">
-      <div class="order-info-header" id="btn-toggle-order-info">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <span>订单信息</span>
-        <span class="order-info-arrow">${arrowIcon}</span>
+    if (s.orderInfoCollapsed) return;
+
+    // body 按配置多态渲染（4 种状态）
+    var html = "";
+
+    if (s.orderInfo.machineCode || s.orderInfo.vin) {
+      html += `<div class="field-row field-row-inline">
+        <span class="field-label">主机编码</span>
+        <span class="field-value">${PhotoUpload.h(s.orderInfo.machineCode || "-")}</span>
+        <span class="field-label" style="margin-left:12px;">VIN</span>
+        <span class="field-value">${PhotoUpload.h(s.orderInfo.vin || "-")}</span>
       </div>`;
-
-    if (!s.orderInfoCollapsed) {
-      html += `<div class="order-info-body">`;
-
-      if (s.orderInfo.machineCode || s.orderInfo.vin) {
-        html += `<div class="field-row field-row-inline">
-          <span class="field-label">主机编码</span>
-          <span class="field-value">${PhotoUpload.h(s.orderInfo.machineCode || "-")}</span>
-          <span class="field-label" style="margin-left:12px;">VIN</span>
-          <span class="field-value">${PhotoUpload.h(s.orderInfo.vin || "-")}</span>
-        </div>`;
-      }
-
-      // 铭牌模板
-      var templates = s.orderInfo.templates || [];
-      if (templates.length > 0) {
-        if (templates.length == 1) {
-          html += `<div class="field-row"><span class="field-label">铭牌模板</span><span class="field-value">${PhotoUpload.h(templates[0].templateName || "")}</span></div>`;
-          html += `<img class="template-image" src="${PhotoUpload.h(templates[0].templateImageUrl)}" alt="铭牌模板">`;
-        } else if (s.selectedTemplateId) {
-          html += `<div class="field-row template-field-row">
-            <span class="field-label">铭牌模板</span>
-            <span class="field-value">${PhotoUpload.h(s.selectedTemplateName)}</span>
-            <button type="button" class="btn-change-template-inline" id="btn-pick-template">更换</button>
-          </div>`;
-          html += `<img class="template-image" src="${PhotoUpload.h(s.selectedTemplateUrl)}" alt="铭牌模板">`;
-        } else {
-          html += `<div class="field-row">
-            <span class="field-label">铭牌模板</span>
-            <button type="button" class="btn-pick-template-inline" id="btn-pick-template">点击选择（${templates.length}个可选）</button>
-          </div>`;
-        }
-      }
-
-      html += `</div>`;
     }
 
-    html += `</div>`;
+    // 铭牌模板
+    var templates = s.orderInfo.templates || [];
+    if (templates.length > 0) {
+      if (templates.length == 1) {
+        html += `<div class="field-row"><span class="field-label">铭牌模板</span><span class="field-value">${PhotoUpload.h(templates[0].templateName || "")}</span></div>`;
+        html += `<img class="template-image" src="${PhotoUpload.h(templates[0].templateImageUrl)}" alt="铭牌模板">`;
+      } else if (s.selectedTemplateId) {
+        html += `<div class="field-row template-field-row">
+          <span class="field-label">铭牌模板</span>
+          <span class="field-value">${PhotoUpload.h(s.selectedTemplateName)}</span>
+          <button type="button" class="btn-change-template-inline" id="btn-pick-template">更换</button>
+        </div>`;
+        html += `<img class="template-image" src="${PhotoUpload.h(s.selectedTemplateUrl)}" alt="铭牌模板">`;
+      } else {
+        html += `<div class="field-row">
+          <span class="field-label">铭牌模板</span>
+          <button type="button" class="btn-pick-template-inline" id="btn-pick-template">点击选择（${templates.length}个可选）</button>
+        </div>`;
+      }
+    }
 
-    $area.html(html).removeClass("hidden");
+    $body.html(html);
   },
 
   // ============== 照片类型卡片渲染 ==============

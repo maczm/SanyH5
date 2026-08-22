@@ -59,12 +59,35 @@
             <button type="button" class="btn-clear-form" id="btn-clear-form">清空</button>
           </div>
         </div>
-        <!-- 折叠态摘要（JS 填充） -->
-        <div class="form-summary hidden" id="form-summary"></div>
+        <!-- 折叠态摘要（骨架静态化；仅值由 JS 填充） -->
+        <div class="form-summary hidden" id="form-summary">
+          <div class="summary-info">
+            <span class="summary-label">工位</span>
+            <span class="summary-value" id="summary-station"></span>
+            <span class="summary-divider">|</span>
+            <span class="summary-label">订单</span>
+            <span class="summary-value" id="summary-order"></span>
+          </div>
+          <button type="button" class="summary-clear btn-clear-form" title="清空">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+          <button type="button" class="summary-expand btn-expand-form">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+        </div>
       </div>
 
-      <!-- 订单信息区（动态渲染容器） -->
-      <div class="order-info-area hidden" id="order-info-area"></div>
+      <!-- 订单信息区（卡片骨架静态化；body 由 JS 按配置多态渲染） -->
+      <div class="order-info-area hidden" id="order-info-area">
+        <div class="order-info-card">
+          <div class="order-info-header" id="btn-toggle-order-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <span>订单信息</span>
+            <span class="order-info-arrow" id="order-info-arrow"></span>
+          </div>
+          <div class="order-info-body" id="order-info-body"></div>
+        </div>
+      </div>
 
       <!-- 照片类型卡片区（动态渲染容器） -->
       <div class="photo-cards-area" id="photo-cards-area"></div>
