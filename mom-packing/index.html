@@ -10,7 +10,186 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div id="mom-packing-app" class="app-container"></div>
+    <div id="mom-packing-app" class="app-container">
+      <!-- ==================== 页面头部 ==================== -->
+      <div class="page-header">
+        <span class="header-operator" id="header-operator"></span>
+        <span class="header-time" id="header-time"></span>
+      </div>
+
+      <!-- ==================== 步骤指示器 ==================== -->
+      <div class="step-indicator">
+        <div class="step-item active" id="step-item-0">
+          <span class="step-dot">1</span>
+          <span class="step-label">装箱单号</span>
+        </div>
+        <div class="step-line" id="step-line-0"></div>
+        <div class="step-item" id="step-item-1">
+          <span class="step-dot">2</span>
+          <span class="step-label">物料编码</span>
+        </div>
+      </div>
+
+      <!-- ==================== 搜索区（三态行由模板克隆渲染） ==================== -->
+      <div class="search-area" id="search-area"></div>
+
+      <!-- ==================== 内容区 ==================== -->
+      <div class="packing-body" id="packing-body">
+        <div class="result-area" id="result-area" style="display:none;"></div>
+        <!-- 装箱面板（骨架预埋，信息行由模板克隆填充） -->
+        <div id="packing-panel-container" style="display:none;">
+          <div class="packing-panel" id="packing-panel">
+            <div class="section-header">
+              <span class="section-step filled">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:14px;height:14px;"><path d="M5 13l4 4L19 7" /></svg>
+              </span>
+              <span class="section-title">装箱信息</span>
+            </div>
+            <div class="packing-card" id="packing-card"></div>
+            <div class="qty-section">
+              <div class="qty-label">本次装箱数量</div>
+              <input class="qty-input" id="packing-qty" type="number" inputmode="decimal" step="any" />
+              <div class="qty-hint" id="qty-hint"></div>
+              <div class="qty-error hidden" id="qty-error"></div>
+            </div>
+            <div class="photo-section">
+              <div class="photo-header">
+                <span class="photo-label">照片</span>
+                <span class="photo-required" id="photo-required-tip"></span>
+                <span class="photo-error hidden" id="photo-error"></span>
+              </div>
+              <div class="photo-progress">
+                <div class="photo-progress-bar">
+                  <div class="photo-progress-fill" id="photo-progress-fill"></div>
+                </div>
+                <span class="photo-progress-text" id="photo-progress-text"></span>
+              </div>
+              <div class="photo-scroll" id="photo-scroll">
+                <div class="photo-add hidden" id="photo-add-button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
+                  <span>拍照</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 确认按钮区 ==================== -->
+      <div class="confirm-section hidden" id="confirm-section">
+        <button type="button" class="btn-confirm" id="btn-confirm">确认装箱</button>
+      </div>
+
+      <!-- ==================== 隐藏的文件选择 input ==================== -->
+      <input type="file" id="photo-input" class="photo-input-hidden" accept="image/*" capture="environment" />
+
+      <!-- ==================== 弹窗骨架 ==================== -->
+      <!-- 加载中 -->
+      <div class="loading-mask hidden" id="template-loading">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loading-text">加载中...</div>
+        </div>
+      </div>
+      <!-- Toast -->
+      <div class="toast-mask hidden" id="template-toast">
+        <div class="toast-box">
+          <div class="toast-icon-area">
+            <div class="toast-icon-error hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div class="toast-icon-success hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" /></svg>
+            </div>
+          </div>
+          <div class="toast-title" id="toast-title"></div>
+          <div class="toast-content hidden" id="toast-content"></div>
+          <button type="button" class="toast-btn">确定</button>
+        </div>
+      </div>
+      <!-- 照片预览（简单版） -->
+      <div class="photo-preview-mask hidden" id="template-preview">
+        <button type="button" class="photo-preview-close">&times;</button>
+        <img class="photo-preview-image" id="preview-image" src="" alt="preview">
+      </div>
+
+      <!-- ==================== 循环结构模板 ==================== -->
+      <!-- 搜索步骤行：完成态（摘要 + 展开按钮） -->
+      <template id="template-step-completed">
+        <div class="step-row completed" data-step="">
+          <span class="step-chip">✓</span>
+          <span class="step-name"></span>
+          <span class="step-value"></span>
+          <button type="button" class="step-expand">▾</button>
+        </div>
+      </template>
+      <!-- 搜索步骤行：当前输入态 -->
+      <template id="template-step-active">
+        <div class="step-row active" data-step="">
+          <span class="step-chip"></span>
+          <span class="step-name"></span>
+          <div class="step-input-row">
+            <input class="search-input" type="text" />
+            <button type="button" class="icon-btn btn-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+            <button type="button" class="icon-btn btn-scan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" /></svg>
+            </button>
+          </div>
+        </div>
+      </template>
+      <!-- 搜索步骤行：锁定态 -->
+      <template id="template-step-locked">
+        <div class="step-row locked" data-step="">
+          <span class="step-chip"></span>
+          <span class="step-name"></span>
+          <span class="step-hint">请先完成上一步</span>
+        </div>
+      </template>
+      <!-- 结果卡片 -->
+      <template id="template-result-card">
+        <div class="result-card"></div>
+      </template>
+      <!-- 信息行（装箱面板/结果卡共用） -->
+      <template id="template-field-row">
+        <div class="field-row">
+          <span class="field-label"></span>
+          <span class="field-value"></span>
+        </div>
+      </template>
+      <!-- 三列信息行（总数/待装箱/已装箱） -->
+      <template id="template-field-row-triple">
+        <div class="field-row field-row-triple">
+          <span class="triple-item"><span class="field-label"></span><span class="field-value"></span></span>
+          <span class="triple-item"><span class="field-label"></span><span class="field-value"></span></span>
+          <span class="triple-item"><span class="field-label"></span><span class="field-value"></span></span>
+        </div>
+      </template>
+      <!-- 照片缩略图 -->
+      <template id="template-photo-item">
+        <div class="photo-item">
+          <img src="" alt="photo">
+          <button type="button" class="photo-delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </template>
+      <!-- 提交成功详情行 -->
+      <template id="template-detail-row">
+        <div class="detail-row">
+          <span class="detail-label"></span>
+          <span class="detail-value"></span>
+        </div>
+      </template>
+      <!-- 空态提示 -->
+      <template id="template-empty-state">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <p></p>
+        </div>
+      </template>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js"></script>
     <script src="mock.js"></script>
     <script src="Index.js"></script>

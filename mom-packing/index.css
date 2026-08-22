@@ -51,6 +51,20 @@ body {
   flex-direction: column;
 }
 
+/* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
+#mom-packing-app .hidden {
+  display: none !important;
+}
+
+/* 隐藏的文件选择 input */
+#mom-packing-app .photo-input-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 /* ==================== 页面头部 ==================== */
 #mom-packing-app .page-header {
   background: var(--gradient-primary);
