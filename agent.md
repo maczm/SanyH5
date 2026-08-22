@@ -49,10 +49,11 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 
 ### 5.1 发布 Tag 规范
 
-- 格式：**`<项目名>-v<主>.<次>.<补丁>`**（如 `sanyh5-v0.1.0`），带 `-a` 附注说明
+- 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-nameplate-photo-upload-v0.1.0`），带 `-a` 附注说明
+- 子项目名与页面目录名一致：`mom-cert` / `mom-packing` / `mom-nameplate-photo-upload` / `mom-nameplate-check-result`
 - 时机：每次**可交付/可部署/里程碑**节点（日常提交不打 tag）
-- 项目名小写、与仓库名一致；版本号递增（SemVer）
-- 现有：`sanyh5-v0.1.0`（功能完整）/ `sanyh5-v0.2.0`（部署形态定型）/ `sanyh5-v0.3.0`（样板页定型）
+- 版本号递增（SemVer）
+- 现有：`mom-nameplate-photo-upload-v0.1.0`（功能完整）/ `-v0.2.0`（部署形态定型）/ `-v0.3.0`（样板页定型）
 
 ## 6. 文档地图
 
