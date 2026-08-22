@@ -65,7 +65,7 @@ var PhotoUpload = {
    * 克隆 <template> 骨架并返回 jQuery 对象（取根元素，保证 .data() 落在真实 DOM 节点上）
    * @param {string} id - template 元素 id（不含 #）
    */
-  cloneTpl: function (id) {
+  cloneTemplate: function (id) {
     var frag = document.getElementById(id).content.cloneNode(true);
     return $(frag.firstElementChild); // 所有 template 均为单根结构
   },
@@ -76,19 +76,19 @@ var PhotoUpload = {
    * API 调用包装：统一加超时兜底，防止 Portal 函数永不回调时页面卡死。
    * fn 为 window 注入的函数（callback 风格），args 为除 callback 外的参数数组。
    */
-  apiCall: function (fn, args, cb, timeout) {
+  apiCall: function (fn, args, callback, timeout) {
     var done = false;
     var timer = setTimeout(function () {
       if (done) return;
       done = true;
-      cb({ code: -1, msg: "请求超时，请重试" });
+      callback({ code: -1, msg: "请求超时，请重试" });
     }, timeout || CONFIG.API_TIMEOUT);
     args = args || [];
     fn.apply(null, args.concat([function (res) {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      cb(res);
+      callback(res);
     }]));
   },
 
@@ -138,25 +138,25 @@ var PhotoUpload = {
   // ============== 加载动画（骨架预埋，仅显隐+填值） ==============
   showLoading: function (text) {
     $("#loading-text").text(text || "加载中...");
-    $("#tpl-loading").removeClass("hidden");
+    $("#template-loading").removeClass("hidden");
   },
 
   hideLoading: function () {
-    $("#tpl-loading").addClass("hidden");
+    $("#template-loading").addClass("hidden");
   },
 
   // ============== Toast 消息提示框（骨架预埋，仅显隐+填值） ==============
   // content 支持三种形态：null（无内容区）/ string（单行文本）/ array（[{label,value}] 详情行）
   showToast: function (title, content, type, callback) {
-    var $toast = $("#tpl-toast");
+    var $toast = $("#template-toast");
     if (PhotoUpload._toastTimer) {
       clearTimeout(PhotoUpload._toastTimer);
       PhotoUpload._toastTimer = null;
     }
 
     $("#toast-title").text(title);
-    $("#tpl-toast .toast-icon-error").toggleClass("hidden", type != "error");
-    $("#tpl-toast .toast-icon-success").toggleClass("hidden", type == "error");
+    $("#template-toast .toast-icon-error").toggleClass("hidden", type != "error");
+    $("#template-toast .toast-icon-success").toggleClass("hidden", type == "error");
 
     var $content = $("#toast-content");
     $content.empty();
@@ -165,7 +165,7 @@ var PhotoUpload = {
     } else if (Array.isArray(content)) {
       $content.removeClass("hidden");
       content.forEach(function (row) {
-        var $r = PhotoUpload.cloneTpl("tpl-detail-row");
+        var $r = PhotoUpload.cloneTemplate("template-detail-row");
         $r.find(".detail-label").text(row.label);
         $r.find(".detail-value").text(row.value);
         $content.append($r);
@@ -196,44 +196,44 @@ var PhotoUpload = {
   // ============== 二次确认弹窗（骨架预埋） ==============
   showConfirmDialog: function (message, onConfirm) {
     $("#confirm-content").text(message);
-    $("#tpl-confirm").data("on-confirm", onConfirm).removeClass("hidden");
+    $("#template-confirm").data("on-confirm", onConfirm).removeClass("hidden");
   },
 
   // ============== 模板选择弹窗（骨架预埋 + 列表克隆） ==============
   showTemplatePicker: function (templates, callback) {
     var $list = $("#picker-list");
     $list.empty();
-    templates.forEach(function (tpl) {
-      var $item = PhotoUpload.cloneTpl("tpl-picker-item");
-      $item.find("img").attr("src", tpl.templateImageUrl).attr("alt", tpl.templateName);
-      $item.find(".picker-item-name").text(tpl.templateName);
-      $item.data("id", tpl.templateId).data("name", tpl.templateName).data("url", tpl.templateImageUrl);
+    templates.forEach(function (template) {
+      var $item = PhotoUpload.cloneTemplate("template-picker-item");
+      $item.find("img").attr("src", template.templateImageUrl).attr("alt", template.templateName);
+      $item.find(".picker-item-name").text(template.templateName);
+      $item.data("id", template.templateId).data("name", template.templateName).data("url", template.templateImageUrl);
       $list.append($item);
     });
-    $("#tpl-picker").data("on-pick", callback).removeClass("hidden");
+    $("#template-picker").data("on-pick", callback).removeClass("hidden");
   },
 
   // ============== 表单渲染（骨架已静态化，此处仅切换状态与回填值） ==============
   // 与订单信息一致：查询后显示卡片头（点击折叠/展开），查询前无头完整显示
   renderForm: function () {
-    var s = PhotoUpload.state;
+    var state = PhotoUpload.state;
     var $header = $("#btn-toggle-form");
     var $body = $("#form-card-body");
 
-    if (s.configLoaded) {
+    if (state.configLoaded) {
       $header.removeClass("hidden");
-      $(".form-arrow .arrow-down").toggleClass("hidden", !s.formCollapsed);
-      $(".form-arrow .arrow-up").toggleClass("hidden", s.formCollapsed);
-      $body.toggleClass("hidden", s.formCollapsed);
+      $(".form-arrow .arrow-down").toggleClass("hidden", !state.formCollapsed);
+      $(".form-arrow .arrow-up").toggleClass("hidden", state.formCollapsed);
+      $body.toggleClass("hidden", state.formCollapsed);
     } else {
       $header.addClass("hidden");
       $body.removeClass("hidden");
     }
 
     // 回填当前值
-    $("#input-station").val(s.stationCode ? PhotoUpload.getStationDisplay(s.stationCode) : "");
-    $("#input-station-code").val(s.stationCode);
-    $("#input-order").val(s.orderNo);
+    $("#input-station").val(state.stationCode ? PhotoUpload.getStationDisplay(state.stationCode) : "");
+    $("#input-station-code").val(state.stationCode);
+    $("#input-order").val(state.orderNo);
   },
 
   getStationDisplay: function (stationCode) {
@@ -267,9 +267,9 @@ var PhotoUpload = {
   filterStations: function (keyword) {
     if (!keyword) return PhotoUpload.state.stations;
     var kw = keyword.toLowerCase();
-    return PhotoUpload.state.stations.filter(function (s) {
-      var code = (s.stationCode || "").toLowerCase();
-      var name = (s.stationName || "").toLowerCase();
+    return PhotoUpload.state.stations.filter(function (state) {
+      var code = (state.stationCode || "").toLowerCase();
+      var name = (state.stationName || "").toLowerCase();
       return code.indexOf(kw) != -1 || name.indexOf(kw) != -1;
     });
   },
@@ -277,21 +277,21 @@ var PhotoUpload = {
   showStationDropdown: function () {
     var keyword = $("#input-station").val().trim();
     var filtered = PhotoUpload.filterStations(keyword);
-    var $dd = $("#dropdown-station");
-    $dd.empty();
+    var $dropdown = $("#dropdown-station");
+    $dropdown.empty();
 
     if (!filtered.length) {
-      $dd.append('<div class="combobox-empty">无匹配工位</div>');
+      $dropdown.append('<div class="combobox-empty">无匹配工位</div>');
     } else {
-      filtered.forEach(function (s) {
-        var $item = PhotoUpload.cloneTpl("tpl-combobox-item");
-        $item.find(".combobox-item-code").text(s.stationCode);
-        $item.find(".combobox-item-name").text(s.stationName);
-        $item.data("code", s.stationCode).data("name", s.stationName);
-        $dd.append($item);
+      filtered.forEach(function (state) {
+        var $item = PhotoUpload.cloneTemplate("template-combobox-item");
+        $item.find(".combobox-item-code").text(state.stationCode);
+        $item.find(".combobox-item-name").text(state.stationName);
+        $item.data("code", state.stationCode).data("name", state.stationName);
+        $dropdown.append($item);
       });
     }
-    $dd.show();
+    $dropdown.show();
   },
 
   selectStation: function (stationCode, stationName) {
@@ -321,18 +321,18 @@ var PhotoUpload = {
   },
 
   clearForm: function () {
-    var s = PhotoUpload.state;
-    s.stationCode = "";
-    s.orderNo = "";
-    s.photoTypes = [];
-    s.photos = {};
-    s.configLoaded = false;
-    s.formCollapsed = false;
-    s.orderInfoCollapsed = false;
-    s.orderInfo = { machineCode: "", vin: "", templates: [] };
-    s.selectedTemplateId = "";
-    s.selectedTemplateName = "";
-    s.selectedTemplateUrl = "";
+    var state = PhotoUpload.state;
+    state.stationCode = "";
+    state.orderNo = "";
+    state.photoTypes = [];
+    state.photos = {};
+    state.configLoaded = false;
+    state.formCollapsed = false;
+    state.orderInfoCollapsed = false;
+    state.orderInfo = { machineCode: "", vin: "", templates: [] };
+    state.selectedTemplateId = "";
+    state.selectedTemplateName = "";
+    state.selectedTemplateUrl = "";
 
     PhotoUpload.hideResultAreas();
     PhotoUpload.renderForm();
@@ -361,18 +361,18 @@ var PhotoUpload = {
 
   // ============== 查询照片配置 ==============
   doQueryPhotoConfig: function () {
-    var s = PhotoUpload.state;
-    var stationCode = $("#input-station-code").val() || s.stationCode;
+    var state = PhotoUpload.state;
+    var stationCode = $("#input-station-code").val() || state.stationCode;
     var orderNo = $("#input-order").val().trim();
 
     if (!stationCode) {
       var typedVal = $("#input-station").val().trim();
       if (typedVal) {
-        for (var i = 0; i < s.stations.length; i++) {
-          var full = s.stations[i].stationCode + " - " + s.stations[i].stationName;
+        for (var i = 0; i < state.stations.length; i++) {
+          var full = state.stations[i].stationCode + " - " + state.stations[i].stationName;
           if (full == typedVal) {
-            stationCode = s.stations[i].stationCode;
-            s.stationCode = stationCode;
+            stationCode = state.stations[i].stationCode;
+            state.stationCode = stationCode;
             $("#input-station-code").val(stationCode);
             break;
           }
@@ -389,8 +389,8 @@ var PhotoUpload = {
       return;
     }
 
-    s.stationCode = stationCode;
-    s.orderNo = orderNo;
+    state.stationCode = stationCode;
+    state.orderNo = orderNo;
 
     PhotoUpload.showLoading("查询中...");
     console.log("[API] getPhotoConfig", { stationCode: stationCode, orderNo: orderNo });
@@ -402,31 +402,31 @@ var PhotoUpload = {
         return;
       }
 
-      s.sessionId++; // 新会话：丢弃在途上传回调
-      s.photoTypes = res.data.photoTypes || [];
-      s.orderInfo = res.data.orderInfo || { machineCode: "", vin: "", templates: [] };
-      s.photos = {};
-      s.configLoaded = true;
+      state.sessionId++; // 新会话：丢弃在途上传回调
+      state.photoTypes = res.data.photoTypes || [];
+      state.orderInfo = res.data.orderInfo || { machineCode: "", vin: "", templates: [] };
+      state.photos = {};
+      state.configLoaded = true;
 
       // 铭牌模板处理
-      var templates = s.orderInfo.templates || [];
+      var templates = state.orderInfo.templates || [];
       if (templates.length == 1) {
-        s.selectedTemplateId = templates[0].templateId;
-        s.selectedTemplateName = templates[0].templateName || "";
-        s.selectedTemplateUrl = templates[0].templateImageUrl;
+        state.selectedTemplateId = templates[0].templateId;
+        state.selectedTemplateName = templates[0].templateName || "";
+        state.selectedTemplateUrl = templates[0].templateImageUrl;
       } else {
-        s.selectedTemplateId = "";
-        s.selectedTemplateName = "";
-        s.selectedTemplateUrl = "";
+        state.selectedTemplateId = "";
+        state.selectedTemplateName = "";
+        state.selectedTemplateUrl = "";
       }
 
-      for (var i = 0; i < s.photoTypes.length; i++) {
-        s.photos[s.photoTypes[i].typeCode] = [];
+      for (var i = 0; i < state.photoTypes.length; i++) {
+        state.photos[state.photoTypes[i].typeCode] = [];
       }
 
       // 查询成功：表单与订单信息默认展开（折叠交互一致：点卡片头切换）
-      s.formCollapsed = false;
-      s.orderInfoCollapsed = false;
+      state.formCollapsed = false;
+      state.orderInfoCollapsed = false;
       PhotoUpload.renderForm();
       PhotoUpload.renderOrderInfo();
       PhotoUpload.renderPhotoTypeCards();
@@ -442,91 +442,91 @@ var PhotoUpload = {
 
   // ============== 订单信息渲染（body 多态块切换，骨架在 index.html） ==============
   renderOrderInfo: function () {
-    var s = PhotoUpload.state;
+    var state = PhotoUpload.state;
     var $area = $("#order-info-area");
 
     // 无订单信息：整区隐藏
-    if (!s.orderInfo || (!s.orderInfo.machineCode && (!s.orderInfo.templates || !s.orderInfo.templates.length))) {
+    if (!state.orderInfo || (!state.orderInfo.machineCode && (!state.orderInfo.templates || !state.orderInfo.templates.length))) {
       $area.addClass("hidden");
       return;
     }
     $area.removeClass("hidden");
 
     // 折叠箭头双态切换
-    $(".order-info-arrow .arrow-down").toggleClass("hidden", !s.orderInfoCollapsed);
-    $(".order-info-arrow .arrow-up").toggleClass("hidden", s.orderInfoCollapsed);
+    $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
+    $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
     // 折叠：body 收起（多态块全部隐藏）
-    $("#order-info-body").toggleClass("hidden", s.orderInfoCollapsed);
-    if (s.orderInfoCollapsed) return;
+    $("#order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
+    if (state.orderInfoCollapsed) return;
 
     // 态A：主机编码 + VIN
-    var hasMachVin = !!(s.orderInfo.machineCode || s.orderInfo.vin);
-    $("#block-machvin").toggleClass("hidden", !hasMachVin);
-    $("#val-machine-code").text(s.orderInfo.machineCode || "-");
-    $("#val-vin").text(s.orderInfo.vin || "-");
+    var hasMachVin = !!(state.orderInfo.machineCode || state.orderInfo.vin);
+    $("#block-machine-vin").toggleClass("hidden", !hasMachVin);
+    $("#machine-code-value").text(state.orderInfo.machineCode || "-");
+    $("#vin-value").text(state.orderInfo.vin || "-");
 
     // 态B/C/D：模板三态互斥
-    $("#block-tpl-single").addClass("hidden");
-    $("#block-tpl-selected").addClass("hidden");
-    $("#block-tpl-none").addClass("hidden");
+    $("#block-template-single").addClass("hidden");
+    $("#block-template-selected").addClass("hidden");
+    $("#block-template-none").addClass("hidden");
 
-    var templates = s.orderInfo.templates || [];
+    var templates = state.orderInfo.templates || [];
     if (templates.length == 1) {
       // 单模板：自动选中
-      $("#block-tpl-single").removeClass("hidden");
-      $("#val-tpl-single-name").text(templates[0].templateName || "");
-      $("#img-tpl-single").attr("src", templates[0].templateImageUrl);
-    } else if (s.selectedTemplateId) {
+      $("#block-template-single").removeClass("hidden");
+      $("#template-single-name-value").text(templates[0].templateName || "");
+      $("#template-single-image").attr("src", templates[0].templateImageUrl);
+    } else if (state.selectedTemplateId) {
       // 多模板已选
-      $("#block-tpl-selected").removeClass("hidden");
-      $("#val-tpl-selected-name").text(s.selectedTemplateName);
-      $("#img-tpl-selected").attr("src", s.selectedTemplateUrl);
+      $("#block-template-selected").removeClass("hidden");
+      $("#template-selected-name-value").text(state.selectedTemplateName);
+      $("#template-selected-image").attr("src", state.selectedTemplateUrl);
     } else if (templates.length > 1) {
       // 多模板未选
-      $("#block-tpl-none").removeClass("hidden");
-      $("#block-tpl-none .btn-pick-template-inline").text("点击选择（" + templates.length + "个可选）");
+      $("#block-template-none").removeClass("hidden");
+      $("#block-template-none .btn-pick-template-inline").text("点击选择（" + templates.length + "个可选）");
     }
   },
 
-  // ============== 照片类型卡片渲染（克隆 tpl-photo-card / tpl-photo-item） ==============
+  // ============== 照片类型卡片渲染（克隆 template-photo-card / template-photo-item） ==============
   renderPhotoTypeCards: function () {
     var $area = $("#photo-cards-area");
-    var s = PhotoUpload.state;
+    var state = PhotoUpload.state;
     $area.find(".photo-type-card").remove();
     $("#empty-no-photo").addClass("hidden");
 
-    if (!s.photoTypes.length) {
+    if (!state.photoTypes.length) {
       // 空态提示：骨架在 index.html
       $("#empty-no-photo").removeClass("hidden");
       return;
     }
 
-    s.photoTypes.forEach(function (pt) {
-      var $card = PhotoUpload.cloneTpl("tpl-photo-card");
-      $card.attr("data-type", pt.typeCode);
-      $card.find(".card-title").text(pt.typeName);
-      $card.find(".photo-add").attr("data-type", pt.typeCode);
+    state.photoTypes.forEach(function (photoType) {
+      var $card = PhotoUpload.cloneTemplate("template-photo-card");
+      $card.attr("data-type", photoType.typeCode);
+      $card.find(".card-title").text(photoType.typeName);
+      $card.find(".photo-add").attr("data-type", photoType.typeCode);
 
-      var takenCount = (s.photos[pt.typeCode] || []).length;
-      var reachedMin = takenCount >= pt.minCount;
-      var reachedMax = takenCount >= pt.maxCount;
+      var takenCount = (state.photos[photoType.typeCode] || []).length;
+      var reachedMin = takenCount >= photoType.minCount;
+      var reachedMax = takenCount >= photoType.maxCount;
 
       // 徽章：done（打勾）/ pending（x/y~z）
       $card.find(".card-badge").toggleClass("done", reachedMin);
       $card.find(".badge-check").toggleClass("hidden", !reachedMin);
-      $card.find(".badge-text").text(reachedMin ? "已完成" : takenCount + "/" + pt.minCount + "~" + pt.maxCount);
+      $card.find(".badge-text").text(reachedMin ? "已完成" : takenCount + "/" + photoType.minCount + "~" + photoType.maxCount);
 
       // 进度条
-      var progressPct = reachedMin ? 100 : Math.min(100, (takenCount / pt.minCount) * 100);
+      var progressPct = reachedMin ? 100 : Math.min(100, (takenCount / photoType.minCount) * 100);
       $card.find(".progress-fill").css("width", progressPct + "%");
       $card.toggleClass("complete", reachedMin);
 
       // 缩略图列表
       var $list = $card.find(".photo-thumb-list");
-      (s.photos[pt.typeCode] || []).forEach(function (p, j) {
-        var $item = PhotoUpload.cloneTpl("tpl-photo-item");
-        $item.attr("data-type", pt.typeCode).attr("data-index", j);
+      (state.photos[photoType.typeCode] || []).forEach(function (p, j) {
+        var $item = PhotoUpload.cloneTemplate("template-photo-item");
+        $item.attr("data-type", photoType.typeCode).attr("data-index", j);
         $item.find("img").attr("src", p.url);
         $list.append($item);
       });
@@ -550,21 +550,21 @@ var PhotoUpload = {
   handleFileSelect: function (files, typeCode) {
     if (!typeCode) return;
 
-    var pt = PhotoUpload.findPhotoType(typeCode);
-    if (!pt) return;
+    var photoType = PhotoUpload.findPhotoType(typeCode);
+    if (!photoType) return;
 
-    var s = PhotoUpload.state;
-    var takenCount = (s.photos[typeCode] || []).length;
-    if (takenCount >= pt.maxCount) {
-      PhotoUpload.showToast("提示", "「" + pt.typeName + "」已达到最大数量 " + pt.maxCount + " 张", "error");
+    var state = PhotoUpload.state;
+    var takenCount = (state.photos[typeCode] || []).length;
+    if (takenCount >= photoType.maxCount) {
+      PhotoUpload.showToast("提示", "「" + photoType.typeName + "」已达到最大数量 " + photoType.maxCount + " 张", "error");
       return;
     }
 
     var file = files[0];
-    var sid = s.sessionId; // 归属快照：回调时校验，防止串单
+    var sessionIdSnapshot = state.sessionId; // 归属快照：回调时校验，防止串单
 
     PhotoUpload.compressImage(file, function (base64) {
-      if (sid !== PhotoUpload.state.sessionId) return; // 会话已切换，丢弃
+      if (sessionIdSnapshot !== PhotoUpload.state.sessionId) return; // 会话已切换，丢弃
       PhotoUpload.showLoading("上传中...");
       console.log("[API] uploadPhoto", {
         photoType: typeCode,
@@ -585,7 +585,7 @@ var PhotoUpload = {
         function (res) {
           console.log("[API] uploadPhoto 返回", res);
           PhotoUpload.hideLoading();
-          if (sid !== PhotoUpload.state.sessionId) return; // 会话已切换，丢弃
+          if (sessionIdSnapshot !== PhotoUpload.state.sessionId) return; // 会话已切换，丢弃
           if (res.code != 0) {
             PhotoUpload.showToast("上传失败", res.msg || "请重试", "error");
             return;
@@ -679,43 +679,43 @@ var PhotoUpload = {
 
   // ============== 照片预览（骨架预埋，每次打开重置状态并绑定事件） ==============
   showPhotoPreview: function (url) {
-    var $mask = $("#tpl-preview");
-    var $img = $("#preview-img");
+    var $mask = $("#template-preview");
+    var $image = $("#preview-image");
     var $panner = $("#preview-panner");
-    var $vp = $("#preview-viewport");
+    var $viewport = $("#preview-viewport");
 
     var scale = 1;
     var panX = 0;
     var panY = 0;
-    var imgW = 0;
-    var imgH = 0;
+    var imageWidth = 0;
+    var imageHeight = 0;
 
     // 解绑旧事件，避免重复绑定（缩放状态每次打开重置）
-    $img.off("dblclick load");
-    $vp.off("wheel touchstart touchmove touchend touchcancel");
+    $image.off("dblclick load");
+    $viewport.off("wheel touchstart touchmove touchend touchcancel");
     $mask.off("mousedown");
-    $("#tpl-preview .photo-preview-close").off("click");
+    $("#template-preview .photo-preview-close").off("click");
 
-    $img.attr("src", url);
+    $image.attr("src", url);
 
     function apply() {
       $panner.css("transform", "translate(" + panX + "px, " + panY + "px)");
-      $img.css("transform", "scale(" + scale + ")");
+      $image.css("transform", "scale(" + scale + ")");
     }
 
     function centerImage() {
-      var vpW = $vp.width();
-      var vpH = $vp.height();
-      imgW = $img.width();
-      imgH = $img.height();
-      panX = (vpW - imgW) / 2;
-      panY = (vpH - imgH) / 2;
+      var vpW = $viewport.width();
+      var vpH = $viewport.height();
+      imageWidth = $image.width();
+      imageHeight = $image.height();
+      panX = (vpW - imageWidth) / 2;
+      panY = (vpH - imageHeight) / 2;
       scale = 1;
       apply();
     }
 
     function getViewportPos(clientX, clientY) {
-      var rect = $vp[0].getBoundingClientRect();
+      var rect = $viewport[0].getBoundingClientRect();
       return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
@@ -736,7 +736,7 @@ var PhotoUpload = {
     }
 
     // 双击
-    $img.on("dblclick", function (e) {
+    $image.on("dblclick", function (e) {
       e.preventDefault();
       var pos = getViewportPos(e.clientX, e.clientY);
       if (scale > 1.05) {
@@ -747,7 +747,7 @@ var PhotoUpload = {
     });
 
     // 滚轮
-    $vp.on("wheel", function (e) {
+    $viewport.on("wheel", function (e) {
       e.preventDefault();
       var pos = getViewportPos(e.originalEvent.clientX, e.originalEvent.clientY);
       var delta = e.originalEvent.deltaY > 0 ? -0.2 : 0.2;
@@ -758,7 +758,7 @@ var PhotoUpload = {
     var dragBaseX, dragBaseY, isDragging;
     var pinchDist0, pinchScale0, pinchPanX0, pinchPanY0;
 
-    $vp.on("touchstart", function (e) {
+    $viewport.on("touchstart", function (e) {
       var t = e.originalEvent.touches;
       if (t.length == 1) {
         isDragging = true;
@@ -775,7 +775,7 @@ var PhotoUpload = {
       }
     });
 
-    $vp.on("touchmove", function (e) {
+    $viewport.on("touchmove", function (e) {
       var t = e.originalEvent.touches;
       if (t.length == 1 && isDragging) {
         panX = t[0].clientX - dragBaseX;
@@ -799,7 +799,7 @@ var PhotoUpload = {
       }
     });
 
-    $vp.on("touchend touchcancel", function () {
+    $viewport.on("touchend touchcancel", function () {
       isDragging = false;
       pinchDist0 = 0;
     });
@@ -808,16 +808,16 @@ var PhotoUpload = {
     $mask.on("mousedown", function (e) {
       if (e.target == this) close();
     });
-    $("#tpl-preview .photo-preview-close").on("click", close);
+    $("#template-preview .photo-preview-close").on("click", close);
 
     // 图片加载后居中
     function init() {
       setTimeout(centerImage, 50);
     }
-    if ($img[0].complete && $img[0].naturalWidth) {
+    if ($image[0].complete && $image[0].naturalWidth) {
       init();
     } else {
-      $img.on("load", init);
+      $image.on("load", init);
     }
 
     $mask.removeClass("hidden");
@@ -825,11 +825,11 @@ var PhotoUpload = {
 
   // ============== 数据构建（保存/提交共用） ==============
   buildPhotoList: function () {
-    var s = PhotoUpload.state;
-    return s.photoTypes.map(function (pt) {
+    var state = PhotoUpload.state;
+    return state.photoTypes.map(function (photoType) {
       return {
-        photoType: pt.typeCode,
-        urlList: (s.photos[pt.typeCode] || []).map(function (p) {
+        photoType: photoType.typeCode,
+        urlList: (state.photos[photoType.typeCode] || []).map(function (p) {
           return p.url;
         }),
       };
@@ -837,15 +837,15 @@ var PhotoUpload = {
   },
 
   buildSubmitData: function (photoList, saveType) {
-    var s = PhotoUpload.state;
+    var state = PhotoUpload.state;
     return {
-      stationCode: s.stationCode,
-      orderNo: s.orderNo,
+      stationCode: state.stationCode,
+      orderNo: state.orderNo,
       operator: window.Operator,
-      machineCode: s.orderInfo.machineCode,
-      vin: s.orderInfo.vin,
-      templateId: s.selectedTemplateId,
-      templateImageUrl: s.selectedTemplateUrl,
+      machineCode: state.orderInfo.machineCode,
+      vin: state.orderInfo.vin,
+      templateId: state.selectedTemplateId,
+      templateImageUrl: state.selectedTemplateUrl,
       saveType: saveType, // 'submit'=提交AI检测 / 'save'=保存工位照片信息
       photos: photoList,
     };
@@ -853,62 +853,62 @@ var PhotoUpload = {
 
   // ============== 按钮状态（两按钮交互一致） ==============
   updateButtons: function () {
-    var $btn = $("#btn-confirm");
-    var $save = $("#btn-save");
-    var s = PhotoUpload.state;
+    var $confirmButton = $("#btn-confirm");
+    var $saveButton = $("#btn-save");
+    var state = PhotoUpload.state;
 
-    if (!s.configLoaded || !s.photoTypes.length) {
-      $btn.prop("disabled", true);
-      $save.prop("disabled", true).addClass("btn-disabled");
+    if (!state.configLoaded || !state.photoTypes.length) {
+      $confirmButton.prop("disabled", true);
+      $saveButton.prop("disabled", true).addClass("btn-disabled");
       return;
     }
 
     // 有模板时必须选了模板才能提交
-    var templates = s.orderInfo.templates || [];
-    if (templates.length > 0 && !s.selectedTemplateId) {
-      $btn.prop("disabled", true).addClass("btn-disabled");
-      $save.prop("disabled", true).addClass("btn-disabled");
+    var templates = state.orderInfo.templates || [];
+    if (templates.length > 0 && !state.selectedTemplateId) {
+      $confirmButton.prop("disabled", true).addClass("btn-disabled");
+      $saveButton.prop("disabled", true).addClass("btn-disabled");
       return;
     }
 
     var allReachedMin = true;
-    for (var i = 0; i < s.photoTypes.length; i++) {
-      var pt = s.photoTypes[i];
-      var taken = (s.photos[pt.typeCode] || []).length;
-      if (taken < pt.minCount) {
+    for (var i = 0; i < state.photoTypes.length; i++) {
+      var photoType = state.photoTypes[i];
+      var taken = (state.photos[photoType.typeCode] || []).length;
+      if (taken < photoType.minCount) {
         allReachedMin = false;
         break;
       }
     }
 
     if (allReachedMin) {
-      $btn.prop("disabled", false).removeClass("btn-disabled");
-      $save.prop("disabled", false).removeClass("btn-disabled");
+      $confirmButton.prop("disabled", false).removeClass("btn-disabled");
+      $saveButton.prop("disabled", false).removeClass("btn-disabled");
     } else {
-      $btn.prop("disabled", true).addClass("btn-disabled");
-      $save.prop("disabled", true).addClass("btn-disabled");
+      $confirmButton.prop("disabled", true).addClass("btn-disabled");
+      $saveButton.prop("disabled", true).addClass("btn-disabled");
     }
   },
 
   // ============== 提交/保存（交互一致，仅 saveType 区分后台逻辑） ==============
   handleSubmit: function (saveType) {
-    var s = PhotoUpload.state;
-    if (s.submitting) return;
+    var state = PhotoUpload.state;
+    if (state.submitting) return;
 
     // 有模板时必须选择
-    var templates = s.orderInfo.templates || [];
-    if (templates.length > 0 && !s.selectedTemplateId) {
+    var templates = state.orderInfo.templates || [];
+    if (templates.length > 0 && !state.selectedTemplateId) {
       PhotoUpload.showToast("提示", "请选择铭牌模板", "error");
       return;
     }
 
     // 照片数量校验
     var errors = [];
-    for (var i = 0; i < s.photoTypes.length; i++) {
-      var pt = s.photoTypes[i];
-      var taken = (s.photos[pt.typeCode] || []).length;
-      if (taken < pt.minCount) {
-        errors.push("「" + pt.typeName + "」还需拍摄 " + (pt.minCount - taken) + " 张（至少 " + pt.minCount + " 张）");
+    for (var i = 0; i < state.photoTypes.length; i++) {
+      var photoType = state.photoTypes[i];
+      var taken = (state.photos[photoType.typeCode] || []).length;
+      if (taken < photoType.minCount) {
+        errors.push("「" + photoType.typeName + "」还需拍摄 " + (photoType.minCount - taken) + " 张（至少 " + photoType.minCount + " 张）");
       }
     }
 
@@ -934,14 +934,14 @@ var PhotoUpload = {
     var submitData = PhotoUpload.buildSubmitData(photoList, saveType);
 
     PhotoUpload.state.submitting = true;
-    var $btn = $("#btn-confirm");
-    var $save = $("#btn-save");
-    $btn.prop("disabled", true);
-    $save.prop("disabled", true);
+    var $confirmButton = $("#btn-confirm");
+    var $saveButton = $("#btn-save");
+    $confirmButton.prop("disabled", true);
+    $saveButton.prop("disabled", true);
     if (isSave) {
-      $save.text("保存中...");
+      $saveButton.text("保存中...");
     } else {
-      $btn.text("提交中...");
+      $confirmButton.text("提交中...");
     }
 
     PhotoUpload.showLoading(actionText + "中...");
@@ -952,8 +952,8 @@ var PhotoUpload = {
       PhotoUpload.hideLoading();
       PhotoUpload.state.submitting = false;
       // 恢复按钮：文案从 data-label 缓存读取（初始文案只定义在 index.html 骨架）
-      $btn.prop("disabled", false).text($btn.data("label"));
-      $save.prop("disabled", false).text($save.data("label"));
+      $confirmButton.prop("disabled", false).text($confirmButton.data("label"));
+      $saveButton.prop("disabled", false).text($saveButton.data("label"));
 
       if (res.code != 0) {
         PhotoUpload.showToast(actionText + "失败", res.msg || "请稍后重试", "error");
@@ -965,7 +965,7 @@ var PhotoUpload = {
         totalPhotos += photoList[k].urlList.length;
       }
 
-      // 成功详情：rows 数组 → toast 内部克隆 tpl-detail-row 填充
+      // 成功详情：rows 数组 → toast 内部克隆 template-detail-row 填充
       var rows = [
         { label: "工位", value: PhotoUpload.state.stationCode },
         { label: "订单号", value: PhotoUpload.state.orderNo },
@@ -973,9 +973,9 @@ var PhotoUpload = {
         { label: "VIN", value: PhotoUpload.state.orderInfo.vin || "-" },
         { label: "照片总数", value: totalPhotos + " 张" },
       ];
-      PhotoUpload.state.photoTypes.forEach(function (pt) {
-        var count = (PhotoUpload.state.photos[pt.typeCode] || []).length;
-        rows.push({ label: pt.typeName, value: count + " 张（" + pt.minCount + "~" + pt.maxCount + "）" });
+      PhotoUpload.state.photoTypes.forEach(function (photoType) {
+        var count = (PhotoUpload.state.photos[photoType.typeCode] || []).length;
+        rows.push({ label: photoType.typeName, value: count + " 张（" + photoType.minCount + "~" + photoType.maxCount + "）" });
       });
 
       PhotoUpload.showToast(actionText + "成功", rows, "success", function () {
@@ -986,19 +986,19 @@ var PhotoUpload = {
 
   // ============== 重置表单 ==============
   resetForm: function () {
-    var s = PhotoUpload.state;
-    s.stationCode = "";
-    s.orderNo = "";
-    s.photoTypes = [];
-    s.photos = {};
-    s.submitting = false;
-    s.configLoaded = false;
-    s.formCollapsed = false;
-    s.orderInfoCollapsed = false;
-    s.orderInfo = { machineCode: "", vin: "", templates: [] };
-    s.selectedTemplateId = "";
-    s.selectedTemplateName = "";
-    s.selectedTemplateUrl = "";
+    var state = PhotoUpload.state;
+    state.stationCode = "";
+    state.orderNo = "";
+    state.photoTypes = [];
+    state.photos = {};
+    state.submitting = false;
+    state.configLoaded = false;
+    state.formCollapsed = false;
+    state.orderInfoCollapsed = false;
+    state.orderInfo = { machineCode: "", vin: "", templates: [] };
+    state.selectedTemplateId = "";
+    state.selectedTemplateName = "";
+    state.selectedTemplateUrl = "";
 
     PhotoUpload.hideResultAreas();
     PhotoUpload.renderForm();
@@ -1028,9 +1028,9 @@ var PhotoUpload = {
 
     // 下拉箭头点击
     $("#form-area").on("click", ".combobox-arrow", function () {
-      var $dd = $("#dropdown-station");
-      if ($dd.is(":visible")) {
-        $dd.hide();
+      var $dropdown = $("#dropdown-station");
+      if ($dropdown.is(":visible")) {
+        $dropdown.hide();
       } else {
         PhotoUpload.showStationDropdown();
       }
@@ -1131,10 +1131,10 @@ var PhotoUpload = {
       if (!PhotoUpload.state.orderInfo.templates || !PhotoUpload.state.orderInfo.templates.length) return;
       PhotoUpload.showTemplatePicker(PhotoUpload.state.orderInfo.templates, function (templateId, templateName, templateUrl) {
         if (templateId) {
-          var s = PhotoUpload.state;
-          s.selectedTemplateId = templateId;
-          s.selectedTemplateName = templateName;
-          s.selectedTemplateUrl = templateUrl;
+          var state = PhotoUpload.state;
+          state.selectedTemplateId = templateId;
+          state.selectedTemplateName = templateName;
+          state.selectedTemplateUrl = templateUrl;
           PhotoUpload.renderOrderInfo();
           PhotoUpload.updateButtons();
         }
@@ -1151,32 +1151,32 @@ var PhotoUpload = {
 
     // ===== 弹窗骨架（常驻，事件绑一次） =====
     // Toast：点击遮罩或确定按钮关闭
-    $("#tpl-toast").on("click", function (e) {
+    $("#template-toast").on("click", function (e) {
       if (e.target == this || $(e.target).hasClass("toast-btn")) {
-        var cb = $("#tpl-toast").data("close-callback");
-        if (cb) cb();
+        var callback = $("#template-toast").data("close-callback");
+        if (callback) callback();
       }
     });
     // 二次确认：取消/遮罩关闭，确定执行回调
-    $("#tpl-confirm").on("click", function (e) {
+    $("#template-confirm").on("click", function (e) {
       if (e.target == this || $(e.target).hasClass("confirm-btn-cancel")) {
         $(this).addClass("hidden");
       } else if ($(e.target).hasClass("confirm-btn-ok")) {
-        var cb = $(this).data("on-confirm");
+        var callback = $(this).data("on-confirm");
         $(this).addClass("hidden");
-        if (cb) cb();
+        if (callback) callback();
       }
     });
     // 模板选择：列表项/取消/遮罩
     $("#picker-list").on("click", ".picker-item", function () {
-      var cb = $("#tpl-picker").data("on-pick");
-      $("#tpl-picker").addClass("hidden");
-      if (cb) cb($(this).data("id"), $(this).data("name"), $(this).data("url"));
+      var callback = $("#template-picker").data("on-pick");
+      $("#template-picker").addClass("hidden");
+      if (callback) callback($(this).data("id"), $(this).data("name"), $(this).data("url"));
     });
-    $("#tpl-picker .picker-btn").on("click", function () {
-      $("#tpl-picker").addClass("hidden");
+    $("#template-picker .picker-btn").on("click", function () {
+      $("#template-picker").addClass("hidden");
     });
-    $("#tpl-picker").on("click", function (e) {
+    $("#template-picker").on("click", function (e) {
       if (e.target == this) $(this).addClass("hidden");
     });
   },

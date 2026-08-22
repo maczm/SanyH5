@@ -81,31 +81,31 @@
           </div>
           <div class="order-info-body" id="order-info-body">
             <!-- 态A：主机编码 + VIN 行 -->
-            <div class="field-row field-row-inline hidden" id="block-machvin">
+            <div class="field-row field-row-inline hidden" id="block-machine-vin">
               <span class="field-label">主机编码</span>
-              <span class="field-value" id="val-machine-code">-</span>
+              <span class="field-value" id="machine-code-value">-</span>
               <span class="field-label" style="margin-left:12px;">VIN</span>
-              <span class="field-value" id="val-vin">-</span>
+              <span class="field-value" id="vin-value">-</span>
             </div>
             <!-- 态B：单模板（自动选中） -->
-            <div class="hidden" id="block-tpl-single">
+            <div class="hidden" id="block-template-single">
               <div class="field-row">
                 <span class="field-label">铭牌模板</span>
-                <span class="field-value" id="val-tpl-single-name">-</span>
+                <span class="field-value" id="template-single-name-value">-</span>
               </div>
-              <img class="template-image" id="img-tpl-single" src="" alt="铭牌模板">
+              <img class="template-image" id="template-single-image" src="" alt="铭牌模板">
             </div>
             <!-- 态C：多模板已选 -->
-            <div class="hidden" id="block-tpl-selected">
+            <div class="hidden" id="block-template-selected">
               <div class="field-row template-field-row">
                 <span class="field-label">铭牌模板</span>
-                <span class="field-value" id="val-tpl-selected-name">-</span>
+                <span class="field-value" id="template-selected-name-value">-</span>
                 <button type="button" class="btn-change-template-inline pick-template-btn">更换</button>
               </div>
-              <img class="template-image" id="img-tpl-selected" src="" alt="铭牌模板">
+              <img class="template-image" id="template-selected-image" src="" alt="铭牌模板">
             </div>
             <!-- 态D：多模板未选 -->
-            <div class="field-row hidden" id="block-tpl-none">
+            <div class="field-row hidden" id="block-template-none">
               <span class="field-label">铭牌模板</span>
               <button type="button" class="btn-pick-template-inline pick-template-btn">点击选择</button>
             </div>
@@ -133,14 +133,14 @@
 
       <!-- ==================== 弹窗骨架（hidden 预埋，JS 只显隐/填值） ==================== -->
       <!-- 加载中 -->
-      <div class="loading-mask hidden" id="tpl-loading">
+      <div class="loading-mask hidden" id="template-loading">
         <div class="loading-box">
           <div class="loading-spinner"></div>
           <div class="loading-text" id="loading-text">加载中...</div>
         </div>
       </div>
       <!-- Toast -->
-      <div class="toast-mask hidden" id="tpl-toast">
+      <div class="toast-mask hidden" id="template-toast">
         <div class="toast-box">
           <div class="toast-icon-area">
             <div class="toast-icon-error hidden">
@@ -156,7 +156,7 @@
         </div>
       </div>
       <!-- 二次确认 -->
-      <div class="confirm-mask hidden" id="tpl-confirm">
+      <div class="confirm-mask hidden" id="template-confirm">
         <div class="confirm-box">
           <div class="confirm-title">提示</div>
           <div class="confirm-content" id="confirm-content"></div>
@@ -167,7 +167,7 @@
         </div>
       </div>
       <!-- 模板选择弹窗 -->
-      <div class="template-picker-mask hidden" id="tpl-picker">
+      <div class="template-picker-mask hidden" id="template-picker">
         <div class="template-picker-box">
           <div class="picker-title">请选择铭牌模板</div>
           <div class="picker-list" id="picker-list"></div>
@@ -175,25 +175,25 @@
         </div>
       </div>
       <!-- 照片预览 -->
-      <div class="photo-preview-mask hidden" id="tpl-preview">
+      <div class="photo-preview-mask hidden" id="template-preview">
         <button type="button" class="photo-preview-close">&times;</button>
         <div class="photo-preview-viewport" id="preview-viewport">
           <div class="photo-preview-panner" id="preview-panner">
-            <img class="photo-preview-img" id="preview-img" src="" alt="preview">
+            <img class="photo-preview-image" id="preview-image" src="" alt="preview">
           </div>
         </div>
       </div>
 
       <!-- ==================== 循环结构模板（JS cloneNode 后填值） ==================== -->
       <!-- 工位下拉选项 -->
-      <template id="tpl-combobox-item">
+      <template id="template-combobox-item">
         <div class="combobox-item">
           <span class="combobox-item-code"></span>
           <span class="combobox-item-name"></span>
         </div>
       </template>
       <!-- 照片类型卡片 -->
-      <template id="tpl-photo-card">
+      <template id="template-photo-card">
         <div class="photo-type-card">
           <div class="card-header">
             <div class="card-title-row">
@@ -217,7 +217,7 @@
         </div>
       </template>
       <!-- 照片缩略图 -->
-      <template id="tpl-photo-item">
+      <template id="template-photo-item">
         <div class="photo-item">
           <img src="" alt="photo">
           <button type="button" class="photo-delete">
@@ -226,14 +226,14 @@
         </div>
       </template>
       <!-- 模板选择项 -->
-      <template id="tpl-picker-item">
+      <template id="template-picker-item">
         <div class="picker-item">
           <img src="" alt="">
           <div class="picker-item-name"></div>
         </div>
       </template>
       <!-- 提交成功详情行 -->
-      <template id="tpl-detail-row">
+      <template id="template-detail-row">
         <div class="detail-row">
           <span class="detail-label"></span>
           <span class="detail-value"></span>
