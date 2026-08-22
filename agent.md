@@ -112,3 +112,35 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 - DOM id：完整语义词组（如 `machine-code-value`），**禁止拼凑缩写**（如 `machvin`）
 - CSS 类名：`btn-`/`icon-` 等行业前缀可沿用，但类名主体用完整单词（新命名不缩写）
 - 循环变量允许 `i/j/k`（惯例），其余一律全称
+
+## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
+
+1. **骨架先行**：先写 index.html 完整骨架——固定结构直写、多态结构 `.hidden` 块预埋、循环结构 `<template>` 预埋（单根结构）、弹窗骨架常驻 hidden
+2. **命名空间**：按业务语义命名（`NameplatePhotoUpload` 式，避免泛化如 `PhotoUpload`），全称易懂
+3. **JS 只赋值**：`cloneTemplate` 克隆 + `text/val/attr` 填充 + `addClass/removeClass` 类切换，**零 HTML 拼接**
+4. **事件**：一次性委托绑定；弹窗回调挂 `.data()`；实例状态（预览缩放）每次打开 `off()+on()`
+5. **样式归 CSS**：内联 style 仅限动态值（如进度条宽度）；初始隐藏用 `.hidden`
+6. **Mock**：独立 `mock.js`（生产不部署），业务 JS 零 Mock 代码
+7. **验证**：`eslint`（0/0）→ `tests/` 回归脚本 → Playwright 冒烟（nginx 8080）
+
+## 10. Definition of Done（改动完成标准）
+
+每项改动（修 bug / 重构 / 新功能）完成前逐项自检：
+
+- [ ] ESLint **0 error 0 warning**
+- [ ] `tests/` 回归脚本全绿（有覆盖该页的脚本时）+ 0 JS 错误
+- [ ] 命名符合 §8.6（全称、易懂、业务语义）
+- [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
+- [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
+- [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
+- [ ] 提交符合 §5 规范，工作区干净
+
+## 11. 页面回归必测清单（tests/ 脚本覆盖）
+
+| 页面 | 脚本 | 覆盖点 |
+|---|---|---|
+| mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(无确认+saveType)/提交(确认+saveType)/折叠/空态/清空 |
+
+运行：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（前置：nginx 8080）
+
+改造 mom-packing / check-result 时，参照此脚本编写对应回归脚本并加入本表。
