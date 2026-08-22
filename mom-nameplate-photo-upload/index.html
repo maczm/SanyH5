@@ -51,13 +51,16 @@
             </div>
           </div>
           <button type="button" class="btn-query" id="btn-query">查询照片配置</button>
-          <div class="form-btn-row" id="form-btn-row" style="display:none;">
+          <!-- 查询前：独立清空按钮（隐藏态用 .hidden 控制） -->
+          <button type="button" class="btn-clear-form btn-clear-before hidden" id="btn-clear-before">清空</button>
+          <!-- 查询后：收起/清空行 -->
+          <div class="form-btn-row hidden" id="form-btn-row">
             <button type="button" class="btn-collapse-form" id="btn-collapse-form">收起 ▲</button>
             <button type="button" class="btn-clear-form" id="btn-clear-form">清空</button>
           </div>
         </div>
         <!-- 折叠态摘要（JS 填充） -->
-        <div class="form-summary" id="form-summary" style="display:none;"></div>
+        <div class="form-summary hidden" id="form-summary"></div>
       </div>
 
       <!-- 订单信息区（动态渲染容器） -->
@@ -72,12 +75,12 @@
         <button type="button" class="btn-save" id="btn-save">保存工位照片信息</button>
       </div>
 
-      <!-- 隐藏的文件选择 input（静态） -->
+      <!-- 隐藏的文件选择 input（静态；隐藏样式在 index.css 的 .photo-input-hidden） -->
       <input
         type="file"
         id="photo-input"
+        class="photo-input-hidden"
         accept="image/*"
-        style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
       />
     </div>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js"></script>

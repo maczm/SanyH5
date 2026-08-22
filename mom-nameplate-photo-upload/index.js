@@ -268,15 +268,18 @@ var PhotoUpload = {
     var $card = $("#form-card");
     var $summary = $("#form-summary");
     var $btnRow = $("#form-btn-row");
+    var $clearBefore = $("#btn-clear-before");
 
     if (s.formCollapsed && s.configLoaded) {
-      $card.hide();
-      $btnRow.hide();
-      $summary.html(PhotoUpload.buildSummaryHtml()).show();
+      $card.addClass("hidden");
+      $btnRow.addClass("hidden");
+      $clearBefore.addClass("hidden");
+      $summary.html(PhotoUpload.buildSummaryHtml()).removeClass("hidden");
     } else {
-      $card.show();
-      $btnRow.toggle(s.configLoaded);
-      $summary.hide();
+      $card.removeClass("hidden");
+      $btnRow.toggleClass("hidden", !s.configLoaded);
+      $clearBefore.toggleClass("hidden", s.configLoaded);
+      $summary.addClass("hidden");
       // 回填当前值
       $("#input-station").val(s.stationCode ? PhotoUpload.getStationDisplay(s.stationCode) : "");
       $("#input-station-code").val(s.stationCode);
@@ -1054,8 +1057,9 @@ var PhotoUpload = {
       console.log("[API] submitPhotoRecord(" + saveType + ") 返回", res);
       PhotoUpload.hideLoading();
       PhotoUpload.state.submitting = false;
-      $btn.prop("disabled", false).text("提交AI检测");
-      $save.prop("disabled", false).text("保存工位照片信息");
+      // 恢复按钮：文案从 data-label 缓存读取（初始文案只定义在 index.html 骨架）
+      $btn.prop("disabled", false).text($btn.data("label"));
+      $save.prop("disabled", false).text($save.data("label"));
 
       if (res.code != 0) {
         PhotoUpload.showToast(actionText + "失败", res.msg || "请稍后重试", "error");
@@ -1257,6 +1261,10 @@ var PhotoUpload = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
+    // 缓存按钮初始文案（骨架在 index.html，JS 恢复时用，避免双重定义）
+    $("#btn-confirm").data("label", $("#btn-confirm").text());
+    $("#btn-save").data("label", $("#btn-save").text());
+
     // 头部：操作员 + 时钟
     $("#header-operator").text(PhotoUpload.h(window.Operator));
 
@@ -1272,6 +1280,9 @@ var PhotoUpload = {
 
     // 绑定事件（一次，委托）
     PhotoUpload.initEvents();
+
+    // 渲染初始表单状态（查询前：独立清空按钮可见）
+    PhotoUpload.renderForm();
 
     // 加载工位列表
     PhotoUpload.loadStationList();

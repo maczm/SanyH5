@@ -62,6 +62,20 @@ body {
   display: none !important;
 }
 
+/* 隐藏的文件选择 input */
+#mom-photo-upload .photo-input-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 查询前的独立清空按钮 */
+#mom-photo-upload .btn-clear-before {
+  margin-top: 8px;
+}
+
 /* ==================== 页面头部 ==================== */
 #mom-photo-upload .page-header {
   background: var(--gradient-primary);
