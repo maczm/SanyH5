@@ -219,18 +219,15 @@ var PhotoUpload = {
     var s = PhotoUpload.state;
     var $header = $("#btn-toggle-form");
     var $body = $("#form-card-body");
-    var $clearBefore = $("#btn-clear-before");
 
     if (s.configLoaded) {
       $header.removeClass("hidden");
       $(".form-arrow .arrow-down").toggleClass("hidden", !s.formCollapsed);
       $(".form-arrow .arrow-up").toggleClass("hidden", s.formCollapsed);
       $body.toggleClass("hidden", s.formCollapsed);
-      $clearBefore.addClass("hidden");
     } else {
       $header.addClass("hidden");
       $body.removeClass("hidden");
-      $clearBefore.removeClass("hidden");
     }
 
     // 回填当前值

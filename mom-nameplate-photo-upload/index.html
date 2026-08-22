@@ -21,16 +21,16 @@
       <!-- ==================== 表单区 ==================== -->
       <div class="form-area" id="form-area">
         <div class="form-card" id="form-card">
-          <!-- 查询后显示的卡片头（与订单信息一致：点击折叠/展开，右侧清空） -->
+          <!-- 查询后显示的卡片头（与订单信息一致：点击折叠/展开；清空按钮在箭头左边） -->
           <div class="form-card-header hidden" id="btn-toggle-form">
             <span>查询条件</span>
+            <button type="button" class="btn-clear-form form-clear-btn" title="清空">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
             <span class="form-arrow">
               <svg class="arrow-down hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
               <svg class="arrow-up hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6" /></svg>
             </span>
-            <button type="button" class="btn-clear-form form-clear-btn" title="清空">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            </button>
           </div>
           <div class="form-card-body" id="form-card-body">
             <div class="form-group">
@@ -63,8 +63,6 @@
               </div>
             </div>
             <button type="button" class="btn-query" id="btn-query">查询照片配置</button>
-            <!-- 查询前：独立清空按钮 -->
-            <button type="button" class="btn-clear-form btn-clear-before hidden" id="btn-clear-before">清空</button>
           </div>
         </div>
       </div>

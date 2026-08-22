@@ -71,11 +71,6 @@ body {
   overflow: hidden;
 }
 
-/* 查询前的独立清空按钮 */
-#mom-photo-upload .btn-clear-before {
-  margin-top: 8px;
-}
-
 /* ==================== 页面头部 ==================== */
 #mom-photo-upload .page-header {
   background: var(--gradient-primary);
@@ -114,8 +109,14 @@ body {
 #mom-photo-upload .form-card {
   background: #fff;
   border-radius: var(--card-radius);
-  padding: 18px;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--primary);
+}
+
+/* 表单卡片内容区（header 贴边后，内容需要自己的内边距） */
+#mom-photo-upload .form-card-body {
+  padding: 18px;
 }
 
 #mom-photo-upload .form-group {
@@ -469,6 +470,7 @@ body {
   background: #f0f2f5;
 }
 #mom-photo-upload .form-card-header .form-arrow {
+  margin-left: auto; /* 与订单信息一致：箭头推到最右 */
   display: flex;
   align-items: center;
 }
@@ -478,7 +480,6 @@ body {
   color: var(--text-muted);
 }
 #mom-photo-upload .form-card-header .form-clear-btn {
-  margin-left: auto;
   display: flex;
   align-items: center;
   padding: 4px;
