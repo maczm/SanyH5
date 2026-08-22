@@ -13,23 +13,23 @@ var CONFIG = {
  *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，Portal 只取
  *             index.html / index.js / index.css 三个文件）
  *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
- *   JS 通过 if (typeof window.xxx !== 'function') 检测自动使用真实函数
+ *   JS 通过 typeof window.xxx 非 function 类型判断自动使用真实函数
  *
- * 页面结构：全部骨架在 index.html（含弹窗预埋与 <template> 循环模板），
+ * 页面结构：全部骨架在 index.html（含弹窗预埋与 template 标签循环模板），
  *          JS 只负责克隆模板、赋值（text/val/attr）与显隐切换，不拼接 HTML。
  *
  * 各 API 说明：
  *   API 1 (工位列表) : 获取工位列表
  *   API 2 (照片配置) : 获取照片类型配置（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
- *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：'submit'=提交AI检测（二次确认后触发），'save'=保存工位照片信息（不触发检测）
+ *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：submit=提交AI检测（二次确认后触发），save=保存工位照片信息（不触发检测）
  *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
  * Portal 必须注入以下 5 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
  *   window.getPhotoConfig     — API 2：获取照片类型配置 + 订单信息
  *   window.uploadPhoto        — API 3：照片上传
- *   window.submitPhotoRecord  — API 4：照片记录提交/保存（data.saveType 区分：'submit' / 'save'）
+ *   window.submitPhotoRecord  — API 4：照片记录提交/保存（data.saveType 区分：submit / save）
  *   window.Operator           — 当前操作员姓名
  */
 
@@ -41,12 +41,12 @@ var NameplatePhotoUpload = {
     stationCode: "",
     orderNo: "",
     photoTypes: [],       // [{ typeCode, typeName, minCount, maxCount }]
-    photos: {},           // { typeCode: [{ url: '...' }] }
+    photos: {},           // { typeCode: [{ url: 字符串 }] }
     submitting: false,
     configLoaded: false,
-    formCollapsed: false, // 查询区是否折叠
-    orderInfoCollapsed: false, // 订单信息区是否折叠
-    orderInfo: {          // 订单信息
+    formCollapsed: false,
+    orderInfoCollapsed: false,
+    orderInfo: {
       machineCode: "",
       vin: "",
       templates: [],      // [{ templateId, templateName, templateImageUrl }]
@@ -54,16 +54,16 @@ var NameplatePhotoUpload = {
     selectedTemplateId: "",
     selectedTemplateName: "",
     selectedTemplateUrl: "",
-    stations: [],         // 工位列表缓存
+    stations: [],
     sessionId: 0,         // 会话标识：查询/清空/换工位时递增，用于丢弃过期异步回调（防串单）
   },
 
-  _toastTimer: null,      // toast 自动关闭定时器
+  _toastTimer: null,
   _loadingCount: 0,       // loading 引用计数（并发上传时避免提前消失）
 
   // ============== 模板克隆 ==============
   /**
-   * 克隆 <template> 骨架并返回 jQuery 对象（取根元素，保证 .data() 落在真实 DOM 节点上）
+   * 克隆 template 标签骨架并返回 jQuery 对象（取根元素，保证 .data() 落在真实 DOM 节点上）
    * @param {string} id - template 元素 id（不含 #）
    */
   cloneTemplate: function (id) {
@@ -114,7 +114,7 @@ var NameplatePhotoUpload = {
         var marker = dv.getUint8(offset + 1);
         if (marker === 0xe1) { // APP1: Exif
           var segLen = dv.getUint16(offset + 2, false);
-          if (dv.getUint32(offset + 4, false) === 0x45786966) { // "Exif"
+          if (dv.getUint32(offset + 4, false) === 0x45786966) { // Exif 魔数
             var tiffOff = offset + 10;
             var little = dv.getUint16(tiffOff, false) === 0x4949;
             if (dv.getUint16(tiffOff + 2, little) !== 0x002a) return 1;
@@ -235,7 +235,6 @@ var NameplatePhotoUpload = {
       $body.removeClass("hidden");
     }
 
-    // 回填当前值
     $("#input-station").val(state.stationCode ? NameplatePhotoUpload.getStationDisplay(state.stationCode) : "");
     $("#input-station-code").val(state.stationCode);
     $("#input-order").val(state.orderNo);
@@ -271,11 +270,11 @@ var NameplatePhotoUpload = {
   // ============== 工位筛选 ==============
   filterStations: function (keyword) {
     if (!keyword) return NameplatePhotoUpload.state.stations;
-    var kw = keyword.toLowerCase();
+    var keywordLower = keyword.toLowerCase();
     return NameplatePhotoUpload.state.stations.filter(function (station) {
       var code = (station.stationCode || "").toLowerCase();
       var name = (station.stationName || "").toLowerCase();
-      return code.indexOf(kw) !== -1 || name.indexOf(kw) !== -1;
+      return code.indexOf(keywordLower) !== -1 || name.indexOf(keywordLower) !== -1;
     });
   },
 
@@ -413,7 +412,6 @@ var NameplatePhotoUpload = {
       state.photos = {};
       state.configLoaded = true;
 
-      // 铭牌模板处理
       var templates = state.orderInfo.templates || [];
       if (templates.length === 1) {
         state.selectedTemplateId = templates[0].templateId;
@@ -462,17 +460,15 @@ var NameplatePhotoUpload = {
     }
     $area.removeClass("hidden");
 
-    // 折叠箭头双态切换
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
-    // 折叠：body 收起（多态块全部隐藏）
     $("#order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
     if (state.orderInfoCollapsed) return;
 
     // 态A：主机编码 + VIN
-    var hasMachVin = !!(state.orderInfo.machineCode || state.orderInfo.vin);
-    $("#block-machine-vin").toggleClass("hidden", !hasMachVin);
+    var hasMachineVin = !!(state.orderInfo.machineCode || state.orderInfo.vin);
+    $("#block-machine-vin").toggleClass("hidden", !hasMachineVin);
     $("#machine-code-value").text(state.orderInfo.machineCode || "-");
     $("#vin-value").text(state.orderInfo.vin || "-");
 
@@ -528,21 +524,18 @@ var NameplatePhotoUpload = {
       $card.find(".badge-check").toggleClass("hidden", !reachedMin);
       $card.find(".badge-text").text(reachedMin ? "已完成" : takenCount + "/" + photoType.minCount + "~" + photoType.maxCount);
 
-      // 进度条
       var progressPct = reachedMin ? 100 : Math.min(100, (takenCount / photoType.minCount) * 100);
       $card.find(".progress-fill").css("width", progressPct + "%");
       $card.toggleClass("complete", reachedMin);
 
-      // 缩略图列表
       var $list = $card.find(".photo-thumb-list");
-      (state.photos[photoType.typeCode] || []).forEach(function (p, j) {
+      (state.photos[photoType.typeCode] || []).forEach(function (photo, j) {
         var $item = NameplatePhotoUpload.cloneTemplate("template-photo-item");
         $item.attr("data-type", photoType.typeCode).attr("data-index", j);
-        $item.find("img").attr("src", p.url);
+        $item.find("img").attr("src", photo.url);
         $list.append($item);
       });
 
-      // 拍照按钮 / 已达上限
       $card.find(".photo-add").toggleClass("hidden", reachedMax);
       $card.find(".photo-full-tip").toggleClass("hidden", !reachedMax);
 
@@ -628,7 +621,6 @@ var NameplatePhotoUpload = {
         var height = img.height;
         var orientation = NameplatePhotoUpload.readExifOrientation(e.target.result);
 
-        // 限制最大尺寸
         if (width > CONFIG.MAX_IMAGE_WIDTH) {
           height = Math.round((height * CONFIG.MAX_IMAGE_WIDTH) / width);
           width = CONFIG.MAX_IMAGE_WIDTH;
@@ -746,7 +738,6 @@ var NameplatePhotoUpload = {
       $mask.addClass("hidden");
     }
 
-    // 双击
     $image.on("dblclick", function (e) {
       e.preventDefault();
       var pos = getViewportPos(e.clientX, e.clientY);
@@ -757,7 +748,6 @@ var NameplatePhotoUpload = {
       }
     });
 
-    // 滚轮
     $viewport.on("wheel", function (e) {
       e.preventDefault();
       var pos = getViewportPos(e.originalEvent.clientX, e.originalEvent.clientY);
@@ -765,41 +755,40 @@ var NameplatePhotoUpload = {
       zoomAt(pos.x, pos.y, scale + delta);
     });
 
-    // 触摸
     var dragBaseX, dragBaseY, isDragging;
     var pinchDist0, pinchScale0, pinchPanX0, pinchPanY0;
 
     $viewport.on("touchstart", function (e) {
-      var t = e.originalEvent.touches;
-      if (t.length === 1) {
+      var touches = e.originalEvent.touches;
+      if (touches.length === 1) {
         isDragging = true;
-        dragBaseX = t[0].clientX - panX;
-        dragBaseY = t[0].clientY - panY;
-      } else if (t.length === 2) {
+        dragBaseX = touches[0].clientX - panX;
+        dragBaseY = touches[0].clientY - panY;
+      } else if (touches.length === 2) {
         isDragging = false;
         pinchScale0 = scale;
         pinchPanX0 = panX;
         pinchPanY0 = panY;
-        var dx = t[0].clientX - t[1].clientX;
-        var dy = t[0].clientY - t[1].clientY;
+        var dx = touches[0].clientX - touches[1].clientX;
+        var dy = touches[0].clientY - touches[1].clientY;
         pinchDist0 = Math.sqrt(dx * dx + dy * dy);
       }
     });
 
     $viewport.on("touchmove", function (e) {
-      var t = e.originalEvent.touches;
-      if (t.length === 1 && isDragging) {
-        panX = t[0].clientX - dragBaseX;
-        panY = t[0].clientY - dragBaseY;
+      var touches = e.originalEvent.touches;
+      if (touches.length === 1 && isDragging) {
+        panX = touches[0].clientX - dragBaseX;
+        panY = touches[0].clientY - dragBaseY;
         apply();
-      } else if (t.length === 2 && pinchDist0 > 0) {
-        var dx = t[0].clientX - t[1].clientX;
-        var dy = t[0].clientY - t[1].clientY;
+      } else if (touches.length === 2 && pinchDist0 > 0) {
+        var dx = touches[0].clientX - touches[1].clientX;
+        var dy = touches[0].clientY - touches[1].clientY;
         var dist = Math.sqrt(dx * dx + dy * dy);
         var newScale = Math.max(0.5, Math.min(5, pinchScale0 * (dist / pinchDist0)));
 
-        var cx = (t[0].clientX + t[1].clientX) / 2;
-        var cy = (t[0].clientY + t[1].clientY) / 2;
+        var cx = (touches[0].clientX + touches[1].clientX) / 2;
+        var cy = (touches[0].clientY + touches[1].clientY) / 2;
         var pos = getViewportPos(cx, cy);
 
         var ratio = newScale / pinchScale0;
@@ -815,7 +804,6 @@ var NameplatePhotoUpload = {
       pinchDist0 = 0;
     });
 
-    // 关闭
     $mask.on("mousedown", function (e) {
       if (e.target === this) close();
     });
@@ -840,8 +828,8 @@ var NameplatePhotoUpload = {
     return state.photoTypes.map(function (photoType) {
       return {
         photoType: photoType.typeCode,
-        urlList: (state.photos[photoType.typeCode] || []).map(function (p) {
-          return p.url;
+        urlList: (state.photos[photoType.typeCode] || []).map(function (photo) {
+          return photo.url;
         }),
       };
     });
@@ -857,7 +845,7 @@ var NameplatePhotoUpload = {
       vin: state.orderInfo.vin,
       templateId: state.selectedTemplateId,
       templateImageUrl: state.selectedTemplateUrl,
-      saveType: saveType, // 'submit'=提交AI检测 / 'save'=保存工位照片信息
+      saveType: saveType, // submit=提交AI检测 / save=保存工位照片信息
       photos: photoList,
     };
   },
@@ -913,7 +901,6 @@ var NameplatePhotoUpload = {
       return;
     }
 
-    // 照片数量校验
     var errors = [];
     for (var i = 0; i < state.photoTypes.length; i++) {
       var photoType = state.photoTypes[i];
@@ -1198,7 +1185,6 @@ var NameplatePhotoUpload = {
     $("#btn-confirm").data("label", $("#btn-confirm").text());
     $("#btn-save").data("label", $("#btn-save").text());
 
-    // 头部：操作员 + 时钟
     $("#header-operator").text(window.Operator);
 
     function now() {
@@ -1211,13 +1197,11 @@ var NameplatePhotoUpload = {
       $("#header-time").text(now());
     }, 1000);
 
-    // 绑定事件（一次，委托）
     NameplatePhotoUpload.initEvents();
 
     // 渲染初始表单状态（查询前：独立清空按钮可见）
     NameplatePhotoUpload.renderForm();
 
-    // 加载工位列表
     NameplatePhotoUpload.loadStationList();
   },
 };
