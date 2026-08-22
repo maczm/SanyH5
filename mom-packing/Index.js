@@ -182,11 +182,11 @@ var state = {
 function escapeHtml(str) {
   if (str == null) return "";
   return String(str)
-    .replace(/\x26/g, "&amp;")  // \x26 = &（十六进制转义，避免高亮器将裸 & 误判）
-    .replace(/\x3C/g, "&lt;")   // \x3C = <
-    .replace(/\x3E/g, "&gt;")   // \x3E = >
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .split("&").join("&amp;")
+    .split("<").join("&lt;")
+    .split(">").join("&gt;")
+    .split('"').join("&quot;")
+    .split("'").join("&#39;");
 }
 
 function buildFieldRow(label, value) {

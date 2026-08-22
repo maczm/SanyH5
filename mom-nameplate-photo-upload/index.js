@@ -206,13 +206,14 @@ var PhotoUpload = {
   // ============== 工具函数 ==============
   h: function (str) {
     // 默认转义：所有动态插值必须经过本函数
+    // 用 split/join 而非正则字面量：避免平台高亮器对正则中的 < > & " ' 误判
     if (str == null) return "";
     return String(str)
-      .replace(/\x26/g, "&amp;")  // \x26 = &（十六进制转义，避免高亮器将裸 & 误判）
-      .replace(/\x3C/g, "&lt;")   // \x3C = <
-      .replace(/\x3E/g, "&gt;")   // \x3E = >
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+      .split("&").join("&amp;")
+      .split("<").join("&lt;")
+      .split(">").join("&gt;")
+      .split('"').join("&quot;")
+      .split("'").join("&#39;");
   },
 
   /**
