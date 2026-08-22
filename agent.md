@@ -65,11 +65,11 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 
 ## 7. 当前整改状态
 
-- mom-nameplate-photo-upload：重构完成（HTML 骨架 + template 克隆 + 命名空间），已知 bug 全部修复 ✅
-- mom-cert：归一化/XSS/`__DEV__` 运行时判断 —— 未开始
-- mom-packing：上传串单/重复提交/超时/doScan + 骨架重构 —— 未开始
-- mom-nameplate-check-result：骨架重构 —— 未开始
-- 一致性证书 tab 显示矛盾：**待业务确认**
+- mom-nameplate-photo-upload：重构完成（HTML 骨架 + template 克隆 + 命名空间），已知 bug 全部修复 ✅（tag: v0.1.0/v0.2.0/v0.3.0）
+- mom-cert：P0 完成（输入归一化/XSS 前置拦截/`__DEV__` 运行时判断/触屏 tooltip）✅（tag: v0.1.0）
+- mom-packing：重构完成（骨架 + Packing 命名空间），已知 bug 全部修复 ✅（tag: v0.1.0）
+- mom-nameplate-check-result：重构完成（骨架 + 命名空间），未知枚举/轮询修复 ✅（tag: v0.1.0）
+- 一致性证书 tab 显示矛盾：**待业务确认**（确认后由 index.js 侧处理）
 
 ## 8. 编码准则（平台与工具相关）
 
