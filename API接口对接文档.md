@@ -9,7 +9,7 @@
 
 ### 1.1 运行环境
 
-所有 H5 页面嵌入 Apriso MES Portal 的 iframe 中运行。Portal 在**加载 iframe 之前**向 `window` 注入全局函数，页面通过 `typeof window.xxx != 'function'` 检测：已注入则使用真实函数，未注入则启用本地 Mock（`#MOCK-START` ~ `#MOCK-END` 区块），便于本地开发调试。
+所有 H5 页面嵌入 Apriso MES Portal 的 iframe 中运行。Portal 在**加载 iframe 之前**向 `window` 注入全局函数，页面通过 `typeof window.xxx != 'function'` 检测：已注入则使用真实函数，未注入则启用本地 Mock（各页独立 `mock.js`，仅本地开发，生产不部署），便于本地开发调试。
 
 ### 1.2 公共约定（全部 API 一致）
 
@@ -46,9 +46,11 @@ Portal 父窗口需提供：
 
 ### 1.6 切换到生产模式
 
-**方式一（推荐）**：删除各页 JS 中 `#MOCK-START` ~ `#MOCK-END` 标记之间（含标记行）的全部代码，以及仅 Mock 使用的变量/函数（见各模块"Mock 清理清单"）。Portal 注入的同名函数自动生效，业务代码零改动。
+**Mock 已抽离**：`mom-packing/mock.js` 与 `mom-nameplate-photo-upload/mock.js` 承载全部 Mock 数据与 API，业务 JS 零 Mock 代码。
 
-**方式二**：直接部署。Portal 注入后 `typeof` 检测为 false，Mock 不执行；仅占用文件体积，建议用方式一清理。
+- **生产部署不包含 mock.js**：Portal 部署只取每页 `index.html / index.js / index.css` 三个文件，mock.js 不会进入生产
+- 本地开发：`index.html` 通过 `<script src="mock.js">` 引入，`typeof window.xxx != 'function'` 检测到 Portal 未注入时启用 Mock
+- Portal 注入同名函数后 Mock 自动跳过，业务代码零改动、零清理成本
 
 ---
 
@@ -144,18 +146,9 @@ window.submitPacking({ ID, batchCode, batchDescription, packingListNo, boxNo, co
 
 Portal 注入 `window.Operator = "张三"`，页面显示在 Header 副标题位置。
 
-### Mock 清理清单（mom-packing）
+### Mock 说明（mom-packing）
 
-切换到生产时删除 `Index.js` 中：
-
-| 删除内容 | 标记 | 说明 |
-|---|---|---|
-| `fuzzyMatch` 函数 | 文件顶部 | 仅 Mock 使用 |
-| `mockItems` 数组 | `#MOCK-START` 后 | 4 条本地假数据 |
-| Mock API 1~4 定义 | `-- Mock API N` 注释 | 对应 4 个 window 函数 |
-| Mock 操作员 | `-- Mock 操作员` | `window.Operator` 默认值 |
-
-精确范围：`#MOCK-START` 到 `#MOCK-END`（含标记行）+ `fuzzyMatch` 函数定义。
+Mock 已抽离至 `mom-packing/mock.js`（含 `fuzzyMatch`/`mockItems`/API 1~4/Operator），**生产不部署该文件**，无需任何清理动作。
 
 ---
 
@@ -298,6 +291,6 @@ window.submitPhotoRecord({ stationCode, orderNo, operator, machineCode, vin,
 | 二次确认 | 有（"车辆所有工位铭牌是否全部上传"） | **无**（校验通过直接提交） |
 | 后台逻辑 | 触发 AI 铭牌检测流程 | 仅持久化工位照片信息，不触发检测 |
 
-### Mock 清理清单（mom-nameplate-photo-upload）
+### Mock 说明（mom-nameplate-photo-upload）
 
-切换到生产时删除 `index.js` 中 `#MOCK-START` ~ `#MOCK-END` 区块，以及仅 Mock 使用的变量：`mockStations`、`mockPhotoConfigs`。业务代码调用的 API 函数名保持不变，Portal 注入同名函数即可无缝对接。
+Mock 已抽离至 `mom-nameplate-photo-upload/mock.js`（含 `mockStations`/`mockPhotoConfigs`/API 1~4/Operator），**生产不部署该文件**，无需任何清理动作。

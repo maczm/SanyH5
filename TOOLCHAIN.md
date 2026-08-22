@@ -44,6 +44,7 @@
 5. Playwright 不可驱动 Windows 侧浏览器；一律用 WSL 内 headless shell
 6. Playwright 浏览器下载必须带镜像：`PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright`
 7. node 脚本 require 全局包需 `NODE_PATH=$(npm root -g)`
+8. **新建文件权限为 600**：write 工具创建的文件默认 `-rw-------`，nginx（www-data）读不了会 403；新建被 nginx 服务的文件后需 `chmod 644 <文件>`
 
 ## 环境快速自检
 

@@ -7,165 +7,29 @@ var CONFIG = {
   MOCK_DELAY: 500,
 };
 
-// ============== 模糊匹配工具 ==============
-function fuzzyMatch(source, target) {
-  if (!target) return true;
-  return source.toLowerCase().indexOf(target.toLowerCase()) != -1;
-}
-
 /*
  * ============== 生产对接说明 ==============
  *
- * 以下 MOCK 区块（#MOCK-START 到 #MOCK-END）仅在本地开发时生效。
- * Portal 生产环境会在 iframe 加载前向 window 注入同名的真实函数，
- * JS 通过 if (typeof window.xxx != 'function') 检测：
- *   - Portal 已注入 → 跳过 mock，使用真实函数
- *   - Portal 未注入 → 启用 mock，方便本地开发调试
+ * Mock 机制：
+ *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，Portal 只取
+ *             index.html / index.js / index.css 三个文件）
+ *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
+ *   JS 通过 if (typeof window.xxx != 'function') 检测自动使用真实函数
  *
- * 【切换到生产模式】：
- *   方式一（推荐）：删除 #MOCK-START 到 #MOCK-END 之间的全部代码，
- *                 Portal 注入的函数会自动生效，无需改其他代码。
- *   方式二：Portal 注入后 mock 自动跳过，可直接部署，mock 代码
- *           不会执行但会占用体积，建议用方式一清理。
+ * 各 API 说明：
+ *   API 1 (装箱单号搜索) : 按装箱单号搜索待装箱对象
+ *   API 2 (物料编码搜索) : 按装箱单号 + 物料编码搜索
+ *   API 3 (图片上传)     : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
+ *   API 4 (装箱提交)     : 提交装箱记录（含照片 URL 数组）
+ *   window.Operator      : 当前操作员姓名（Portal 注入）
  *
- * 各 API mock 说明：
- *   API 1-2 (搜索)   : 过滤本地 mockItems 数组，setTimeout 模拟网络延迟
- *   API 3   (图片上传): 直接返回 base64 当作 URL（生产需上传到 CDN/OSS）
- *   API 4   (提交)    : 随机 10% 概率失败模拟异常，方便测试错误处理
- *   window.Operator  : 默认 "开发用户"（生产由 Portal 注入真实工号）
- *
- * 生产环境中，Portal 必须注入以下 5 个 window 属性：
+ * Portal 必须注入以下 5 个 window 属性：
  *   window.searchByPackingList     — API 1：装箱单号搜索
  *   window.searchByMaterialCode    — API 2：物料编码搜索
  *   window.uploadPackingImage      — API 3：图片上传
  *   window.submitPacking           — API 4：装箱提交
  *   window.Operator                — 当前操作员姓名
  */
-
-// ============== #MOCK-START ==============
-// ↓↓↓ 以下为 Mock 代码，生产环境可全部删除 ↓↓↓
-
-// -- Mock 数据 --
-var mockItems = [
-  {
-    ID: "PK001",
-    batchCode: "PC202405001",
-    batchDescription: "2024年5月A批次-发动机总成",
-    packingListNo: "PL202405001",
-    boxNo: "BX-202405001-01",
-    materialCode: "MC-A001",
-    materialName: "发动机总成-2.0T",
-    totalQty: 200,
-    containerNum: 3,
-    pendingQty: 35,
-    packedQty: 165,
-  },
-  {
-    ID: "PK002",
-    batchCode: "PC202405001",
-    batchDescription: "2024年5月A批次-发动机总成",
-    packingListNo: "PL202405001",
-    boxNo: "BX-202405001-02",
-    materialCode: "MC-A002",
-    materialName: "发动机总成-1.5T",
-    totalQty: 150,
-    containerNum: 2,
-    pendingQty: 50,
-    packedQty: 100,
-  },
-  {
-    ID: "PK003",
-    batchCode: "PC202405001",
-    batchDescription: "2024年5月A批次-发动机总成",
-    packingListNo: "PL202405002",
-    boxNo: "BX-202405002-01",
-    materialCode: "MC-B001",
-    materialName: "变速箱总成-DCT",
-    totalQty: 80,
-    containerNum: 2,
-    pendingQty: 80,
-    packedQty: 0,
-  },
-  {
-    ID: "PK004",
-    batchCode: "PC202405002",
-    batchDescription: "2024年5月B批次-变速箱",
-    packingListNo: "PL202405003",
-    boxNo: "BX-202405003-01",
-    materialCode: "MC-A001",
-    materialName: "发动机总成-2.0T",
-    totalQty: 100,
-    containerNum: 1,
-    pendingQty: 20,
-    packedQty: 80,
-  },
-];
-
-// -- Mock API 1：装箱单号搜索 --
-if (typeof window.searchByPackingList != "function") {
-  window.searchByPackingList = function (params, callback) {
-    setTimeout(function () {
-      var results = mockItems.filter(function (item) {
-        return fuzzyMatch(item.packingListNo, params.packingListNo);
-      });
-      if (results.length) {
-        callback({ code: 0, msg: "success", data: results });
-      } else {
-        callback({ code: 1, msg: "未找到该装箱单号的物料", data: [] });
-      }
-    }, CONFIG.MOCK_DELAY);
-  };
-}
-
-// -- Mock API 2：物料编码搜索 --
-if (typeof window.searchByMaterialCode != "function") {
-  window.searchByMaterialCode = function (params, callback) {
-    setTimeout(function () {
-      var results = mockItems.filter(function (item) {
-        return (
-          fuzzyMatch(item.packingListNo, params.packingListNo) &&
-          fuzzyMatch(item.materialCode, params.materialCode)
-        );
-      });
-      if (results.length) {
-        callback({ code: 0, msg: "success", data: results });
-      } else {
-        callback({ code: 1, msg: "未找到该物料信息", data: [] });
-      }
-    }, CONFIG.MOCK_DELAY);
-  };
-}
-
-// -- Mock API 3：图片上传 --
-if (typeof window.uploadPackingImage != "function") {
-  window.uploadPackingImage = function (params, callback) {
-    setTimeout(function () {
-      // Mock: 直接返回 base64 作为 URL
-      callback({ code: 0, msg: "success", data: { url: params.base64 } });
-    }, 300);
-  };
-}
-
-// -- Mock API 4：装箱提交 --
-if (typeof window.submitPacking != "function") {
-  window.submitPacking = function (data, callback) {
-    setTimeout(function () {
-      if (Math.random() < 0.1) {
-        callback({ code: 1, msg: "系统繁忙，请稍后重试" });
-      } else {
-        callback({ code: 0, msg: "装箱成功" });
-      }
-    }, 800);
-  };
-}
-
-// -- Mock 操作员 --
-if (!window.Operator) {
-  window.Operator = "开发用户";
-}
-
-// ↑↑↑ 以上为 Mock 代码，生产环境可全部删除 ↑↑↑
-// ============== #MOCK-END ==============
 
 // ============== 状态管理 ==============
 var state = {

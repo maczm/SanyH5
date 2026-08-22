@@ -21,7 +21,7 @@ SanyH5：4 个 MOM 页面，纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），�
 ## 2. 硬约束（违反即事故）
 
 1. **mom-cert/index.html 第三方只读，禁止修改**——该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）
-2. **部署 3 文件约束**：每页只能 index.html / index.js / index.css，不得向页面目录新增文件
+2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（生产不部署该文件，Portal 只取 3 文件）
 3. **项目根无 package.json、无 node_modules**；工具一律全局安装
 4. **不得格式化/批量修改任何 *.html**（.prettierignore 已排除）
 5. 文档类文件放根目录（如本文件、TOOLCHAIN.md、API接口对接文档.md），不塞进页面目录

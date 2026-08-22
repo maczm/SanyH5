@@ -10,173 +10,26 @@ var CONFIG = {
 /*
  * ============== 生产对接说明 ==============
  *
- * 以下 MOCK 区块（#MOCK-START 到 #MOCK-END）仅在本地开发时生效。
- * Portal 生产环境会在 iframe 加载前向 window 注入同名的真实函数，
- * JS 通过 if (typeof window.xxx != 'function') 检测：
- *   - Portal 已注入 → 跳过 mock，使用真实函数
- *   - Portal 未注入 → 启用 mock，方便本地开发调试
+ * Mock 机制：
+ *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，Portal 只取
+ *             index.html / index.js / index.css 三个文件）
+ *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
+ *   JS 通过 if (typeof window.xxx != 'function') 检测自动使用真实函数
  *
- * 【切换到生产模式】：
- *   方式一（推荐）：删除 #MOCK-START 到 #MOCK-END 之间的全部代码，
- *                 Portal 注入的函数会自动生效，无需改其他代码。
- *   方式二：Portal 注入后 mock 自动跳过，可直接部署，mock 代码
- *           不会执行但会占用体积，建议用方式一清理。
+ * 各 API 说明：
+ *   API 1 (工位列表) : 获取工位列表
+ *   API 2 (照片配置) : 获取照片类型配置（含 minCount/maxCount）和订单信息（含铭牌模板列表）
+ *   API 3 (照片上传) : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
+ *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：'submit'=提交AI检测（二次确认后触发），'save'=保存工位照片信息（不触发检测）
+ *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
- * 各 API mock 说明：
- *   API 1 (工位列表) : 返回模拟工位数据
- *   API 2 (照片配置) : 返回照片类型（含 minCount/maxCount）和订单信息（含铭牌模板列表）
- *   API 3 (照片上传) : 直接返回 base64 当作 URL（生产需上传到 CDN/OSS）
- *   API 4 (记录提交) : 随机 10% 概率失败模拟异常。提交与保存共用本 API，
- *                      通过 data.saveType 区分：'submit'=提交检测（二次确认后触发），'save'=草稿保存（不触发检测）
- *   window.Operator  : 默认 "开发用户"（生产由 Portal 注入真实工号）
- *
- * 生产环境中，Portal 必须注入以下 5 个 window 属性：
+ * Portal 必须注入以下 5 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
  *   window.getPhotoConfig     — API 2：获取照片类型配置 + 订单信息
  *   window.uploadPhoto        — API 3：照片上传
  *   window.submitPhotoRecord  — API 4：照片记录提交/保存（data.saveType 区分：'submit' / 'save'）
  *   window.Operator           — 当前操作员姓名
  */
-
-// ============== #MOCK-START ==============
-// ↓↓↓ 以下为 Mock 代码，生产环境可全部删除 ↓↓↓
-
-// -- Mock 工位列表 --
-var mockStations = [
-  { stationCode: "S001", stationName: "1号工位-外观检测" },
-  { stationCode: "S002", stationName: "2号工位-尺寸测量" },
-  { stationCode: "S003", stationName: "3号工位-包装终检" },
-  { stationCode: "S004", stationName: "4号工位-电气测试" },
-  { stationCode: "S005", stationName: "5号工位-密封检测" },
-  { stationCode: "S006", stationName: "6号工位-承重测试" },
-  { stationCode: "S007", stationName: "7号工位-终检复核" },
-];
-
-// -- Mock 照片配置（不同工位返回不同类型，含 minCount/maxCount） --
-var mockPhotoConfigs = {
-  S001: {
-    photoTypes: [
-      { typeCode: "appearance_front", typeName: "正面外观", minCount: 2, maxCount: 5 },
-      { typeCode: "appearance_back", typeName: "背面外观", minCount: 2, maxCount: 5 },
-      { typeCode: "appearance_side", typeName: "侧面外观", minCount: 1, maxCount: 3 },
-    ],
-    orderInfo: {
-      machineCode: "MC-2024-A001",
-      vin: "LSVAU2A00N2100001",
-      templates: [
-        { templateId: "TPL001", templateName: "普通铭牌", templateImageUrl: "../18601605145677184.jpg" },
-        { templateId: "TPL002", templateName: "上装铭牌", templateImageUrl: "../18601605145677184.jpg" },
-        { templateId: "TPL003", templateName: "特殊铭牌", templateImageUrl: "../18601605145677184.jpg" },
-      ],
-    },
-  },
-  S002: {
-    photoTypes: [
-      { typeCode: "measure_length", typeName: "长度测量", minCount: 1, maxCount: 2 },
-      { typeCode: "measure_width", typeName: "宽度测量", minCount: 1, maxCount: 2 },
-      { typeCode: "measure_height", typeName: "高度测量", minCount: 1, maxCount: 2 },
-      { typeCode: "measure_overall", typeName: "整体尺寸", minCount: 1, maxCount: 1 },
-    ],
-    orderInfo: {
-      machineCode: "MC-2024-B002",
-      vin: "LSVAU2B00N2100002",
-      templates: [{ templateId: "TPL010", templateName: "尺寸铭牌", templateImageUrl: "../18601605145677184.jpg" }],
-    },
-  },
-  S003: {
-    photoTypes: [
-      { typeCode: "package_label", typeName: "标签照片", minCount: 1, maxCount: 3 },
-      { typeCode: "package_seal", typeName: "封箱照片", minCount: 1, maxCount: 3 },
-      { typeCode: "package_overall", typeName: "整体包装", minCount: 2, maxCount: 4 },
-    ],
-    orderInfo: {
-      machineCode: "MC-2024-C003",
-      vin: "LSVAU2C00N2100003",
-      templates: [],
-    },
-  },
-  S004: {
-    photoTypes: [
-      { typeCode: "elec_panel", typeName: "电控面板", minCount: 1, maxCount: 2 },
-      { typeCode: "elec_wiring", typeName: "接线图", minCount: 1, maxCount: 3 },
-    ],
-    orderInfo: {
-      machineCode: "MC-2024-D004",
-      vin: "LSVAU2D00N2100004",
-      templates: [
-        { templateId: "TPL020", templateName: "电气铭牌A", templateImageUrl: "../18601605145677184.jpg" },
-        { templateId: "TPL021", templateName: "电气铭牌B", templateImageUrl: "../18601605145677184.jpg" },
-      ],
-    },
-  },
-};
-
-// -- Mock API 1：工位列表 --
-if (typeof window.getStationList != "function") {
-  window.getStationList = function (callback) {
-    setTimeout(function () {
-      callback({ code: 0, msg: "success", data: mockStations });
-    }, CONFIG.MOCK_DELAY);
-  };
-}
-
-// -- Mock API 2：照片类型配置 + 订单信息 --
-if (typeof window.getPhotoConfig != "function") {
-  window.getPhotoConfig = function (params, callback) {
-    setTimeout(function () {
-      var config = mockPhotoConfigs[params.stationCode];
-      if (config) {
-        callback({ code: 0, msg: "success", data: config });
-      } else {
-        callback({
-          code: 0,
-          msg: "success",
-          data: {
-            photoTypes: [
-              { typeCode: "default", typeName: "通用照片", minCount: 1, maxCount: 3 },
-            ],
-            orderInfo: {
-              machineCode: "MC-UNKNOWN",
-              vin: "",
-              templates: [],
-            },
-          },
-        });
-      }
-    }, CONFIG.MOCK_DELAY);
-  };
-}
-
-// -- Mock API 3：照片上传 --
-if (typeof window.uploadPhoto != "function") {
-  window.uploadPhoto = function (params, callback) {
-    setTimeout(function () {
-      // Mock: 直接返回 base64 作为 URL
-      callback({ code: 0, msg: "success", data: { url: params.base64 } });
-    }, 300);
-  };
-}
-
-// -- Mock API 4：记录提交/保存（saveType 区分） --
-if (typeof window.submitPhotoRecord != "function") {
-  window.submitPhotoRecord = function (data, callback) {
-    setTimeout(function () {
-      if (Math.random() < 0.1) {
-        callback({ code: 1, msg: "系统繁忙，请稍后重试" });
-      } else {
-        callback({ code: 0, msg: data.saveType == "save" ? "保存成功" : "提交成功" });
-      }
-    }, 800);
-  };
-}
-
-// -- Mock 操作员 --
-if (!window.Operator) {
-  window.Operator = "开发用户";
-}
-
-// ↑↑↑ 以上为 Mock 代码，生产环境可全部删除 ↑↑↑
-// ============== #MOCK-END ==============
 
 // ============== 应用命名空间 ==============
 // 所有页面逻辑挂在 PhotoUpload 下，避免全局函数互相覆盖（Portal 同 iframe 切页场景）
