@@ -62,6 +62,25 @@ body {
   display: none !important;
 }
 
+/* 折叠卡片头图标尺寸（form-card-header / order-info-header 统一） */
+#mom-photo-upload .form-card-header > svg,
+#mom-photo-upload .order-info-header > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 照片卡片徽章打勾图标 */
+#mom-photo-upload .card-badge .badge-check {
+  width: 14px;
+  height: 14px;
+}
+
+/* 订单信息行内字段间距（VIN 前留白） */
+#mom-photo-upload .field-row-inline .field-label + .field-label {
+  margin-left: 12px;
+}
+
 /* 隐藏的文件选择 input */
 #mom-photo-upload .photo-input-hidden {
   position: absolute;
@@ -133,85 +152,6 @@ body {
   color: var(--text-secondary);
   margin-bottom: 6px;
   letter-spacing: 0.2px;
-}
-
-/* ==================== 表单折叠摘要栏 ==================== */
-#mom-photo-upload .form-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-radius: var(--card-radius);
-  padding: 10px 14px;
-  box-shadow: var(--shadow-sm);
-  border-left: 3px solid var(--primary);
-}
-#mom-photo-upload .summary-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  flex: 1;
-  overflow: hidden;
-}
-#mom-photo-upload .summary-label {
-  color: var(--text-muted);
-  white-space: nowrap;
-  font-size: 12px;
-}
-#mom-photo-upload .summary-value {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 13px;
-}
-#mom-photo-upload .summary-divider {
-  color: var(--border-color);
-  margin: 0 6px;
-}
-#mom-photo-upload .summary-clear {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-#mom-photo-upload .summary-clear svg {
-  width: 16px;
-  height: 16px;
-  color: #c4c7cc;
-}
-#mom-photo-upload .summary-clear:active {
-  background: #fce8e6;
-}
-#mom-photo-upload .summary-clear:active svg {
-  color: var(--error);
-}
-#mom-photo-upload .summary-expand {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: var(--bg-btn-secondary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-#mom-photo-upload .summary-expand svg {
-  width: 18px;
-  height: 18px;
-  color: var(--text-secondary);
-}
-#mom-photo-upload .summary-expand:active {
-  background: var(--border-color);
 }
 
 /* ==================== 工位 Combobox ==================== */
@@ -367,46 +307,6 @@ body {
 }
 
 /* 收起/清空按钮行 */
-#mom-photo-upload .form-btn-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-#mom-photo-upload .btn-collapse-form {
-  flex: 1;
-  padding: 9px;
-  border: 1.5px solid var(--border-color);
-  border-radius: 10px;
-  font-size: 13px;
-  cursor: pointer;
-  background: #fff;
-  color: var(--text-secondary);
-  font-weight: 500;
-  transition: background 0.15s;
-}
-#mom-photo-upload .btn-collapse-form:active {
-  background: #f1f3f4;
-}
-
-#mom-photo-upload .btn-clear-form {
-  padding: 9px 18px;
-  border: 1.5px solid var(--border-color);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  background: #fff;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-#mom-photo-upload .btn-clear-form:active {
-  background: #fce8e6;
-  color: var(--error);
-  border-color: #f5c6cb;
-}
-
 /* ==================== 订单信息卡片 ==================== */
 #mom-photo-upload .order-info-area {
   padding: 10px 12px 0;

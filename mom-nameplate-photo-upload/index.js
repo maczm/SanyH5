@@ -13,7 +13,7 @@ var CONFIG = {
  *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，Portal 只取
  *             index.html / index.js / index.css 三个文件）
  *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
- *   JS 通过 if (typeof window.xxx != 'function') 检测自动使用真实函数
+ *   JS 通过 if (typeof window.xxx !== 'function') 检测自动使用真实函数
  *
  * 页面结构：全部骨架在 index.html（含弹窗预埋与 <template> 循环模板），
  *          JS 只负责克隆模板、赋值（text/val/attr）与显隐切换，不拼接 HTML。
@@ -59,6 +59,7 @@ var NameplatePhotoUpload = {
   },
 
   _toastTimer: null,      // toast 自动关闭定时器
+  _loadingCount: 0,       // loading 引用计数（并发上传时避免提前消失）
 
   // ============== 模板克隆 ==============
   /**
@@ -135,14 +136,18 @@ var NameplatePhotoUpload = {
     return 1;
   },
 
-  // ============== 加载动画（骨架预埋，仅显隐+填值） ==============
+  // ============== 加载动画（骨架预埋，仅显隐+填值；引用计数支持并发） ==============
   showLoading: function (text) {
+    NameplatePhotoUpload._loadingCount++;
     $("#loading-text").text(text || "加载中...");
     $("#template-loading").removeClass("hidden");
   },
 
   hideLoading: function () {
-    $("#template-loading").addClass("hidden");
+    NameplatePhotoUpload._loadingCount = Math.max(0, NameplatePhotoUpload._loadingCount - 1);
+    if (NameplatePhotoUpload._loadingCount === 0) {
+      $("#template-loading").addClass("hidden");
+    }
   },
 
   // ============== Toast 消息提示框（骨架预埋，仅显隐+填值） ==============
@@ -155,8 +160,8 @@ var NameplatePhotoUpload = {
     }
 
     $("#toast-title").text(title);
-    $("#template-toast .toast-icon-error").toggleClass("hidden", type != "error");
-    $("#template-toast .toast-icon-success").toggleClass("hidden", type == "error");
+    $("#template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
+    $("#template-toast .toast-icon-success").toggleClass("hidden", type === "error");
 
     var $content = $("#toast-content");
     $content.empty();
@@ -188,7 +193,7 @@ var NameplatePhotoUpload = {
     $toast.data("close-callback", close);
     $toast.removeClass("hidden");
 
-    if (type != "error") {
+    if (type !== "error") {
       NameplatePhotoUpload._toastTimer = setTimeout(close, 3000);
     }
   },
@@ -238,7 +243,7 @@ var NameplatePhotoUpload = {
 
   getStationDisplay: function (stationCode) {
     for (var i = 0; i < NameplatePhotoUpload.state.stations.length; i++) {
-      if (NameplatePhotoUpload.state.stations[i].stationCode == stationCode) {
+      if (NameplatePhotoUpload.state.stations[i].stationCode === stationCode) {
         return NameplatePhotoUpload.state.stations[i].stationCode + " - " + NameplatePhotoUpload.state.stations[i].stationName;
       }
     }
@@ -250,7 +255,7 @@ var NameplatePhotoUpload = {
     console.log("[API] getStationList");
     NameplatePhotoUpload.apiCall(window.getStationList, [], function (res) {
       console.log("[API] getStationList 返回", res);
-      if (res.code != 0) {
+      if (res.code !== 0) {
         NameplatePhotoUpload.showToast("加载失败", res.msg || "获取工位列表失败", "error");
         return;
       }
@@ -270,7 +275,7 @@ var NameplatePhotoUpload = {
     return NameplatePhotoUpload.state.stations.filter(function (station) {
       var code = (station.stationCode || "").toLowerCase();
       var name = (station.stationName || "").toLowerCase();
-      return code.indexOf(kw) != -1 || name.indexOf(kw) != -1;
+      return code.indexOf(kw) !== -1 || name.indexOf(kw) !== -1;
     });
   },
 
@@ -342,10 +347,10 @@ var NameplatePhotoUpload = {
   // ============== 扫码 ==============
   doScan: function (inputId, callback) {
     try {
-      if (window.parent && typeof window.parent.OpenCamera == "function") {
+      if (window.parent && typeof window.parent.OpenCamera === "function") {
         window.parent.OpenCamera(function (res) {
           console.log("[Scan] OpenCamera 返回", res);
-          var val = res.data || res.value || (typeof res == "string" ? res : "");
+          var val = res.data || res.value || (typeof res === "string" ? res : "");
           if (val) {
             $("#" + inputId).val(val);
             callback();
@@ -370,7 +375,7 @@ var NameplatePhotoUpload = {
       if (typedVal) {
         for (var i = 0; i < state.stations.length; i++) {
           var full = state.stations[i].stationCode + " - " + state.stations[i].stationName;
-          if (full == typedVal) {
+          if (full === typedVal) {
             stationCode = state.stations[i].stationCode;
             state.stationCode = stationCode;
             $("#input-station-code").val(stationCode);
@@ -397,7 +402,7 @@ var NameplatePhotoUpload = {
     NameplatePhotoUpload.apiCall(window.getPhotoConfig, [{ stationCode: stationCode, orderNo: orderNo }], function (res) {
       console.log("[API] getPhotoConfig 返回", res);
       NameplatePhotoUpload.hideLoading();
-      if (res.code != 0) {
+      if (res.code !== 0) {
         NameplatePhotoUpload.showToast("查询失败", res.msg || "获取照片配置失败", "error");
         return;
       }
@@ -410,7 +415,7 @@ var NameplatePhotoUpload = {
 
       // 铭牌模板处理
       var templates = state.orderInfo.templates || [];
-      if (templates.length == 1) {
+      if (templates.length === 1) {
         state.selectedTemplateId = templates[0].templateId;
         state.selectedTemplateName = templates[0].templateName || "";
         state.selectedTemplateUrl = templates[0].templateImageUrl;
@@ -432,7 +437,12 @@ var NameplatePhotoUpload = {
       NameplatePhotoUpload.renderPhotoTypeCards();
       NameplatePhotoUpload.updateButtons();
       $("#photo-cards-area").removeClass("hidden");
-      $("#confirm-section").removeClass("hidden");
+      // 无照片类型（无需拍照工位）：不显示保存/提交按钮
+      if (state.photoTypes.length) {
+        $("#confirm-section").removeClass("hidden");
+      } else {
+        $("#confirm-section").addClass("hidden");
+      }
 
       setTimeout(function () {
         $("#order-info-area")[0].scrollIntoView({ behavior: "smooth", block: "start" });
@@ -472,7 +482,7 @@ var NameplatePhotoUpload = {
     $("#block-template-none").addClass("hidden");
 
     var templates = state.orderInfo.templates || [];
-    if (templates.length == 1) {
+    if (templates.length === 1) {
       // 单模板：自动选中
       $("#block-template-single").removeClass("hidden");
       $("#template-single-name-value").text(templates[0].templateName || "");
@@ -497,8 +507,9 @@ var NameplatePhotoUpload = {
     $("#empty-no-photo").addClass("hidden");
 
     if (!state.photoTypes.length) {
-      // 空态提示：骨架在 index.html
+      // 空态提示：骨架在 index.html；无照片类型不显示保存/提交按钮
       $("#empty-no-photo").removeClass("hidden");
+      $("#confirm-section").addClass("hidden");
       return;
     }
 
@@ -586,7 +597,7 @@ var NameplatePhotoUpload = {
           console.log("[API] uploadPhoto 返回", res);
           NameplatePhotoUpload.hideLoading();
           if (sessionIdSnapshot !== NameplatePhotoUpload.state.sessionId) return; // 会话已切换，丢弃
-          if (res.code != 0) {
+          if (res.code !== 0) {
             NameplatePhotoUpload.showToast("上传失败", res.msg || "请重试", "error");
             return;
           }
@@ -602,7 +613,7 @@ var NameplatePhotoUpload = {
 
   findPhotoType: function (typeCode) {
     for (var i = 0; i < NameplatePhotoUpload.state.photoTypes.length; i++) {
-      if (NameplatePhotoUpload.state.photoTypes[i].typeCode == typeCode) return NameplatePhotoUpload.state.photoTypes[i];
+      if (NameplatePhotoUpload.state.photoTypes[i].typeCode === typeCode) return NameplatePhotoUpload.state.photoTypes[i];
     }
     return null;
   },
@@ -722,7 +733,7 @@ var NameplatePhotoUpload = {
     // zoomAt: 以视口坐标 (fx, fy) 为锚点，缩放到 newScale
     function zoomAt(fx, fy, newScale) {
       newScale = Math.max(0.5, Math.min(5, newScale));
-      if (newScale == scale) return;
+      if (newScale === scale) return;
       // 缩放前后，图像上同一点在视口上位置不变
       var ratio = newScale / scale;
       panX = fx - (fx - panX) * ratio;
@@ -760,11 +771,11 @@ var NameplatePhotoUpload = {
 
     $viewport.on("touchstart", function (e) {
       var t = e.originalEvent.touches;
-      if (t.length == 1) {
+      if (t.length === 1) {
         isDragging = true;
         dragBaseX = t[0].clientX - panX;
         dragBaseY = t[0].clientY - panY;
-      } else if (t.length == 2) {
+      } else if (t.length === 2) {
         isDragging = false;
         pinchScale0 = scale;
         pinchPanX0 = panX;
@@ -777,11 +788,11 @@ var NameplatePhotoUpload = {
 
     $viewport.on("touchmove", function (e) {
       var t = e.originalEvent.touches;
-      if (t.length == 1 && isDragging) {
+      if (t.length === 1 && isDragging) {
         panX = t[0].clientX - dragBaseX;
         panY = t[0].clientY - dragBaseY;
         apply();
-      } else if (t.length == 2 && pinchDist0 > 0) {
+      } else if (t.length === 2 && pinchDist0 > 0) {
         var dx = t[0].clientX - t[1].clientX;
         var dy = t[0].clientY - t[1].clientY;
         var dist = Math.sqrt(dx * dx + dy * dy);
@@ -806,7 +817,7 @@ var NameplatePhotoUpload = {
 
     // 关闭
     $mask.on("mousedown", function (e) {
-      if (e.target == this) close();
+      if (e.target === this) close();
     });
     $("#template-preview .photo-preview-close").on("click", close);
 
@@ -918,7 +929,7 @@ var NameplatePhotoUpload = {
     }
 
     // 保存：无需二次确认，直接提交；提交AI检测：需二次确认
-    if (saveType == "save") {
+    if (saveType === "save") {
       NameplatePhotoUpload.doSubmit(saveType);
       return;
     }
@@ -928,7 +939,7 @@ var NameplatePhotoUpload = {
   },
 
   doSubmit: function (saveType) {
-    var isSave = saveType == "save";
+    var isSave = saveType === "save";
     var actionText = isSave ? "保存" : "提交";
     var photoList = NameplatePhotoUpload.buildPhotoList();
     var submitData = NameplatePhotoUpload.buildSubmitData(photoList, saveType);
@@ -955,7 +966,7 @@ var NameplatePhotoUpload = {
       $confirmButton.prop("disabled", false).text($confirmButton.data("label"));
       $saveButton.prop("disabled", false).text($saveButton.data("label"));
 
-      if (res.code != 0) {
+      if (res.code !== 0) {
         NameplatePhotoUpload.showToast(actionText + "失败", res.msg || "请稍后重试", "error");
         return;
       }
@@ -1048,7 +1059,7 @@ var NameplatePhotoUpload = {
 
     // 工位输入框回车
     $("#form-area").on("keypress", "#input-station", function (e) {
-      if (e.which != 13) {
+      if (e.which !== 13) {
         $("#dropdown-station").hide();
         return;
       }
@@ -1057,7 +1068,7 @@ var NameplatePhotoUpload = {
         var val = $(this).val().trim();
         if (val) {
           for (var i = 0; i < NameplatePhotoUpload.state.stations.length; i++) {
-            if (NameplatePhotoUpload.state.stations[i].stationCode.toUpperCase() == val.toUpperCase()) {
+            if (NameplatePhotoUpload.state.stations[i].stationCode.toUpperCase() === val.toUpperCase()) {
               NameplatePhotoUpload.selectStation(NameplatePhotoUpload.state.stations[i].stationCode, NameplatePhotoUpload.state.stations[i].stationName);
               break;
             }
@@ -1088,7 +1099,7 @@ var NameplatePhotoUpload = {
 
     // 订单号回车
     $("#form-area").on("keypress", "#input-order", function (e) {
-      if (e.which != 13) return;
+      if (e.which !== 13) return;
       NameplatePhotoUpload.doQueryPhotoConfig();
     });
 
@@ -1112,7 +1123,7 @@ var NameplatePhotoUpload = {
     // 文件选择
     $("#photo-input").on("change", function () {
       var files = this.files;
-      if (!files || files.length == 0) return;
+      if (!files || files.length === 0) return;
       var currentType = $(this).data("current-type");
       NameplatePhotoUpload.handleFileSelect(files, currentType);
       $(this).val("");
@@ -1152,14 +1163,14 @@ var NameplatePhotoUpload = {
     // ===== 弹窗骨架（常驻，事件绑一次） =====
     // Toast：点击遮罩或确定按钮关闭
     $("#template-toast").on("click", function (e) {
-      if (e.target == this || $(e.target).hasClass("toast-btn")) {
+      if (e.target === this || $(e.target).hasClass("toast-btn")) {
         var callback = $("#template-toast").data("close-callback");
         if (callback) callback();
       }
     });
     // 二次确认：取消/遮罩关闭，确定执行回调
     $("#template-confirm").on("click", function (e) {
-      if (e.target == this || $(e.target).hasClass("confirm-btn-cancel")) {
+      if (e.target === this || $(e.target).hasClass("confirm-btn-cancel")) {
         $(this).addClass("hidden");
       } else if ($(e.target).hasClass("confirm-btn-ok")) {
         var callback = $(this).data("on-confirm");
@@ -1177,7 +1188,7 @@ var NameplatePhotoUpload = {
       $("#template-picker").addClass("hidden");
     });
     $("#template-picker").on("click", function (e) {
-      if (e.target == this) $(this).addClass("hidden");
+      if (e.target === this) $(this).addClass("hidden");
     });
   },
 
