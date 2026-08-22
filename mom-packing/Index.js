@@ -14,9 +14,9 @@ var CONFIG = {
  *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，Portal 只取
  *             index.html / index.js / index.css 三个文件）
  *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
- *   JS 通过 if (typeof window.xxx != 'function') 检测自动使用真实函数
+ *   JS 通过 if (typeof window.xxx != ‘function’) 检测自动使用真实函数
  *
- * 页面结构：全部骨架在 index.html（含弹窗预埋与 <template> 循环模板），
+ * 页面结构：全部骨架在 index.html（含弹窗预埋与 ＜template＞ 循环模板），
  *          JS 只负责克隆模板、赋值（text/val/attr）与显隐切换，不拼接 HTML。
  *
  * 各 API 说明：
@@ -42,15 +42,15 @@ var Packing = {
     step: 0,            // 0=初始, 1=装箱单号已搜, 2=物料已搜
     packingListNo: "",
     materialCode: "",
-    selectedItem: null, // 选中的装箱对象
-    results: [],        // 当前搜索结果
-    photos: [],         // [{ url: '...' }]
+    selectedItem: null,
+    results: [],
+    photos: [],         // [{ url: ... }]
     submitting: false,
     sessionId: 0,       // 会话标识：切换装箱对象/重置时递增，用于丢弃过期异步回调（防串单）
   },
 
-  _toastTimer: null,    // toast 自动关闭定时器
-  _loadingCount: 0,     // loading 引用计数
+  _toastTimer: null,
+  _loadingCount: 0,
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (id) {
@@ -195,14 +195,12 @@ var Packing = {
         $row.find(".step-name").text(steps[i].label);
         $row.find(".step-value").text(Packing.state[steps[i].key]);
       } else if (i === stepIndex) {
-        // 输入态
         $row = Packing.cloneTemplate("template-step-active");
         $row.attr("data-step", i);
         $row.find(".step-chip").text(i + 1);
         $row.find(".step-name").text(steps[i].label);
         $row.find(".search-input").val(Packing.state[steps[i].key]);
       } else {
-        // 锁定态
         $row = Packing.cloneTemplate("template-step-locked");
         $row.attr("data-step", i);
         $row.find(".step-chip").text(i + 1);
@@ -283,25 +281,20 @@ var Packing = {
   renderPackingPanel: function (item) {
     $("#packing-panel-container").show();
 
-    // 装箱信息卡片：清空 + 填充信息行
     var $card = $("#packing-card");
     $card.empty();
     Packing.fillFieldRows($card, item);
 
-    // 数量输入：默认待装箱数，上限待装箱数
     $("#packing-qty").val(item.pendingQty).attr({ min: "1", max: item.pendingQty });
     $("#qty-hint").text("待装箱数: " + item.pendingQty);
     $("#qty-error").addClass("hidden").text("");
 
-    // 照片区
     $("#photo-required-tip").text("(至少" + Packing.calcRequiredPhotos(item, item.pendingQty) + "张)");
     $("#photo-error").addClass("hidden").text("");
 
-    // 显示确认按钮
     $("#confirm-section").removeClass("hidden");
     $("#btn-confirm").prop("disabled", false).text("确认装箱");
 
-    // 初始照片进度
     Packing.renderPhotoList();
 
     setTimeout(function () {
@@ -331,10 +324,8 @@ var Packing = {
       $scroll.append($item);
     });
 
-    // 拍照按钮：未达上限时显示
     $("#photo-add-button").toggleClass("hidden", Packing.state.photos.length >= CONFIG.MAX_PHOTOS);
 
-    // 照片达标时清除错误状态
     var quantity = parseFloat(($("#packing-qty").val() || "").trim());
     if (Packing.state.photos.length >= Packing.calcRequiredPhotos(Packing.state.selectedItem, quantity)) {
       $("#photo-error").addClass("hidden").text("");
@@ -392,6 +383,9 @@ var Packing = {
   },
 
   // ============== 照片压缩（含 EXIF 旋转修正） ==============
+  /** 解析 JPEG EXIF orientation 值（1=正常 / 3=180° / 6=90° / 8=270°）
+   *  @param {string} dataUrl 图片的 data URL
+   *  @returns {number} orientation 值，解析失败兜底返回 1 */
   readExifOrientation: function (dataUrl) {
     try {
       var base64 = dataUrl.split(",")[1];
@@ -401,15 +395,15 @@ var Packing = {
         bytes[i] = bin.charCodeAt(i);
       }
       var dv = new DataView(bytes.buffer);
-      if (dv.getUint16(0, false) !== 0xffd8) return 1;
+      if (dv.getUint16(0, false) !== 0xffd8) return 1; // 0xffd8：JPEG SOI 起始标记
       var offset = 2;
       var len = bytes.length;
       while (offset < len - 4) {
         if (dv.getUint8(offset) !== 0xff) { offset++; continue; }
         var marker = dv.getUint8(offset + 1);
-        if (marker === 0xe1) {
+        if (marker === 0xe1) { // 0xe1：APP1 段（Exif 数据存放段）
           var segLen = dv.getUint16(offset + 2, false);
-          if (dv.getUint32(offset + 4, false) === 0x45786966) {
+          if (dv.getUint32(offset + 4, false) === 0x45786966) { // 0x45786966：Exif 魔数（ASCII 字符串 Exif）
             var tiffOff = offset + 10;
             var little = dv.getUint16(tiffOff, false) === 0x4949;
             if (dv.getUint16(tiffOff + 2, little) !== 0x002a) return 1;
@@ -417,7 +411,7 @@ var Packing = {
             var entries = dv.getUint16(ifd0Off, little);
             for (var e = 0; e < entries; e++) {
               var entryOff = ifd0Off + 2 + e * 12;
-              if (dv.getUint16(entryOff, little) === 0x0112) {
+              if (dv.getUint16(entryOff, little) === 0x0112) { // 0x0112：orientation 标签
                 return dv.getUint16(entryOff + 8, little);
               }
             }
@@ -453,19 +447,19 @@ var Packing = {
         var ctx = canvas.getContext("2d");
 
         switch (orientation) {
-          case 3:
+          case 3: // 180° 旋转：画布尺寸不变，整体旋转
             canvas.width = width;
             canvas.height = height;
             ctx.translate(width, height);
             ctx.rotate(Math.PI);
             break;
-          case 6:
+          case 6: // 90° 顺时针：宽高互换后旋转
             canvas.width = height;
             canvas.height = width;
             ctx.translate(height, 0);
             ctx.rotate(Math.PI / 2);
             break;
-          case 8:
+          case 8: // 270° 顺时针（90° 逆时针）：宽高互换后旋转
             canvas.width = height;
             canvas.height = width;
             ctx.translate(0, width);
@@ -506,7 +500,7 @@ var Packing = {
   },
 
   // ============== 扫码 ==============
-  doScan: function (inputClass, callback) {
+  doScan: function (targetSelector, callback) {
     try {
       if (window.parent && typeof window.parent.OpenCamera === "function") {
         window.parent.OpenCamera(function (result) {
@@ -516,7 +510,7 @@ var Packing = {
             Packing.state.step === 0
               ? Packing.state.packingListNo = value
               : Packing.state.materialCode = value;
-            $(inputClass).val(value);
+            $(targetSelector).val(value);
             callback();
           }
         });
@@ -597,7 +591,6 @@ var Packing = {
     var item = Packing.state.selectedItem;
     if (!item || Packing.state.submitting) return;
 
-    // 校验数量
     var quantityString = $("#packing-qty").val().trim();
     var quantity = parseFloat(quantityString);
     var quantityValid = true;
@@ -619,7 +612,6 @@ var Packing = {
       quantityValid = false;
     }
 
-    // 校验照片
     var photoValid = true;
     $("#photo-error").addClass("hidden").text("");
     var requiredPhotos = Packing.calcRequiredPhotos(item, quantity);
@@ -632,7 +624,6 @@ var Packing = {
 
     if (!quantityValid || !photoValid) return;
 
-    // 提交
     Packing.state.submitting = true;
     var $confirmButton = $("#btn-confirm");
     $confirmButton.prop("disabled", true).text("提交中...");
@@ -848,14 +839,11 @@ var Packing = {
       $("#header-time").text(now());
     }, 1000);
 
-    // 绑定事件（一次，委托）
     Packing.initEvents();
 
-    // 初始搜索区渲染
     Packing.updateStepIndicator(0);
     Packing.renderSearchSections();
 
-    // 初始加载全量数据
     Packing.loadAllData();
   },
 };
