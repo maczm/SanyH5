@@ -14,7 +14,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 合格证查看 | mom-cert/ | 第三方静态 HTML + index.js 叠加引擎（HTML 只读） | 0（读 $Context.inputs） |
 | 装箱作业 | mom-packing/ | 骨架 + template + `Packing` 命名空间 | 4 |
 | 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
-| 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData） |
+| 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
 
 所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
@@ -145,6 +145,13 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
   - 注释掉的死代码（直接删除，git 历史可查）
 - 注释内容同样受 §8.1 高亮兼容约束
 
+### 8.8 Mock/演示数据隔离（不污染业务代码）
+
+- Mock 数据与 Mock API **必须放独立文件**（页面目录内 `mock.js`，开发期部署，生产不部署——Portal 只取 index.html/index.js/index.css）
+- **禁止在业务 JS（index.js）内联任何演示数据**：包括 `MOCK_RESULT` 式常量、`__DEV__` 分支内嵌数据、mock 逻辑
+- 页面 index.html 用 `<script src="mock.js">` 引用（置于业务 JS 之前）；业务 JS 对未注入数据只做检测，无数据时展示空态/兜底，零 Mock 代码
+- 例外：mom-cert 因第三方 HTML 只读无法引用 mock.js，暂维持 `__DEV__` 内联（待评估动态加载方案，此例外不扩散到其他页面）
+
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
 1. **骨架先行**：先写 index.html 完整骨架——固定结构直写、多态结构 `.hidden` 块预埋、循环结构 `<template>` 预埋（单根结构）、弹窗骨架常驻 hidden
@@ -152,7 +159,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 3. **JS 只赋值**：`cloneTemplate` 克隆 + `text/val/attr` 填充 + `addClass/removeClass` 类切换，**零 HTML 拼接**
 4. **事件**：一次性委托绑定；弹窗回调挂 `.data()`；实例状态（预览缩放）每次打开 `off()+on()`
 5. **样式归 CSS**：内联 style 仅限动态值（如进度条宽度）；初始隐藏用 `.hidden`
-6. **Mock**：独立 `mock.js`（生产不部署），业务 JS 零 Mock 代码
+6. **Mock**：独立 `mock.js`（§8.8，生产不部署），业务 JS 零 Mock 代码
 7. **回归脚本**：编写 `tests/<子项目>.regress.cjs` 并加入 §11 表格
 
 ## 10. Definition of Done（改动完成标准）
@@ -164,6 +171,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] 结构变更已同步更新回归脚本
 - [ ] 命名符合 §8.6（全称、易懂、业务语义）
 - [ ] 注释符合 §8.7（少注释，命名表达意图；只留方法头/为什么/绕坑注释）
+- [ ] Mock/演示数据符合 §8.8（独立 mock.js，业务 JS 零内联）
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
@@ -176,6 +184,6 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 | mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(saveType)/提交(saveType)/折叠/空态/清空 |
 | mom-packing | `tests/packing.regress.cjs` | 加载/单号搜索/物料搜索/选中面板/上传/数量校验/提交重置/步骤回退 |
 | mom-cert | `tests/mom-cert.regress.cjs` | dev 渲染/校验/触屏 tooltip/生产缺字段不崩/XSS 前置拦截 |
-| mom-nameplate-check-result | `tests/check-result.regress.cjs` | Mock 渲染/未知枚举显示原文/轮询自动刷新/未知任务状态 |
+| mom-nameplate-check-result | `tests/check-result.regress.cjs` | Mock 渲染/MATCH-MISMATCH 与单位/无数据空态/未知枚举显示原文/轮询自动刷新/未知任务状态 |
 
 运行：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（前置：nginx 8080）
