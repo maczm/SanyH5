@@ -18,8 +18,8 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-nameplate-check-result/index.html
   check("页面加载", (await page.title()) === "铭牌检查结果");
   check("结论横幅", (await page.locator(".status-banner .sb-title").textContent()) === "不通过");
   check("统计 chips", (await page.locator(".sum-chip").count()) >= 3);
-  check("检查项卡片", (await page.locator(".check-card").count()) === 3);
-  check("不一致高亮", (await page.locator(".field-row.mismatch").count()) === 2);
+  check("检查项卡片", (await page.locator(".check-card").count()) === 4);
+  check("不一致高亮", (await page.locator(".field-row.mismatch").count()) === 3);
 
   await page.evaluate(() => {
     window.checkResultData = null;
