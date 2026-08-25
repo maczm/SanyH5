@@ -6,6 +6,8 @@
 //     overallConclusion: PASS/FAIL/UNCLEAR/RETRY,
 //     checkResults: [{ checkCode, checkName, conclusion, reason, fieldDetails: [...] }]
 //   }
+//   fieldDetails 项：{ fieldNameCn, fieldNameEn, conclusion: MATCH/MISMATCH/PASS/FAIL,
+//     unit（如 kW/kg）, recognizedValue, correctValue }
 // 未注入时使用下方 MOCK_RESULT 演示数据。
 //
 // 页面结构：全部骨架在 index.html（含 template 标签循环模板），JS 只克隆赋值。
@@ -70,8 +72,8 @@ var NameplateCheckResult = {
     if (value === null || value === undefined || String(value).trim() === "") return "unrated";
     var normalized = String(value).trim().toLowerCase();
     var groups = [
-      ["pass", ["合格", "通过", "pass", "ok", "success", "yes", "true", "1", "是"]],
-      ["fail", ["不合格", "不通过", "fail", "no", "false", "0", "否"]],
+      ["pass", ["合格", "通过", "pass", "ok", "success", "yes", "true", "1", "是", "match"]],
+      ["fail", ["不合格", "不通过", "fail", "no", "false", "0", "否", "mismatch"]],
       ["unclear", ["不确定", "无法确定", "unclear", "unknown", "inconclusive"]],
       ["retry", ["需重试", "重试", "retry"]],
       ["skipped", ["跳过", "skip", "skipped"]],
@@ -366,6 +368,10 @@ var NameplateCheckResult = {
 
     var $row = NameplateCheckResult.cloneTemplate("template-field-row");
     if (state === "fail") $row.addClass("mismatch");
+
+    if (detail.unit) {
+      $row.find(".fv-unit").text(detail.unit).removeClass("hidden");
+    }
 
     $row.find(".field-name-cn").text(detail.fieldNameCn || "-");
     if (detail.fieldNameEn) {

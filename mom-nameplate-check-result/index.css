@@ -336,6 +336,17 @@ body {
   word-break: break-all;
   line-height: 1.4;
 }
+#mom-check-result .fv-value-line {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+#mom-check-result .fv-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 #mom-check-result .fv-val .val-mismatch {
   color: var(--error);
   font-weight: 700;

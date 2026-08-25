@@ -1,6 +1,6 @@
 // ============== mom-nameplate-check-result 回归测试 ==============
 // 用法：cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/check-result.regress.cjs
-// 覆盖：Mock 渲染/未知枚举显示原文/轮询自动刷新/未知任务状态
+// 覆盖：Mock 渲染/未知枚举显示原文/轮询自动刷新/未知任务状态/MATCH-MISMATCH 与单位显示
 const { chromium } = require("playwright");
 const BASE = "http://127.0.0.1:8080/SanyH5/mom-nameplate-check-result/index.html";
 (async () => {
@@ -31,6 +31,24 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-nameplate-check-result/index.html
   await page.waitForTimeout(300);
   check("未知结论显示未知", (await page.locator(".ck-badge").first().textContent()) === "未知");
   check("未知字段显示未知", (await page.locator(".f-badge").first().textContent()) === "未知");
+
+  await page.evaluate(() => {
+    window.checkResultData = { code: 200, mes: "", data: {
+      acceptNo: "AR4", completedAt: "2026-08-24 10:01:25", status: "COMPLETED", overallConclusion: "FAIL",
+      checkResults: [{ checkCode: "C2", checkName: "生产数据形态", conclusion: "FAIL", reason: "存在不一致", fieldDetails: [
+        { fieldNameCn: "发动机最大净功率", conclusion: "MATCH", unit: "kW", recognizedValue: "274", correctValue: "274" },
+        { fieldNameCn: "发动机型号", conclusion: "MISMATCH", unit: "kW", recognizedValue: "259", correctValue: "274" },
+        { fieldNameCn: "转速", conclusion: "MATCH", unit: "r/min", recognizedValue: "1900", correctValue: "1900" },
+      ] }],
+    } };
+    NameplateCheckResult.renderResult();
+  });
+  await page.waitForTimeout(300);
+  const badges = await page.locator(".f-badge").allTextContents();
+  check("MATCH 识别为一致", badges[0] === "一致" && badges[2] === "一致");
+  check("MISMATCH 识别为不一致", badges[1] === "不一致");
+  check("MISMATCH 行红色高亮", (await page.locator(".field-row.mismatch").count()) === 1);
+  check("单位显示", (await page.locator(".fv-unit:not(.hidden)").allTextContents()).join(",") === "kW,kW,kW,kW,r/min,r/min");
 
   await page.evaluate(() => {
     window.checkResultData = { code: 200, mes: "", data: { acceptNo: "AR2", status: "PROCESSING", checkResults: [] } };
