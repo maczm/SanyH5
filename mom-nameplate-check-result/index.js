@@ -8,50 +8,10 @@
 //   }
 //   fieldDetails 项：{ fieldNameCn, fieldNameEn, conclusion: MATCH/MISMATCH/PASS/FAIL,
 //     unit（如 kW/kg）, recognizedValue, correctValue }
-// 未注入时使用下方 MOCK_RESULT 演示数据。
+// 本地开发：同目录 mock.js 提供演示数据（生产不部署，Portal 只取
+//           index.html / index.js / index.css 三个文件）；未注入时展示空态。
 //
 // 页面结构：全部骨架在 index.html（含 template 标签循环模板），JS 只克隆赋值。
-
-// ============== 演示数据 ==============
-var MOCK_RESULT = {
-  code: 200,
-  mes: "操作成功",
-  data: {
-    acceptNo: "AR20260811001",
-    completedAt: "2026-08-14 10:45:32",
-    status: "COMPLETED",
-    overallConclusion: "FAIL",
-    checkResults: [
-      {
-        checkCode: "CHECK_QR",
-        checkName: "二维码可读性",
-        conclusion: "PASS",
-        reason: "",
-        fieldDetails: [
-          { fieldNameCn: "二维码内容", fieldNameEn: "QRContent", conclusion: "PASS", recognizedValue: "DFH5180XXY|LSVAU2A00N2100001|2024-06-08", correctValue: "DFH5180XXY|LSVAU2A00N2100001|2024-06-08" },
-        ],
-      },
-      {
-        checkCode: "CHECK_OCR",
-        checkName: "铭牌字符识别比对",
-        conclusion: "FAIL",
-        reason: "以下字段识别值与公告值不一致：发动机号、车辆颜色",
-        fieldDetails: [
-          { fieldNameCn: "制造厂名称", fieldNameEn: "Manufacturer", conclusion: "PASS", recognizedValue: "东风商用车有限公司", correctValue: "东风商用车有限公司" },
-          { fieldNameCn: "发动机号", fieldNameEn: "EngineNo", conclusion: "FAIL", recognizedValue: "WP10H202406001", correctValue: "WP10H2024060A1" },
-          { fieldNameCn: "车辆颜色", fieldNameEn: "VehicleColor", conclusion: "FAIL", recognizedValue: "红色", correctValue: "白色" },
-        ],
-      },
-      {
-        checkCode: "CHECK_INFO",
-        checkName: "铭牌信息完整性检查",
-        conclusion: "SKIPPED",
-        reason: "该检查项不适用于当前车辆类型，已跳过",
-        fieldDetails: [],
-      },
-    ],
-  },
-};
 
 // ============== 应用命名空间 ==============
 var NameplateCheckResult = {
@@ -105,32 +65,31 @@ var NameplateCheckResult = {
     return map[String(value).trim().toLowerCase()] || String(value);
   },
 
-  /** 检查项徽章配置 */
-  checkBadge: function (state) {
-    var map = {
-      pass: { text: "合格", cls: "ck-pass" },
-      fail: { text: "不合格", cls: "ck-fail" },
-      skipped: { text: "跳过", cls: "ck-skip" },
-      unclear: { text: "不确定", cls: "ck-unclear" },
-      retry: { text: "需重试", cls: "ck-retry" },
-      unrated: { text: "未评", cls: "ck-unrated" },
-      unknown: { text: "未知", cls: "ck-unclear" },
+  /**
+   * 徽章配置：level 区分层级（check=检查项 / field=字段明细），
+   * 两者仅文案与类名前缀不同，共用一个配置。
+   */
+  badgeConfig: function (state, level) {
+    var prefix = level === "check" ? "ck" : "f";
+    var textMap = {
+      pass: level === "check" ? "合格" : "一致",
+      fail: level === "check" ? "不合格" : "不一致",
+      skipped: "跳过",
+      unclear: "不确定",
+      retry: "需重试",
+      unrated: "未评",
+      unknown: "未知",
     };
-    return map[state] || map.unrated;
-  },
-
-  /** 字段级徽章配置 */
-  fieldBadge: function (state) {
-    var map = {
-      pass: { text: "一致", cls: "f-pass" },
-      fail: { text: "不一致", cls: "f-fail" },
-      skipped: { text: "跳过", cls: "f-skip" },
-      unclear: { text: "不确定", cls: "f-unclear" },
-      retry: { text: "需重试", cls: "f-retry" },
-      unrated: { text: "未评", cls: "f-unrated" },
-      unknown: { text: "未知", cls: "f-unclear" },
+    var clsMap = {
+      pass: prefix + "-pass",
+      fail: prefix + "-fail",
+      skipped: prefix + "-skip",
+      unclear: prefix + "-unclear",
+      retry: prefix + "-retry",
+      unrated: prefix + "-unrated",
+      unknown: prefix + "-unclear",
     };
-    return map[state] || map.unrated;
+    return { text: textMap[state] || "未评", cls: clsMap[state] || prefix + "-unrated" };
   },
 
   // ============== 页面初始化 ==============
@@ -156,8 +115,8 @@ var NameplateCheckResult = {
    * completed 展示整体结论横幅与检查项列表，终态时停止轮询。
    */
   renderResult: function () {
-    // 优先取父页面注入数据（支持 JS 对象或 JSON 字符串），否则用演示数据
-    var payload = window.checkResultData || MOCK_RESULT;
+    // 取父页面注入数据（支持 JS 对象或 JSON 字符串）；未注入时展示空态
+    var payload = window.checkResultData;
     if (typeof payload === "string") {
       try {
         payload = JSON.parse(payload);
@@ -329,7 +288,7 @@ var NameplateCheckResult = {
   // ============== 检查项卡片 ==============
   buildCheckCard: function (item) {
     var state = NameplateCheckResult.conclusionState(item.conclusion);
-    var badge = NameplateCheckResult.checkBadge(state);
+    var badge = NameplateCheckResult.badgeConfig(state, "check");
     var cardCls = state === "fail" ? " card-fail" : (state === "skipped" || state === "unrated") ? " card-skip" : (state === "unclear" || state === "retry" || state === "unknown") ? " card-warn" : "";
 
     var $card = NameplateCheckResult.cloneTemplate("template-check-card");
@@ -364,7 +323,7 @@ var NameplateCheckResult = {
   // ============== 字段明细行 ==============
   buildFieldRow: function (detail) {
     var state = NameplateCheckResult.conclusionState(detail.conclusion);
-    var badge = NameplateCheckResult.fieldBadge(state);
+    var badge = NameplateCheckResult.badgeConfig(state, "field");
 
     var $row = NameplateCheckResult.cloneTemplate("template-field-row");
     if (state === "fail") $row.addClass("mismatch");

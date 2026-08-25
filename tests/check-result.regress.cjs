@@ -22,6 +22,13 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-nameplate-check-result/index.html
   check("不一致高亮", (await page.locator(".field-row.mismatch").count()) === 2);
 
   await page.evaluate(() => {
+    window.checkResultData = null;
+    NameplateCheckResult.renderResult();
+  });
+  await page.waitForTimeout(300);
+  check("无注入数据空态", (await page.locator(".empty-state p").textContent()) === "暂无检查结果数据");
+
+  await page.evaluate(() => {
     window.checkResultData = { code: 200, mes: "", data: {
       acceptNo: "AR1", completedAt: "2026-08-14 10:00:00", status: "COMPLETED", overallConclusion: "PASS",
       checkResults: [{ checkCode: "C1", checkName: "新检查项", conclusion: "WARN", reason: "", fieldDetails: [{ fieldNameCn: "字段A", conclusion: "MAYBE", recognizedValue: "1", correctValue: "2" }] }],
