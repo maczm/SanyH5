@@ -103,7 +103,14 @@
       <template id="template-sum-chip">
         <span class="sum-chip"><b></b></span>
       </template>
+
+      <!-- 返回按钮（固定右上角，行为由 index.js 绑定） -->
+      <button type="button" class="back-button" id="back-button" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>返回</span>
+      </button>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.0/dist/jquery.min.js"></script>
     <script src="mock.js"></script>
     <script src="index.js"></script>
