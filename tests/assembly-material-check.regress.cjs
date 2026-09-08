@@ -99,6 +99,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);
   check("新增红色行", (await page.locator(".check-result-row.fail").count()) === 1 && (await page.locator(".check-result-row").count()) === 2);
+  check("列表时间倒序(最新在前)", (await page.locator(".check-result-row").nth(0).textContent()).indexOf("MAT-X-999") !== -1 && (await page.locator(".check-result-row").nth(0).evaluate((el) => el.classList.contains("fail"))) && (await page.locator(".check-result-row").nth(1).textContent()).indexOf("MAT-BOLT-001") !== -1);
   check("不存在提示", (await page.locator("#template-toast:not(.hidden) #toast-content").textContent()) === "WO20260824001-MAT-X-999 不存在");
   const saved2 = await page.evaluate(() => window.__assemblyMockSaved[1]);
   check("fail 保存入参", saved2 && saved2.material === "MAT-X-999" && saved2.checkResult === "fail");
@@ -121,12 +122,24 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   const saved3 = await page.evaluate(() => window.__assemblyMockSaved[2]);
   check("blur 保存入参", saved3 && saved3.wipOrderNo === "WO20260824002" && saved3.checkResult === "pass");
 
-  // ============ 11. 订单查询失败：toast 且保留现状 ============
+  // ============ 11. 订单查询失败：toast 且保留现状；点确定不重复查询 ============
+  await page.evaluate(() => {
+    window.__orderQueryCount = 0;
+    const original = window.assemblyMaterialCheck_getWipOrderNoInfo;
+    window.assemblyMaterialCheck_getWipOrderNoInfo = function (params, callback) {
+      window.__orderQueryCount++;
+      original(params, callback);
+    };
+  });
   await page.fill("#input-order-key", "UNKNOWN-ORDER");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
   check("查询失败 toast", (await page.locator("#template-toast:not(.hidden) #toast-title").textContent()) === "查询失败" && (await page.locator("#template-toast:not(.hidden) #toast-content").textContent()) === "未查询到订单信息");
   check("失败保留现有结果", (await page.locator(".check-result-row").count()) === 1);
+  check("失败仅调用一次", (await page.evaluate(() => window.__orderQueryCount)) === 1);
+  await page.click("#template-toast .toast-btn");
+  await page.waitForTimeout(1000);
+  check("确定后不重复查询", (await page.evaluate(() => window.__orderQueryCount)) === 1 && !(await page.locator("#template-toast").isVisible()));
 
   // ============ 12. 检查完成：保留工位，其余重置 ============
   await page.click("#btn-check-complete");

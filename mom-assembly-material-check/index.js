@@ -313,8 +313,9 @@ var AssemblyMaterialCheck = {
     $row.find(".cr-check-time").text(AssemblyMaterialCheck.now());
     var $area = $("#check-result-area");
     $("#empty-check-result").addClass("hidden");
-    $area.append($row);
-    $area.prop("scrollTop", $area[0].scrollHeight);
+    // 检查列表按时间倒序：最新一条插到顶部
+    $area.prepend($row);
+    $area.prop("scrollTop", 0);
   },
 
   saveCheckResult: function (qrText, materialCode, checkResult) {
@@ -388,6 +389,8 @@ var AssemblyMaterialCheck = {
     $("#material-check-view").on("focusout", "#input-order-key", function () {
       var value = $("#input-order-key").val().trim();
       if (!value || value === AssemblyMaterialCheck.state.lastQueriedOrderKey) return;
+      // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
+      if (!$("#template-toast").hasClass("hidden")) return;
       if (Date.now() - AssemblyMaterialCheck.state.lastOrderActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.queryOrderInfo();
     });
@@ -409,6 +412,8 @@ var AssemblyMaterialCheck = {
     $("#material-check-view").on("focusout", "#input-material-qr", function () {
       var value = $("#input-material-qr").val().trim();
       if (!value) return;
+      // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
+      if (!$("#template-toast").hasClass("hidden")) return;
       if (Date.now() - AssemblyMaterialCheck.state.lastMaterialActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.handleMaterialCheck();
     });
