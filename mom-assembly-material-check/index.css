@@ -1,0 +1,509 @@
+#mom-assembly-material-check {
+  --primary: #1976d2;
+  --primary-dark: #1565c0;
+  --primary-light: #42a5f5;
+  --primary-bg: #e3f2fd;
+  --gradient-primary: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #1e88e5 100%);
+  --border-color: #e8eaed;
+  --bg-input: #f8f9fa;
+  --bg-btn-secondary: #f1f3f4;
+  --text-muted: #9aa0a6;
+  --text-secondary: #5f6368;
+  --text-primary: #202124;
+  --error: #ea4335;
+  --success: #34a853;
+  --card-radius: 14px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f0f2f5;
+}
+
+#mom-assembly-material-check,
+#mom-assembly-material-check * {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#mom-assembly-material-check ::-webkit-scrollbar {
+  display: none;
+}
+
+#mom-assembly-material-check {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f0f2f5;
+  color: var(--text-primary);
+}
+
+#mom-assembly-material-check.app-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
+#mom-assembly-material-check .hidden {
+  display: none !important;
+}
+
+/* ==================== 页面头部 ==================== */
+#mom-assembly-material-check .page-header {
+  background: var(--gradient-primary);
+  color: #fff;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
+}
+#mom-assembly-material-check .page-header .header-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+#mom-assembly-material-check .page-header .header-time {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-left: auto;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+/* ==================== 视图容器（空间分配：内容区占满，底栏按需） ==================== */
+#mom-assembly-material-check .station-select-view,
+#mom-assembly-material-check .material-check-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================== 输入行（输入框 + 搜索/扫码按钮） ==================== */
+#mom-assembly-material-check .input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+#mom-assembly-material-check .search-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#mom-assembly-material-check .search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+  background: #fff;
+}
+#mom-assembly-material-check .search-input::placeholder {
+  color: #c4c7cc;
+}
+
+#mom-assembly-material-check .icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 10px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#mom-assembly-material-check .icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+#mom-assembly-material-check .btn-scan {
+  background: var(--bg-btn-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+#mom-assembly-material-check .btn-scan:active {
+  background: #e0e0e0 !important;
+}
+#mom-assembly-material-check .btn-search {
+  background: var(--primary-bg) !important;
+  color: var(--primary) !important;
+}
+#mom-assembly-material-check .btn-search:active {
+  background: #bbdefb !important;
+}
+
+/* ==================== 视图1：工位选择 ==================== */
+#mom-assembly-material-check .station-filter-area {
+  flex-shrink: 0;
+  padding: 12px 12px 8px;
+}
+#mom-assembly-material-check .station-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 12px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+#mom-assembly-material-check .station-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 13px 14px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--primary);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+#mom-assembly-material-check .station-item:last-child {
+  margin-bottom: 0;
+}
+#mom-assembly-material-check .station-item:active {
+  background: var(--primary-bg);
+}
+#mom-assembly-material-check .station-item.selected {
+  background: var(--primary-bg);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
+}
+#mom-assembly-material-check .station-code {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+#mom-assembly-material-check .station-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#mom-assembly-material-check .station-desc::before {
+  content: "（";
+}
+#mom-assembly-material-check .station-desc::after {
+  content: "）";
+}
+
+/* ==================== 视图2：物料检查 ==================== */
+#mom-assembly-material-check .check-form-area {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+#mom-assembly-material-check .check-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 3px 0;
+}
+#mom-assembly-material-check .check-form-label {
+  flex-shrink: 0;
+  width: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+#mom-assembly-material-check .info-tag {
+  background: var(--primary-bg);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 检查结果区（可滚动，占满剩余空间） */
+#mom-assembly-material-check .check-result-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+#mom-assembly-material-check .check-result-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  border-left: 3px solid transparent;
+  animation: fadeSlideIn 0.25s ease;
+}
+#mom-assembly-material-check .check-result-row:last-child {
+  margin-bottom: 0;
+}
+#mom-assembly-material-check .check-result-row .cr-material-code {
+  font-weight: 600;
+  white-space: nowrap;
+}
+#mom-assembly-material-check .check-result-row .cr-material-desc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#mom-assembly-material-check .check-result-row .cr-check-time {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 12px;
+  opacity: 0.75;
+}
+#mom-assembly-material-check .check-result-row .cr-join {
+  color: var(--text-muted);
+}
+#mom-assembly-material-check .check-result-row.pass {
+  color: #1e7e34;
+  border-left-color: var(--success);
+  background: #f6fdf8;
+}
+#mom-assembly-material-check .check-result-row.fail {
+  color: var(--error);
+  border-left-color: var(--error);
+  background: #fdf7f6;
+}
+
+/* ==================== 底部按钮区（检查完成 + 返回） ==================== */
+#mom-assembly-material-check .bottom-action-area {
+  flex-shrink: 0;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  gap: 10px;
+}
+#mom-assembly-material-check .btn-check-complete {
+  flex: 2;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--gradient-primary);
+  color: #fff;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px rgba(21, 101, 192, 0.35);
+  transition: box-shadow 0.2s, opacity 0.15s;
+}
+#mom-assembly-material-check .btn-check-complete:active {
+  opacity: 0.92;
+  box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+}
+#mom-assembly-material-check .btn-back-station {
+  flex: 1;
+  padding: 14px;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+#mom-assembly-material-check .btn-back-station:active {
+  background: var(--primary-bg);
+}
+
+/* ==================== 空状态 ==================== */
+#mom-assembly-material-check .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+#mom-assembly-material-check .empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+#mom-assembly-material-check .empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ==================== 加载动画 ==================== */
+#mom-assembly-material-check .loading-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+#mom-assembly-material-check .loading-box {
+  background: #fff;
+  border-radius: 18px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.25s ease;
+}
+#mom-assembly-material-check .loading-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e8eaed;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+#mom-assembly-material-check .loading-text {
+  margin-top: 18px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ==================== Toast（非阻断，3s 自动消失） ==================== */
+#mom-assembly-material-check .toast-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#mom-assembly-material-check .toast-box {
+  background: #fff;
+  border-radius: 20px;
+  width: 85%;
+  max-width: 340px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#mom-assembly-material-check .toast-icon-area {
+  padding: 26px 16px 14px;
+  text-align: center;
+}
+#mom-assembly-material-check .toast-icon-success {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #e6f4ea;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#mom-assembly-material-check .toast-icon-success svg {
+  width: 34px;
+  height: 34px;
+  color: var(--success);
+}
+#mom-assembly-material-check .toast-icon-error {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #fce8e6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#mom-assembly-material-check .toast-icon-error svg {
+  width: 34px;
+  height: 34px;
+  color: var(--error);
+}
+#mom-assembly-material-check .toast-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  text-align: center;
+}
+#mom-assembly-material-check .toast-content {
+  padding: 0 20px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  word-break: break-all;
+}
+#mom-assembly-material-check .toast-btn {
+  margin: 2px 16px 16px;
+  padding: 13px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  width: calc(100% - 32px);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#mom-assembly-material-check .toast-btn:active {
+  background: var(--primary-dark);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
