@@ -7,7 +7,7 @@
 
 ## 1. 项目概览
 
-SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），无构建链、无 package.json、无 CI。
+SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），无构建链、无 package.json、无 CI。
 
 | 子项目 | 目录 | 架构 | API 数 |
 |---|---|---|---|
@@ -15,6 +15,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 装箱作业 | mom-packing/ | 骨架 + template + `Packing` 命名空间 | 4 |
 | 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
 | 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
+| 装配物料检查 | mom-assembly-material-check/ | 骨架 + template + `AssemblyMaterialCheck` 命名空间（双视图：工位选择/物料检查） | 4（window.assemblyMaterialCheck_*） |
 
 所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
@@ -83,6 +84,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 ## 7. 当前整改状态
 
 - 4 个子项目：改造完成、已知 bug 全部修复、回归脚本落盘 ✅
+- 新建子项目 mom-assembly-material-check：装配物料检查（工位选择 + 物料检查双视图），已交付 ✅
 - 一致性证书 tab 显示矛盾（mom-cert）：**待业务确认**（确认后由 index.js 侧处理）
 
 ## 8. 编码准则
@@ -152,6 +154,14 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 - 页面 index.html 用 `<script src="mock.js">` 引用（置于业务 JS 之前）；业务 JS 对未注入数据只做检测，无数据时展示空态/兜底，零 Mock 代码
 - 例外：mom-cert 因第三方 HTML 只读无法引用 mock.js，暂维持 `__DEV__` 内联（待评估动态加载方案，此例外不扩散到其他页面）
 
+## 8.9 Portal 表单粘贴：回车提交拦截（平台约束）
+
+- 页面以 index.html / index.js / index.css 三文件交付；生产侧将代码**按 html/js/css 三段粘贴进 Portal 表单页**，页面处于 form 上下文：输入框内按回车会默认提交表单、整页刷新，必须拦截
+- **`Portal_OnDocumentKeyDown` 是 Portal 已内置的表单回车拦截方法**：页面不定义、不覆盖，只在页面初始化时调用一次，即可消除回车提交刷新
+- 调用方式（本地独立预览无此方法，必须 typeof 检测兜底）：
+  `if (typeof window.Portal_OnDocumentKeyDown === "function") { window.Portal_OnDocumentKeyDown(); }`
+- 页面自身对 Enter 的业务响应（搜索/确认）绑定在输入框自身的 **keydown** 事件；与拦截方法职责分离，互不影响
+
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
 1. **骨架先行**：先写 index.html 完整骨架——固定结构直写、多态结构 `.hidden` 块预埋、循环结构 `<template>` 预埋（单根结构）、弹窗骨架常驻 hidden
@@ -174,6 +184,7 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] Mock/演示数据符合 §8.8（独立 mock.js，业务 JS 零内联）
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
+- [ ] Portal 表单回车拦截符合 §8.9（初始化调用 `Portal_OnDocumentKeyDown()`，本地预览 typeof 兜底）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
 - [ ] 提交符合 §5（含验证摘要），工作区干净
 
@@ -185,5 +196,6 @@ SanyH5：4 个独立子项目（MOM 页面），互不影响、独立部署、�
 | mom-packing | `tests/packing.regress.cjs` | 加载/单号搜索/物料搜索/选中面板/上传/数量校验/提交重置/步骤回退 |
 | mom-cert | `tests/mom-cert.regress.cjs` | dev 渲染/校验/触屏 tooltip/生产缺字段不崩/XSS 前置拦截 |
 | mom-nameplate-check-result | `tests/check-result.regress.cjs` | Mock 渲染/MATCH-MISMATCH 与单位/无数据空态/未知枚举显示原文/轮询自动刷新/未知任务状态 |
+| mom-assembly-material-check | `tests/assembly-material-check.regress.cjs` | 工位加载与实时筛选/方向键选择/双视图切换/订单查询/BOM 校验(pass-fail)/连续扫码/失焦触发/检查完成重置/返回 |
 
 运行：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（前置：nginx 8080）
