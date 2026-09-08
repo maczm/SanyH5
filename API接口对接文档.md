@@ -33,6 +33,10 @@ callback({ code: number, msg: string, data?: any })
 | mom-nameplate-photo-upload | `getPhotoConfig` | function | 照片类型配置 + 订单信息（API-N2） |
 | mom-nameplate-photo-upload | `uploadPhoto` | function | 上传单张照片（API-N3） |
 | mom-nameplate-photo-upload | `submitPhotoRecord` | function | 照片记录提交/保存（API-N4，`saveType` 区分） |
+| mom-assembly-material-check | `assemblyMaterialCheck_getWorkStationList` | function | 获取工位列表（API-AM1） |
+| mom-assembly-material-check | `assemblyMaterialCheck_getWipOrderNoInfo` | function | 查询订单/主机/BOM 信息（API-AM2） |
+| mom-assembly-material-check | `assemblyMaterialCheck_getMaterialInfo` | function | 查询物料信息（API-AM3） |
+| mom-assembly-material-check | `assemblyMaterialCheck_saveCheckResult` | function | 保存单条检查结果（API-AM4） |
 
 ### 1.4 公共能力
 
@@ -249,3 +253,106 @@ window.submitPhotoRecord({
 |---|---|---|
 | `"submit"` | 提交AI检测 | 触发铭牌 AI 检测流程 |
 | `"save"` | 保存工位照片信息 | 仅持久化记录，不触发检测 |
+
+---
+
+## 四、mom-assembly-material-check（装配物料检查）
+
+> 页面为「工位选择 + 物料检查」双视图，代码以 html/js/css 三段粘贴进 Portal 表单页。
+> 表单回车提交刷新由 Portal 内置 `Portal_OnDocumentKeyDown` 拦截，页面初始化时调用一次即可（见 agent.md §8.9）。
+
+### 业务约定
+
+- **物料二维码格式**：`物料编码|供应商|序列号:数量`；物料编码 = 按 `|` 分割后的第一段
+- 检查结果仅展示**当前订单会话**（订单查询/检查完成后清空），页面不加载历史记录
+- 连续扫码：检查结果保存成功后清空物料二维码输入框并保持聚焦
+- 检查结果判定：物料编码在订单 BOM 清单中 → `pass`（绿色行）；不在 → 提示并记为 `fail`（红色行），仍保存
+
+### API-AM1：获取工位列表
+
+```js
+window.assemblyMaterialCheck_getWorkStationList(callback)
+```
+
+**入参**：无。
+
+**出参** `data`：工位数组，元素字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `workStation` | string | 工位编码 |
+| `workStationDesc` | string | 工位名称 |
+
+### API-AM2：查询订单信息
+
+```js
+window.assemblyMaterialCheck_getWipOrderNoInfo({ serachKey }, callback)
+```
+
+**入参**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `serachKey` | string | 是 | 订单号或 VIN（手动输入或扫码） |
+
+> 字段名 `serachKey` 按业务提供方原文保留（疑似 `searchKey` 拼写，待 Portal 侧确认后统一）。
+
+**出参** `data`：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `wipOrderNo` | string | 订单号 |
+| `vin` | string | VIN |
+| `wipPlanStartTime` | string | 计划上线时间 |
+| `monthSequence` | string | 月顺序号 |
+| `hostCode` | string | 主机编码 |
+| `hostDesc` | string | 主机描述 |
+| `hostAlias` | string | 主机简称 |
+| `bom` | array | 物料 BOM 清单 |
+
+**bom 每项**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `material` | string | 物料编码 |
+| `materialDesc` | string | 物料描述 |
+
+### API-AM3：查询物料信息
+
+```js
+window.assemblyMaterialCheck_getMaterialInfo({ material }, callback)
+```
+
+**入参**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `material` | string | 是 | 物料编码（二维码第一段） |
+
+**出参** `data`：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `material` | string | 物料编码 |
+| `materialDesc` | string | 物料描述（未知物料可为空字符串） |
+
+### API-AM4：保存检查结果
+
+```js
+window.assemblyMaterialCheck_saveCheckResult({
+  wipOrderNo, vin, workStation, qrCode, material, checkResult
+}, callback)
+```
+
+**入参**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号（API-AM2 返回） |
+| `vin` | string | 是 | VIN（API-AM2 返回） |
+| `workStation` | string | 是 | 工位编码（工位选择页带入） |
+| `qrCode` | string | 是 | 物料二维码原文（`物料编码\|供应商\|序列号:数量`） |
+| `material` | string | 是 | 物料编码（二维码第一段） |
+| `checkResult` | string | 是 | `"pass"`（在 BOM 内）/ `"fail"`（不在 BOM 内） |
+
+**出参**：仅 `code`、`msg`，`data` 为 `null`。

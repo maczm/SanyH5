@@ -10,7 +10,7 @@
 
 - OS：WSL2 Ubuntu 26.04；Node v24.19.0（nvm 管理）；npm 源 npmmirror
 - git：仓库 `/home/wangzm/projects/SanyH5`，身份 wangzm <1466418631@qq.com>
-- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；4 个独立子项目
+- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；5 个独立子项目
 - WSL IP 会变：`hostname -I | awk '{print $1}'`（Windows 侧访问 WSL 服务用）
 
 ## 环节 → 工具 映射
@@ -38,14 +38,16 @@
 ```bash
 cd /home/wangzm/projects/SanyH5
 
-# 1. ESLint 全量（4 页 JS + mock.js）
+# 1. ESLint 全量（5 页 JS + mock.js）
 eslint mom-cert/index.js mom-packing/Index.js \
   mom-nameplate-photo-upload/index.js mom-nameplate-check-result/index.js \
-  mom-packing/mock.js mom-nameplate-photo-upload/mock.js
+  mom-assembly-material-check/index.js \
+  mom-packing/mock.js mom-nameplate-photo-upload/mock.js mom-assembly-material-check/mock.js
 
-# 2. tidy 全量（4 个 HTML）
+# 2. tidy 全量（5 个 HTML）
 for f in mom-cert/index.html mom-packing/index.html \
-         mom-nameplate-photo-upload/index.html mom-nameplate-check-result/index.html; do
+         mom-nameplate-photo-upload/index.html mom-nameplate-check-result/index.html \
+         mom-assembly-material-check/index.html; do
   tidy -q -e --show-warnings no "$f"
 done
 
