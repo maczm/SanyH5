@@ -7,7 +7,7 @@
 
 ## 1. 项目概览
 
-SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 走 CDN），无构建链、无 package.json、无 CI。
+SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 本地化，根目录 `jquery.min.js` 各页 `../jquery.min.js` 引用），无构建链、无 package.json、无 CI。
 
 | 子项目 | 目录 | 架构 | API 数 |
 |---|---|---|---|
@@ -21,8 +21,8 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 
 ## 2. 硬约束（违反即事故）
 
-1. **mom-cert/index.html 第三方只读，禁止修改**——该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）
-2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（Portal 只取 3 文件，mock.js 不进生产）
+1. **mom-cert/index.html 第三方只读，禁止修改**——该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）；唯一例外：2025-09 用户批准 jQuery CDN 改本地（仅 script src 一行），此后仍禁止其他修改
+2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（Portal 只取 3 文件，mock.js 不进生产）；根目录 `jquery.min.js` 为各页共享的本地 jQuery，随解决方案整体部署（非页面级文件，各页以 `../jquery.min.js` 引用）
 3. **项目根无 package.json、无 node_modules**；工具一律全局安装
 4. **不得格式化/批量修改任何 *.html**（.prettierignore 已排除；mom-cert HTML 尤其只读）
 5. 文档类文件放根目录（agent.md / TOOLCHAIN.md / API接口对接文档.md），不塞进页面目录
