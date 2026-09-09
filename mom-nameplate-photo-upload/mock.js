@@ -127,7 +127,7 @@ if (typeof window.submitPhotoRecord != "function") {
       if (Math.random() < 0.1) {
         callback({ code: 1, msg: "系统繁忙，请稍后重试" });
       } else {
-        callback({ code: 0, msg: data.saveType == "save" ? "保存成功" : "提交成功" });
+        callback({ code: 0, msg: data.saveType === "save" ? "保存成功" : "提交成功" });
       }
     }, 800);
   };

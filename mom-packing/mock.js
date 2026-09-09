@@ -7,7 +7,7 @@ var MOCK_DELAY = 500;
 // ============== 模糊匹配工具（仅 Mock 使用） ==============
 function fuzzyMatch(source, target) {
   if (!target) return true;
-  return source.toLowerCase().indexOf(target.toLowerCase()) != -1;
+  return source.toLowerCase().indexOf(target.toLowerCase()) !== -1;
 }
 
 // -- Mock 数据 --
