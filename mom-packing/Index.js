@@ -157,7 +157,7 @@ var Packing = {
   // ============== 步骤指示器 ==============
   updateStepIndicator: function (step) {
     for (var i = 0; i < 2; i++) {
-      var $item = $("#step-item-" + i);
+      var $item = $(".step-item-" + i);
       $item.removeClass("active completed");
       if (i < step) {
         $item.addClass("completed");
@@ -171,7 +171,7 @@ var Packing = {
         $item.find(".step-dot").text(i + 1);
       }
       if (i < 1) {
-        $("#step-line-" + i).toggleClass("done", i < step);
+        $(".step-line-" + i).toggleClass("done", i < step);
       }
     }
   },

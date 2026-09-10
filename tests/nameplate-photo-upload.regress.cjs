@@ -159,7 +159,7 @@ const JPEG_1PX = Buffer.from(
   check("空态确认区隐藏", !(await page.locator(".confirm-section").isVisible()));
   await page.click(".btn-toggle-form .form-clear-btn");
   await page.waitForTimeout(400);
-  check("清空复位", (await page.evaluate(() => NameplatePhotoUpload.state.stationCode)) === "" && (await page.locator("#btn-clear-before").count()) === 0);
+  check("清空复位", (await page.evaluate(() => NameplatePhotoUpload.state.stationCode)) === "" && (await page.locator(".btn-clear-before").count()) === 0);
 
   // ============ 汇总 ============
   console.log("----");
