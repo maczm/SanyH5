@@ -129,7 +129,7 @@ var AssemblyMaterialCheck = {
     $("#station-select-view").addClass("hidden");
     $("#material-check-view").removeClass("hidden");
     setTimeout(function () {
-      $("#input-order-key").focus();
+      $(".input-order-key").focus();
     }, 0);
   },
 
@@ -140,7 +140,7 @@ var AssemblyMaterialCheck = {
     $("#material-check-view").addClass("hidden");
     $("#station-select-view").removeClass("hidden");
     setTimeout(function () {
-      $("#input-station-filter").focus();
+      $(".input-station-filter").focus();
     }, 0);
   },
 
@@ -159,7 +159,7 @@ var AssemblyMaterialCheck = {
   },
 
   getFilteredStations: function () {
-    var keyword = ($("#input-station-filter").val() || "").trim().toLowerCase();
+    var keyword = ($(".input-station-filter").val() || "").trim().toLowerCase();
     if (!keyword) return AssemblyMaterialCheck.state.stations;
     return AssemblyMaterialCheck.state.stations.filter(function (station) {
       var code = (station.workStation || "").toLowerCase();
@@ -228,15 +228,15 @@ var AssemblyMaterialCheck = {
     $("#month-sequence-tag").text("");
     $("#host-code-tag").text("");
     $("#host-alias-tag").text("");
-    $("#input-order-key").val("");
-    $("#input-material-qr").val("");
+    $(".input-order-key").val("");
+    $(".input-material-qr").val("");
     $("#check-result-area .check-result-row").remove();
     $("#empty-check-result").removeClass("hidden");
   },
 
   queryOrderInfo: function () {
     var state = AssemblyMaterialCheck.state;
-    var searchKey = ($("#input-order-key").val() || "").trim();
+    var searchKey = ($(".input-order-key").val() || "").trim();
     if (!searchKey) {
       AssemblyMaterialCheck.showToast("提示", "请输入订单号或VIN", "error");
       return;
@@ -258,11 +258,11 @@ var AssemblyMaterialCheck = {
       $("#host-alias-tag").text(orderInfo.hostAlias || "");
       $("#check-result-area .check-result-row").remove();
       $("#empty-check-result").removeClass("hidden");
-      $("#input-material-qr").val("");
+      $(".input-material-qr").val("");
       // 查询成功：聚焦物料二维码，开启连续扫码（先标记动作时间，屏蔽失焦误触发）
       state.lastMaterialActionAt = Date.now();
       setTimeout(function () {
-        $("#input-material-qr").focus();
+        $(".input-material-qr").focus();
       }, 0);
     });
   },
@@ -280,7 +280,7 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.showToast("提示", "请先查询订单信息", "error");
       return;
     }
-    var qrText = ($("#input-material-qr").val() || "").trim();
+    var qrText = ($(".input-material-qr").val() || "").trim();
     if (!qrText) {
       AssemblyMaterialCheck.showToast("提示", "请输入或扫码物料二维码", "error");
       return;
@@ -342,8 +342,8 @@ var AssemblyMaterialCheck = {
       }
       // 保存成功：清空二维码并保持聚焦，连续扫码
       state.lastMaterialActionAt = Date.now();
-      $("#input-material-qr").val("");
-      $("#input-material-qr").focus();
+      $(".input-material-qr").val("");
+      $(".input-material-qr").focus();
     });
   },
 
@@ -351,7 +351,7 @@ var AssemblyMaterialCheck = {
     AssemblyMaterialCheck.state.lastMaterialActionAt = Date.now();
     AssemblyMaterialCheck.resetCheckForm();
     setTimeout(function () {
-      $("#input-order-key").focus();
+      $(".input-order-key").focus();
     }, 0);
   },
 
@@ -365,20 +365,16 @@ var AssemblyMaterialCheck = {
 
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
-    // 平台 document 级按键拦截会吞掉页面输入：在页面根部阻断冒泡（本页 Enter 已自行 preventDefault）
-    $("#mom-assembly-material-check").on("keydown keypress keyup", "input", function (e) {
-      e.stopPropagation();
-    });
-
     // 工位筛选：失焦不触发任何动作，仅 输入/方向键/回车/按钮 交互
-    $("#station-select-view").on("input", "#input-station-filter", function () {
+    $("#station-select-view").on("input", ".input-station-filter", function () {
       AssemblyMaterialCheck.renderStationList();
     });
-    $("#station-select-view").on("keydown", "#input-station-filter", function (e) {
+    $("#station-select-view").on("keydown", ".input-station-filter", function (e) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         AssemblyMaterialCheck.moveStationSelection(e.key);
       } else if (e.key === "Enter") {
+        e.preventDefault();
         AssemblyMaterialCheck.jumpToMaterialCheck();
       }
     });
@@ -398,14 +394,14 @@ var AssemblyMaterialCheck = {
     });
 
     // 物料检查：回车/失焦即触发对应动作
-    $("#material-check-view").on("keydown", "#input-order-key", function (e) {
+    $("#material-check-view").on("keydown", ".input-order-key", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
         AssemblyMaterialCheck.queryOrderInfo();
       }
     });
-    $("#material-check-view").on("focusout", "#input-order-key", function () {
-      var value = ($("#input-order-key").val() || "").trim();
+    $("#material-check-view").on("focusout", ".input-order-key", function () {
+      var value = ($(".input-order-key").val() || "").trim();
       if (!value || value === AssemblyMaterialCheck.state.lastQueriedOrderKey) return;
       // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
       if (!$("#template-toast").hasClass("hidden")) return;
@@ -421,14 +417,14 @@ var AssemblyMaterialCheck = {
       });
     });
 
-    $("#material-check-view").on("keydown", "#input-material-qr", function (e) {
+    $("#material-check-view").on("keydown", ".input-material-qr", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
         AssemblyMaterialCheck.handleMaterialCheck();
       }
     });
-    $("#material-check-view").on("focusout", "#input-material-qr", function () {
-      var value = ($("#input-material-qr").val() || "").trim();
+    $("#material-check-view").on("focusout", ".input-material-qr", function () {
+      var value = ($(".input-material-qr").val() || "").trim();
       if (!value) return;
       // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
       if (!$("#template-toast").hasClass("hidden")) return;
@@ -489,7 +485,7 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.fitPageHeight();
     });
     setTimeout(function () {
-      $("#input-station-filter").focus();
+      $(".input-station-filter").focus();
     }, 0);
     AssemblyMaterialCheck.loadStationList();
   },
