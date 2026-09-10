@@ -75,15 +75,22 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   // ============ 6. 订单查询（回车触发，请求带当前工位） ============
   await page.evaluate(() => {
     window.__orderRequests = [];
-    const original = window.assemblyMaterialCheck_getWipOrderNoInfo;
+    window.__materialRequests = [];
+    const originalOrderApi = window.assemblyMaterialCheck_getWipOrderNoInfo;
     window.assemblyMaterialCheck_getWipOrderNoInfo = function (params, callback) {
       window.__orderRequests.push(params);
-      original(params, callback);
+      originalOrderApi(params, callback);
+    };
+    const originalMaterialApi = window.assemblyMaterialCheck_getMaterialInfo;
+    window.assemblyMaterialCheck_getMaterialInfo = function (params, callback) {
+      window.__materialRequests.push(params);
+      originalMaterialApi(params, callback);
     };
   });
   await page.fill(".input-order-key", "WO20260824001");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
+  check("订单输入回车触发搜索", (await page.evaluate(() => window.__orderRequests.length)) === 1);
   check("计划上线时间", (await page.locator(".plan-start-time-tag").textContent()) === "2026-08-24 08:30:00");
   check("月顺序号", (await page.locator(".month-sequence-tag").textContent()) === "202608-0012");
   check("主机编码", (await page.locator(".host-code-tag").textContent()) === "HC2608-1207");
@@ -98,6 +105,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);
   check("新增绿色行", (await page.locator(".check-result-row.pass").count()) === 1 && (await page.locator(".check-result-row").count()) === 1);
+  check("物料输入回车触发搜索", (await page.evaluate(() => window.__materialRequests.length)) === 1 && (await page.evaluate(() => window.__materialRequests[0].material)) === "MAT-BOLT-001");
   check("行文案格式", (await page.locator(".check-result-row").textContent()).replace(/\s+/g, "").indexOf("MAT-BOLT-001-六角螺栓M12x40-") !== -1);
   const saved1 = await page.evaluate(() => window.__assemblyMockSaved[0]);
   check("保存入参(1)", saved1 && saved1.wipOrderNo === "WO20260824001" && saved1.vin === "LSVU2A0N260800001" && saved1.workStation === "ZA01");
