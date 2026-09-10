@@ -1,4 +1,4 @@
-#mom-photo-upload {
+.mom-photo-upload {
   --primary: #1976d2;
   --primary-dark: #1565c0;
   --primary-light: #42a5f5;
@@ -28,19 +28,19 @@ body {
   background: #f0f2f5;
 }
 
-#mom-photo-upload,
-#mom-photo-upload * {
+.mom-photo-upload,
+.mom-photo-upload * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-#mom-photo-upload ::-webkit-scrollbar {
+.mom-photo-upload ::-webkit-scrollbar {
   display: none;
 }
 
-#mom-photo-upload {
+.mom-photo-upload {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -51,38 +51,38 @@ body {
   color: var(--text-primary);
 }
 
-#mom-photo-upload.app-container {
+.mom-photo-upload.app-container {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 /* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
-#mom-photo-upload .hidden {
+.mom-photo-upload .hidden {
   display: none !important;
 }
 
 /* 折叠卡片头图标尺寸（form-card-header / order-info-header 统一） */
-#mom-photo-upload .form-card-header > svg,
-#mom-photo-upload .order-info-header > svg {
+.mom-photo-upload .form-card-header > svg,
+.mom-photo-upload .order-info-header > svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
 }
 
 /* 照片卡片徽章打勾图标 */
-#mom-photo-upload .card-badge .badge-check {
+.mom-photo-upload .card-badge .badge-check {
   width: 14px;
   height: 14px;
 }
 
 /* 订单信息行内字段间距（VIN 前留白） */
-#mom-photo-upload .field-row-inline .field-label + .field-label {
+.mom-photo-upload .field-row-inline .field-label + .field-label {
   margin-left: 12px;
 }
 
 /* 隐藏的文件选择 input */
-#mom-photo-upload .photo-input-hidden {
+.mom-photo-upload .photo-input-hidden {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -91,7 +91,7 @@ body {
 }
 
 /* ==================== 页面头部 ==================== */
-#mom-photo-upload .page-header {
+.mom-photo-upload .page-header {
   background: var(--gradient-primary);
   color: #fff;
   padding: 12px 16px;
@@ -102,30 +102,30 @@ body {
   gap: 8px;
   box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
 }
-#mom-photo-upload .page-header .header-title {
+.mom-photo-upload .page-header .header-title {
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
-#mom-photo-upload .page-header .header-operator {
+.mom-photo-upload .page-header .header-operator {
   font-size: 13px;
   font-weight: 500;
   opacity: 0.9;
   margin-left: auto;
 }
-#mom-photo-upload .page-header .header-time {
+.mom-photo-upload .page-header .header-time {
   font-size: 12px;
   opacity: 0.75;
   font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
 }
 
 /* ==================== 表单区 ==================== */
-#mom-photo-upload .form-area {
+.mom-photo-upload .form-area {
   flex-shrink: 0;
   padding: 12px 12px 0;
 }
 
-#mom-photo-upload .form-card {
+.mom-photo-upload .form-card {
   background: #fff;
   border-radius: var(--card-radius);
   overflow: hidden;
@@ -134,18 +134,18 @@ body {
 }
 
 /* 表单卡片内容区（header 贴边后，内容需要自己的内边距） */
-#mom-photo-upload .form-card-body {
+.mom-photo-upload .form-card-body {
   padding: 18px;
 }
 
-#mom-photo-upload .form-group {
+.mom-photo-upload .form-group {
   margin-bottom: 14px;
 }
-#mom-photo-upload .form-group:last-of-type {
+.mom-photo-upload .form-group:last-of-type {
   margin-bottom: 16px;
 }
 
-#mom-photo-upload .form-label {
+.mom-photo-upload .form-label {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -155,10 +155,10 @@ body {
 }
 
 /* ==================== 工位 Combobox ==================== */
-#mom-photo-upload .combobox-wrapper {
+.mom-photo-upload .combobox-wrapper {
   position: relative;
 }
-#mom-photo-upload .combobox-input {
+.mom-photo-upload .combobox-input {
   width: 100%;
   height: 46px;
   padding: 0 38px 0 14px;
@@ -170,15 +170,15 @@ body {
   color: var(--text-primary);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-#mom-photo-upload .combobox-input:focus {
+.mom-photo-upload .combobox-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
   background: #fff;
 }
-#mom-photo-upload .combobox-input::placeholder {
+.mom-photo-upload .combobox-input::placeholder {
   color: #c4c7cc;
 }
-#mom-photo-upload .combobox-arrow {
+.mom-photo-upload .combobox-arrow {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -188,7 +188,7 @@ body {
   color: var(--text-muted);
   cursor: pointer;
 }
-#mom-photo-upload .combobox-dropdown {
+.mom-photo-upload .combobox-dropdown {
   position: absolute;
   top: 50px;
   left: 0;
@@ -202,7 +202,7 @@ body {
   z-index: 100;
   -webkit-overflow-scrolling: touch;
 }
-#mom-photo-upload .combobox-item {
+.mom-photo-upload .combobox-item {
   padding: 11px 14px;
   cursor: pointer;
   display: flex;
@@ -211,24 +211,24 @@ body {
   border-bottom: 1px solid #f5f5f5;
   transition: background 0.12s;
 }
-#mom-photo-upload .combobox-item:last-child {
+.mom-photo-upload .combobox-item:last-child {
   border-bottom: none;
 }
-#mom-photo-upload .combobox-item:active,
-#mom-photo-upload .combobox-item:hover {
+.mom-photo-upload .combobox-item:active,
+.mom-photo-upload .combobox-item:hover {
   background: var(--primary-bg);
 }
-#mom-photo-upload .combobox-item-code {
+.mom-photo-upload .combobox-item-code {
   font-size: 13px;
   font-weight: 600;
   color: var(--primary);
   white-space: nowrap;
 }
-#mom-photo-upload .combobox-item-name {
+.mom-photo-upload .combobox-item-name {
   font-size: 13px;
   color: var(--text-secondary);
 }
-#mom-photo-upload .combobox-empty {
+.mom-photo-upload .combobox-empty {
   padding: 14px;
   text-align: center;
   color: var(--text-muted);
@@ -236,12 +236,12 @@ body {
 }
 
 /* ==================== 输入行（订单号 + 扫码） ==================== */
-#mom-photo-upload .input-row {
+.mom-photo-upload .input-row {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-#mom-photo-upload .search-input {
+.mom-photo-upload .search-input {
   flex: 1;
   height: 46px;
   padding: 0 14px;
@@ -253,16 +253,16 @@ body {
   color: var(--text-primary);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-#mom-photo-upload .search-input:focus {
+.mom-photo-upload .search-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
   background: #fff;
 }
-#mom-photo-upload .search-input::placeholder {
+.mom-photo-upload .search-input::placeholder {
   color: #c4c7cc;
 }
 
-#mom-photo-upload .icon-btn {
+.mom-photo-upload .icon-btn {
   width: 46px;
   height: 46px;
   border-radius: 10px;
@@ -274,20 +274,20 @@ body {
   flex-shrink: 0;
   transition: background 0.15s;
 }
-#mom-photo-upload .icon-btn svg {
+.mom-photo-upload .icon-btn svg {
   width: 22px;
   height: 22px;
 }
-#mom-photo-upload .btn-scan {
+.mom-photo-upload .btn-scan {
   background: var(--bg-btn-secondary) !important;
   color: var(--text-secondary) !important;
 }
-#mom-photo-upload .btn-scan:active {
+.mom-photo-upload .btn-scan:active {
   background: #e0e0e0 !important;
 }
 
 /* ==================== 查询按钮 ==================== */
-#mom-photo-upload .btn-query {
+.mom-photo-upload .btn-query {
   width: 100%;
   padding: 13px;
   border: none;
@@ -301,19 +301,19 @@ body {
   box-shadow: 0 2px 8px rgba(21, 101, 192, 0.3);
   transition: box-shadow 0.2s, opacity 0.15s;
 }
-#mom-photo-upload .btn-query:active {
+.mom-photo-upload .btn-query:active {
   opacity: 0.92;
   box-shadow: 0 1px 4px rgba(21, 101, 192, 0.2);
 }
 
 /* 收起/清空按钮行 */
 /* ==================== 订单信息卡片 ==================== */
-#mom-photo-upload .order-info-area {
+.mom-photo-upload .order-info-area {
   padding: 10px 12px 0;
   flex-shrink: 0;
 }
 
-#mom-photo-upload .order-info-card {
+.mom-photo-upload .order-info-card {
   background: #fff;
   border-radius: var(--card-radius);
   overflow: hidden;
@@ -322,7 +322,7 @@ body {
   border-left: 3px solid var(--primary);
 }
 
-#mom-photo-upload .order-info-header {
+.mom-photo-upload .order-info-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -337,22 +337,22 @@ body {
   user-select: none;
   transition: background 0.15s;
 }
-#mom-photo-upload .order-info-header:active {
+.mom-photo-upload .order-info-header:active {
   background: #f0f2f5;
 }
-#mom-photo-upload .order-info-arrow {
+.mom-photo-upload .order-info-arrow {
   margin-left: auto;
   display: flex;
   align-items: center;
 }
-#mom-photo-upload .order-info-arrow svg {
+.mom-photo-upload .order-info-arrow svg {
   width: 18px;
   height: 18px;
   color: var(--text-muted);
 }
 
 /* 表单卡片头（查询后显示，与订单信息折叠交互一致） */
-#mom-photo-upload .form-card-header {
+.mom-photo-upload .form-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -366,20 +366,20 @@ body {
   user-select: none;
   transition: background 0.15s;
 }
-#mom-photo-upload .form-card-header:active {
+.mom-photo-upload .form-card-header:active {
   background: #f0f2f5;
 }
-#mom-photo-upload .form-card-header .form-arrow {
+.mom-photo-upload .form-card-header .form-arrow {
   margin-left: auto; /* 与订单信息一致：箭头推到最右 */
   display: flex;
   align-items: center;
 }
-#mom-photo-upload .form-card-header .form-arrow svg {
+.mom-photo-upload .form-card-header .form-arrow svg {
   width: 18px;
   height: 18px;
   color: var(--text-muted);
 }
-#mom-photo-upload .form-card-header .form-clear-btn {
+.mom-photo-upload .form-card-header .form-clear-btn {
   display: flex;
   align-items: center;
   padding: 4px;
@@ -388,34 +388,34 @@ body {
   cursor: pointer;
   color: var(--text-muted);
 }
-#mom-photo-upload .form-card-header .form-clear-btn:active {
+.mom-photo-upload .form-card-header .form-clear-btn:active {
   color: var(--error);
 }
-#mom-photo-upload .form-card-header .form-clear-btn svg {
+.mom-photo-upload .form-card-header .form-clear-btn svg {
   width: 18px;
   height: 18px;
 }
 
-#mom-photo-upload .order-info-body {
+.mom-photo-upload .order-info-body {
   padding: 14px 16px;
 }
 
-#mom-photo-upload .order-info-body .field-row {
+.mom-photo-upload .order-info-body .field-row {
   display: flex;
   align-items: center;
   padding: 7px 0;
   border-bottom: 1px solid #f5f5f5;
 }
-#mom-photo-upload .order-info-body .field-row:last-of-type {
+.mom-photo-upload .order-info-body .field-row:last-of-type {
   border-bottom: none;
 }
-#mom-photo-upload .order-info-body .field-label {
+.mom-photo-upload .order-info-body .field-label {
   color: var(--text-muted);
   font-size: 13px;
   width: 68px;
   flex-shrink: 0;
 }
-#mom-photo-upload .order-info-body .field-value {
+.mom-photo-upload .order-info-body .field-value {
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
@@ -423,16 +423,16 @@ body {
   word-break: break-all;
 }
 
-#mom-photo-upload .order-info-body .field-row-inline .field-value {
+.mom-photo-upload .order-info-body .field-row-inline .field-value {
   flex: 0 1 auto;
   min-width: 0;
 }
 
-#mom-photo-upload .order-info-body .field-row-inline .field-label {
+.mom-photo-upload .order-info-body .field-row-inline .field-label {
   width: auto;
 }
 
-#mom-photo-upload .template-image {
+.mom-photo-upload .template-image {
   display: block;
   width: 100%;
   max-height: 200px;
@@ -443,15 +443,15 @@ body {
   cursor: pointer;
   margin-top: 8px;
 }
-#mom-photo-upload .template-image:active {
+.mom-photo-upload .template-image:active {
   opacity: 0.85;
 }
 
-#mom-photo-upload .template-field-row {
+.mom-photo-upload .template-field-row {
   align-items: center;
 }
 
-#mom-photo-upload .btn-pick-template-inline {
+.mom-photo-upload .btn-pick-template-inline {
   padding: 5px 14px;
   border: 1.5px dashed var(--primary);
   border-radius: 8px;
@@ -463,11 +463,11 @@ body {
   white-space: nowrap;
   transition: background 0.15s;
 }
-#mom-photo-upload .btn-pick-template-inline:active {
+.mom-photo-upload .btn-pick-template-inline:active {
   background: #bbdefb;
 }
 
-#mom-photo-upload .btn-change-template-inline {
+.mom-photo-upload .btn-change-template-inline {
   padding: 4px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -481,12 +481,12 @@ body {
   margin-left: 8px;
   transition: background 0.15s;
 }
-#mom-photo-upload .btn-change-template-inline:active {
+.mom-photo-upload .btn-change-template-inline:active {
   background: #f1f3f4;
 }
 
 /* ==================== 模板选择弹窗 ==================== */
-#mom-photo-upload .template-picker-mask {
+.mom-photo-upload .template-picker-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -501,7 +501,7 @@ body {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
-#mom-photo-upload .template-picker-box {
+.mom-photo-upload .template-picker-box {
   background: #fff;
   border-radius: 18px;
   width: 88%;
@@ -513,7 +513,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-#mom-photo-upload .picker-title {
+.mom-photo-upload .picker-title {
   padding: 18px;
   font-size: 17px;
   font-weight: 600;
@@ -522,13 +522,13 @@ body {
   border-bottom: 1px solid #eee;
   flex-shrink: 0;
 }
-#mom-photo-upload .picker-list {
+.mom-photo-upload .picker-list {
   padding: 12px;
   overflow-y: auto;
   flex: 1;
   -webkit-overflow-scrolling: touch;
 }
-#mom-photo-upload .picker-item {
+.mom-photo-upload .picker-item {
   margin-bottom: 10px;
   border-radius: 12px;
   overflow: hidden;
@@ -537,22 +537,22 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s;
   box-shadow: var(--shadow-sm);
 }
-#mom-photo-upload .picker-item:last-child {
+.mom-photo-upload .picker-item:last-child {
   margin-bottom: 0;
 }
-#mom-photo-upload .picker-item:active,
-#mom-photo-upload .picker-item:hover {
+.mom-photo-upload .picker-item:active,
+.mom-photo-upload .picker-item:hover {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.12);
 }
-#mom-photo-upload .picker-item img {
+.mom-photo-upload .picker-item img {
   width: 100%;
   display: block;
   object-fit: cover;
   background: #fafbfc;
   max-height: 180px;
 }
-#mom-photo-upload .picker-item-name {
+.mom-photo-upload .picker-item-name {
   padding: 10px 12px;
   font-size: 15px;
   font-weight: 600;
@@ -561,7 +561,7 @@ body {
   background: #fafbfc;
   border-top: 1px solid #eee;
 }
-#mom-photo-upload .picker-btn {
+.mom-photo-upload .picker-btn {
   margin: 4px 14px 14px;
   padding: 14px;
   background: #f1f3f4;
@@ -574,12 +574,12 @@ body {
   flex-shrink: 0;
   transition: background 0.15s;
 }
-#mom-photo-upload .picker-btn:active {
+.mom-photo-upload .picker-btn:active {
   background: #e0e0e0;
 }
 
 /* ==================== 照片类型卡片区域 ==================== */
-#mom-photo-upload .photo-cards-area {
+.mom-photo-upload .photo-cards-area {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -587,7 +587,7 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-#mom-photo-upload .photo-type-card {
+.mom-photo-upload .photo-type-card {
   background: #fff;
   border-radius: var(--card-radius);
   padding: 16px;
@@ -597,32 +597,32 @@ body {
   animation: fadeSlideIn 0.3s ease;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
-#mom-photo-upload .photo-type-card:last-child {
+.mom-photo-upload .photo-type-card:last-child {
   margin-bottom: 0;
 }
-#mom-photo-upload .photo-type-card.complete {
+.mom-photo-upload .photo-type-card.complete {
   border-color: #c6e6c9;
   background: linear-gradient(135deg, #f9fef9 0%, #f5fdf6 100%);
   box-shadow: 0 1px 4px rgba(52, 168, 83, 0.08);
 }
 
 /* 卡片头部 */
-#mom-photo-upload .card-header {
+.mom-photo-upload .card-header {
   margin-bottom: 12px;
 }
-#mom-photo-upload .card-title-row {
+.mom-photo-upload .card-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
-#mom-photo-upload .card-title {
+.mom-photo-upload .card-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.2px;
 }
-#mom-photo-upload .card-badge {
+.mom-photo-upload .card-badge {
   font-size: 12px;
   font-weight: 600;
   padding: 4px 12px;
@@ -632,34 +632,34 @@ body {
   gap: 4px;
   letter-spacing: 0.2px;
 }
-#mom-photo-upload .card-badge.pending {
+.mom-photo-upload .card-badge.pending {
   background: #e8f0fe;
   color: var(--primary);
 }
-#mom-photo-upload .card-badge.done {
+.mom-photo-upload .card-badge.done {
   background: #e6f4ea;
   color: #1e7e34;
 }
 
 /* 进度条 */
-#mom-photo-upload .progress-bar {
+.mom-photo-upload .progress-bar {
   height: 5px;
   background: #eef0f2;
   border-radius: 3px;
   overflow: hidden;
 }
-#mom-photo-upload .progress-fill {
+.mom-photo-upload .progress-fill {
   height: 100%;
   background: var(--gradient-primary);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#mom-photo-upload .photo-type-card.complete .progress-fill {
+.mom-photo-upload .photo-type-card.complete .progress-fill {
   background: linear-gradient(90deg, #34a853, #4caf50);
 }
 
 /* ==================== 缩略图列表 ==================== */
-#mom-photo-upload .photo-thumb-list {
+.mom-photo-upload .photo-thumb-list {
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -668,11 +668,11 @@ body {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
-#mom-photo-upload .photo-thumb-list::-webkit-scrollbar {
+.mom-photo-upload .photo-thumb-list::-webkit-scrollbar {
   display: none;
 }
 
-#mom-photo-upload .photo-item {
+.mom-photo-upload .photo-item {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
@@ -682,16 +682,16 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   transition: transform 0.15s;
 }
-#mom-photo-upload .photo-item:active {
+.mom-photo-upload .photo-item:active {
   transform: scale(0.95);
 }
-#mom-photo-upload .photo-item img {
+.mom-photo-upload .photo-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-#mom-photo-upload .photo-delete {
+.mom-photo-upload .photo-delete {
   position: absolute;
   top: 3px;
   right: 3px;
@@ -708,15 +708,15 @@ body {
   backdrop-filter: blur(4px);
   transition: background 0.15s;
 }
-#mom-photo-upload .photo-delete:active {
+.mom-photo-upload .photo-delete:active {
   background: rgba(234, 67, 53, 0.8);
 }
-#mom-photo-upload .photo-delete svg {
+.mom-photo-upload .photo-delete svg {
   width: 12px;
   height: 12px;
 }
 
-#mom-photo-upload .photo-add {
+.mom-photo-upload .photo-add {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
@@ -731,22 +731,22 @@ body {
   gap: 3px;
   transition: border-color 0.2s, background 0.2s;
 }
-#mom-photo-upload .photo-add:active {
+.mom-photo-upload .photo-add:active {
   background: var(--primary-bg);
   border-color: var(--primary);
 }
-#mom-photo-upload .photo-add svg {
+.mom-photo-upload .photo-add svg {
   width: 24px;
   height: 24px;
   color: #b0b5bb;
 }
-#mom-photo-upload .photo-add span {
+.mom-photo-upload .photo-add span {
   font-size: 10px;
   color: #b0b5bb;
   font-weight: 500;
 }
 
-#mom-photo-upload .photo-full-tip {
+.mom-photo-upload .photo-full-tip {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
@@ -762,24 +762,24 @@ body {
 }
 
 /* ==================== 空状态 ==================== */
-#mom-photo-upload .empty-state {
+.mom-photo-upload .empty-state {
   text-align: center;
   padding: 40px 20px;
   color: var(--text-muted);
 }
-#mom-photo-upload .empty-state svg {
+.mom-photo-upload .empty-state svg {
   width: 48px;
   height: 48px;
   margin-bottom: 12px;
   opacity: 0.4;
 }
-#mom-photo-upload .empty-state p {
+.mom-photo-upload .empty-state p {
   font-size: 14px;
   margin: 0;
 }
 
 /* ==================== 照片全屏预览 ==================== */
-#mom-photo-upload .photo-preview-mask {
+.mom-photo-upload .photo-preview-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -793,20 +793,20 @@ body {
   animation: fadeIn 0.2s ease;
   overflow: hidden;
 }
-#mom-photo-upload .photo-preview-viewport {
+.mom-photo-upload .photo-preview-viewport {
   width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
   touch-action: none;
 }
-#mom-photo-upload .photo-preview-panner {
+.mom-photo-upload .photo-preview-panner {
   position: absolute;
   left: 0;
   top: 0;
   transform-origin: 0 0;
 }
-#mom-photo-upload .photo-preview-img {
+.mom-photo-upload .photo-preview-img {
   display: block;
   max-width: 95vw;
   max-height: 95vh;
@@ -816,10 +816,10 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
-#mom-photo-upload .photo-preview-img:active {
+.mom-photo-upload .photo-preview-img:active {
   cursor: grabbing;
 }
-#mom-photo-upload .photo-preview-close {
+.mom-photo-upload .photo-preview-close {
   position: absolute;
   top: calc(16px + env(safe-area-inset-top));
   right: 16px;
@@ -838,12 +838,12 @@ body {
   backdrop-filter: blur(8px);
   transition: background 0.15s;
 }
-#mom-photo-upload .photo-preview-close:active {
+.mom-photo-upload .photo-preview-close:active {
   background: rgba(255, 255, 255, 0.3);
 }
 
 /* ==================== 底部按钮区（保存 + 提交检测） ==================== */
-#mom-photo-upload .confirm-section {
+.mom-photo-upload .confirm-section {
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   background: #fff;
@@ -852,7 +852,7 @@ body {
   display: flex;
   gap: 10px;
 }
-#mom-photo-upload .btn-confirm {
+.mom-photo-upload .btn-confirm {
   flex: 1;
   padding: 15px;
   border: none;
@@ -866,18 +866,18 @@ body {
   box-shadow: 0 4px 14px rgba(21, 101, 192, 0.35);
   transition: box-shadow 0.2s, opacity 0.15s;
 }
-#mom-photo-upload .btn-confirm:active {
+.mom-photo-upload .btn-confirm:active {
   opacity: 0.92;
   box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
 }
-#mom-photo-upload .btn-confirm:disabled,
-#mom-photo-upload .btn-confirm.btn-disabled {
+.mom-photo-upload .btn-confirm:disabled,
+.mom-photo-upload .btn-confirm.btn-disabled {
   background: #d5d7da;
   box-shadow: none;
   color: #fff;
   cursor: not-allowed;
 }
-#mom-photo-upload .btn-save {
+.mom-photo-upload .btn-save {
   flex: 2;
   padding: 15px;
   border: 1.5px solid var(--primary);
@@ -890,11 +890,11 @@ body {
   letter-spacing: 0.5px;
   transition: background 0.15s, opacity 0.15s;
 }
-#mom-photo-upload .btn-save:active {
+.mom-photo-upload .btn-save:active {
   background: var(--primary-bg);
 }
-#mom-photo-upload .btn-save:disabled,
-#mom-photo-upload .btn-save.btn-disabled {
+.mom-photo-upload .btn-save:disabled,
+.mom-photo-upload .btn-save.btn-disabled {
   border-color: #d5d7da;
   color: #b0b3b7;
   background: #fafbfc;
@@ -902,7 +902,7 @@ body {
 }
 
 /* ==================== 二次确认弹窗 ==================== */
-#mom-photo-upload .confirm-mask {
+.mom-photo-upload .confirm-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -917,7 +917,7 @@ body {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
-#mom-photo-upload .confirm-box {
+.mom-photo-upload .confirm-box {
   background: #fff;
   border-radius: 16px;
   width: 82%;
@@ -926,25 +926,25 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: scaleIn 0.25s ease;
 }
-#mom-photo-upload .confirm-title {
+.mom-photo-upload .confirm-title {
   padding: 18px 18px 6px;
   font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
   text-align: center;
 }
-#mom-photo-upload .confirm-content {
+.mom-photo-upload .confirm-content {
   padding: 8px 18px 20px;
   font-size: 15px;
   color: var(--text-secondary);
   text-align: center;
   line-height: 1.6;
 }
-#mom-photo-upload .confirm-btns {
+.mom-photo-upload .confirm-btns {
   display: flex;
   border-top: 1px solid #eee;
 }
-#mom-photo-upload .confirm-btns button {
+.mom-photo-upload .confirm-btns button {
   flex: 1;
   padding: 14px;
   border: none;
@@ -954,19 +954,19 @@ body {
   cursor: pointer;
   transition: background 0.15s;
 }
-#mom-photo-upload .confirm-btn-cancel {
+.mom-photo-upload .confirm-btn-cancel {
   color: var(--text-secondary);
   border-right: 1px solid #eee;
 }
-#mom-photo-upload .confirm-btn-ok {
+.mom-photo-upload .confirm-btn-ok {
   color: var(--primary);
 }
-#mom-photo-upload .confirm-btns button:active {
+.mom-photo-upload .confirm-btns button:active {
   background: #f1f3f4;
 }
 
 /* ==================== 加载动画 ==================== */
-#mom-photo-upload .loading-mask {
+.mom-photo-upload .loading-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -981,7 +981,7 @@ body {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
-#mom-photo-upload .loading-box {
+.mom-photo-upload .loading-box {
   background: #fff;
   border-radius: 18px;
   padding: 36px 32px;
@@ -991,7 +991,7 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   animation: scaleIn 0.25s ease;
 }
-#mom-photo-upload .loading-spinner {
+.mom-photo-upload .loading-spinner {
   width: 42px;
   height: 42px;
   border: 4px solid #e8eaed;
@@ -999,7 +999,7 @@ body {
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-#mom-photo-upload .loading-text {
+.mom-photo-upload .loading-text {
   margin-top: 18px;
   font-size: 15px;
   font-weight: 500;
@@ -1033,7 +1033,7 @@ body {
 }
 
 /* ==================== Toast ==================== */
-#mom-photo-upload .toast-mask {
+.mom-photo-upload .toast-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -1048,7 +1048,7 @@ body {
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
-#mom-photo-upload .toast-box {
+.mom-photo-upload .toast-box {
   background: #fff;
   border-radius: 20px;
   width: 85%;
@@ -1057,18 +1057,18 @@ body {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
   animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-#mom-photo-upload .toast-mask.closing {
+.mom-photo-upload .toast-mask.closing {
   animation: fadeOut 0.12s 0.15s ease forwards;
   pointer-events: none;
 }
-#mom-photo-upload .toast-mask.closing .toast-box {
+.mom-photo-upload .toast-mask.closing .toast-box {
   animation: scaleOut 0.25s ease-in forwards;
 }
-#mom-photo-upload .toast-icon-area {
+.mom-photo-upload .toast-icon-area {
   padding: 28px 16px 16px;
   text-align: center;
 }
-#mom-photo-upload .toast-icon-success {
+.mom-photo-upload .toast-icon-success {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -1077,12 +1077,12 @@ body {
   align-items: center;
   justify-content: center;
 }
-#mom-photo-upload .toast-icon-success svg {
+.mom-photo-upload .toast-icon-success svg {
   width: 34px;
   height: 34px;
   color: var(--success);
 }
-#mom-photo-upload .toast-icon-error {
+.mom-photo-upload .toast-icon-error {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -1091,45 +1091,45 @@ body {
   align-items: center;
   justify-content: center;
 }
-#mom-photo-upload .toast-icon-error svg {
+.mom-photo-upload .toast-icon-error svg {
   width: 34px;
   height: 34px;
   color: var(--error);
 }
-#mom-photo-upload .toast-title {
+.mom-photo-upload .toast-title {
   font-size: 19px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
   text-align: center;
 }
-#mom-photo-upload .toast-content {
+.mom-photo-upload .toast-content {
   padding: 0 20px 20px;
   max-height: 50vh;
   overflow-y: auto;
 }
-#mom-photo-upload .toast-content .detail-row {
+.mom-photo-upload .toast-content .detail-row {
   display: flex;
   padding: 9px 0;
   border-bottom: 1px solid #f0f0f0;
 }
-#mom-photo-upload .toast-content .detail-row:last-child {
+.mom-photo-upload .toast-content .detail-row:last-child {
   border-bottom: none;
 }
-#mom-photo-upload .toast-content .detail-label {
+.mom-photo-upload .toast-content .detail-label {
   color: var(--text-muted);
   font-size: 13px;
   width: 80px;
   flex-shrink: 0;
 }
-#mom-photo-upload .toast-content .detail-value {
+.mom-photo-upload .toast-content .detail-value {
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   flex: 1;
   word-break: break-all;
 }
-#mom-photo-upload .toast-btn {
+.mom-photo-upload .toast-btn {
   margin: 4px 16px 18px;
   padding: 14px;
   background: var(--primary);
@@ -1142,6 +1142,6 @@ body {
   cursor: pointer;
   transition: background 0.15s;
 }
-#mom-photo-upload .toast-btn:active {
+.mom-photo-upload .toast-btn:active {
   background: var(--primary-dark);
 }

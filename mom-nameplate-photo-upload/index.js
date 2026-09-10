@@ -65,10 +65,10 @@ var NameplatePhotoUpload = {
   // ============== 模板克隆 ==============
   /**
    * 克隆 template 标签骨架并返回 jQuery 对象（取根元素，保证 .data() 落在真实 DOM 节点上）
-   * @param {string} id - template 元素 id（不含 #）
+   * @param {string} templateClassName - template 元素的 class 名（不含点）
    */
-  cloneTemplate: function (id) {
-    var frag = document.getElementById(id).content.cloneNode(true);
+  cloneTemplate: function (templateClassName) {
+    var frag = document.querySelector("." + templateClassName).content.cloneNode(true);
     return $(frag.firstElementChild); // 所有 template 均为单根结构
   },
 
@@ -140,31 +140,31 @@ var NameplatePhotoUpload = {
   // ============== 加载动画（骨架预埋，仅显隐+填值；引用计数支持并发） ==============
   showLoading: function (text) {
     NameplatePhotoUpload._loadingCount++;
-    $("#loading-text").text(text || "加载中...");
-    $("#template-loading").removeClass("hidden");
+    $(".loading-text").text(text || "加载中...");
+    $(".template-loading").removeClass("hidden");
   },
 
   hideLoading: function () {
     NameplatePhotoUpload._loadingCount = Math.max(0, NameplatePhotoUpload._loadingCount - 1);
     if (NameplatePhotoUpload._loadingCount === 0) {
-      $("#template-loading").addClass("hidden");
+      $(".template-loading").addClass("hidden");
     }
   },
 
   // ============== Toast 消息提示框（骨架预埋，仅显隐+填值） ==============
   // content 支持三种形态：null（无内容区）/ string（单行文本）/ array（[{label,value}] 详情行）
   showToast: function (title, content, type, callback) {
-    var $toast = $("#template-toast");
+    var $toast = $(".template-toast");
     if (NameplatePhotoUpload._toastTimer) {
       clearTimeout(NameplatePhotoUpload._toastTimer);
       NameplatePhotoUpload._toastTimer = null;
     }
 
-    $("#toast-title").text(title);
-    $("#template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
-    $("#template-toast .toast-icon-success").toggleClass("hidden", type === "error");
+    $(".toast-title").text(title);
+    $(".template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
+    $(".template-toast .toast-icon-success").toggleClass("hidden", type === "error");
 
-    var $content = $("#toast-content");
+    var $content = $(".toast-content");
     $content.empty();
     if (typeof content === "string") {
       $content.removeClass("hidden").text(content);
@@ -201,13 +201,13 @@ var NameplatePhotoUpload = {
 
   // ============== 二次确认弹窗（骨架预埋） ==============
   showConfirmDialog: function (message, onConfirm) {
-    $("#confirm-content").text(message);
-    $("#template-confirm").data("on-confirm", onConfirm).removeClass("hidden");
+    $(".confirm-content").text(message);
+    $(".template-confirm").data("on-confirm", onConfirm).removeClass("hidden");
   },
 
   // ============== 模板选择弹窗（骨架预埋 + 列表克隆） ==============
   showTemplatePicker: function (templates, callback) {
-    var $list = $("#picker-list");
+    var $list = $(".picker-list");
     $list.empty();
     templates.forEach(function (template) {
       var $item = NameplatePhotoUpload.cloneTemplate("template-picker-item");
@@ -216,15 +216,15 @@ var NameplatePhotoUpload = {
       $item.data("id", template.templateId).data("name", template.templateName).data("url", template.templateImageUrl);
       $list.append($item);
     });
-    $("#template-picker").data("on-pick", callback).removeClass("hidden");
+    $(".template-picker").data("on-pick", callback).removeClass("hidden");
   },
 
   // ============== 表单渲染（骨架已静态化，此处仅切换状态与回填值） ==============
   // 与订单信息一致：查询后显示卡片头（点击折叠/展开），查询前无头完整显示
   renderForm: function () {
     var state = NameplatePhotoUpload.state;
-    var $header = $("#btn-toggle-form");
-    var $body = $("#form-card-body");
+    var $header = $(".btn-toggle-form");
+    var $body = $(".form-card-body");
 
     if (state.configLoaded) {
       $header.removeClass("hidden");
@@ -236,9 +236,9 @@ var NameplatePhotoUpload = {
       $body.removeClass("hidden");
     }
 
-    $("#input-station").val(state.stationCode ? NameplatePhotoUpload.getStationDisplay(state.stationCode) : "");
-    $("#input-station-code").val(state.stationCode);
-    $("#input-order").val(state.orderNo);
+    $(".input-station").val(state.stationCode ? NameplatePhotoUpload.getStationDisplay(state.stationCode) : "");
+    $(".input-station-code").val(state.stationCode);
+    $(".input-order").val(state.orderNo);
   },
 
   getStationDisplay: function (stationCode) {
@@ -262,8 +262,8 @@ var NameplatePhotoUpload = {
       NameplatePhotoUpload.state.stations = res.data || [];
 
       if (NameplatePhotoUpload.state.stationCode) {
-        $("#input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
-        $("#input-station-code").val(NameplatePhotoUpload.state.stationCode);
+        $(".input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
+        $(".input-station-code").val(NameplatePhotoUpload.state.stationCode);
       }
     });
   },
@@ -280,9 +280,9 @@ var NameplatePhotoUpload = {
   },
 
   showStationDropdown: function () {
-    var keyword = $("#input-station").val().trim();
+    var keyword = $(".input-station").val().trim();
     var filtered = NameplatePhotoUpload.filterStations(keyword);
-    var $dropdown = $("#dropdown-station");
+    var $dropdown = $(".dropdown-station");
     $dropdown.empty();
 
     if (!filtered.length) {
@@ -301,9 +301,9 @@ var NameplatePhotoUpload = {
 
   selectStation: function (stationCode, stationName) {
     NameplatePhotoUpload.state.stationCode = stationCode;
-    $("#input-station").val(stationCode + " - " + stationName);
-    $("#input-station-code").val(stationCode);
-    $("#dropdown-station").hide();
+    $(".input-station").val(stationCode + " - " + stationName);
+    $(".input-station-code").val(stationCode);
+    $(".dropdown-station").hide();
 
     if (NameplatePhotoUpload.state.configLoaded) {
       NameplatePhotoUpload.state.configLoaded = false;
@@ -313,10 +313,10 @@ var NameplatePhotoUpload = {
 
   hideResultAreas: function () {
     NameplatePhotoUpload.state.sessionId++; // 清空/切换会话：丢弃在途回调
-    $("#order-info-area").addClass("hidden");
-    $("#photo-cards-area .photo-type-card").remove(); // 保留预埋的 empty-state 骨架
-    $("#empty-no-photo").addClass("hidden");
-    $("#confirm-section").addClass("hidden");
+    $(".order-info-area").addClass("hidden");
+    $(".photo-cards-area .photo-type-card").remove(); // 保留预埋的 empty-state 骨架
+    $(".empty-no-photo").addClass("hidden");
+    $(".confirm-section").addClass("hidden");
   },
 
   // ============== 表单折叠/清空（折叠交互与订单信息一致：点卡片头切换） ==============
@@ -345,14 +345,14 @@ var NameplatePhotoUpload = {
   },
 
   // ============== 扫码 ==============
-  doScan: function (inputId, callback) {
+  doScan: function (inputSelector, callback) {
     try {
       if (window.parent && typeof window.parent.OpenCamera === "function") {
         window.parent.OpenCamera(function (res) {
           console.log("[Scan] OpenCamera 返回", res);
           var val = res.data || res.value || (typeof res === "string" ? res : "");
           if (val) {
-            $("#" + inputId).val(val);
+            $(inputSelector).val(val);
             callback();
           }
         });
@@ -367,18 +367,18 @@ var NameplatePhotoUpload = {
   // ============== 查询照片配置 ==============
   doQueryPhotoConfig: function () {
     var state = NameplatePhotoUpload.state;
-    var stationCode = $("#input-station-code").val() || state.stationCode;
-    var orderNo = $("#input-order").val().trim();
+    var stationCode = $(".input-station-code").val() || state.stationCode;
+    var orderNo = $(".input-order").val().trim();
 
     if (!stationCode) {
-      var typedVal = $("#input-station").val().trim();
+      var typedVal = $(".input-station").val().trim();
       if (typedVal) {
         for (var i = 0; i < state.stations.length; i++) {
           var full = state.stations[i].stationCode + " - " + state.stations[i].stationName;
           if (full === typedVal) {
             stationCode = state.stations[i].stationCode;
             state.stationCode = stationCode;
-            $("#input-station-code").val(stationCode);
+            $(".input-station-code").val(stationCode);
             break;
           }
         }
@@ -435,16 +435,16 @@ var NameplatePhotoUpload = {
       NameplatePhotoUpload.renderOrderInfo();
       NameplatePhotoUpload.renderPhotoTypeCards();
       NameplatePhotoUpload.updateButtons();
-      $("#photo-cards-area").removeClass("hidden");
+      $(".photo-cards-area").removeClass("hidden");
       // 无照片类型（无需拍照工位）：不显示保存/提交按钮
       if (state.photoTypes.length) {
-        $("#confirm-section").removeClass("hidden");
+        $(".confirm-section").removeClass("hidden");
       } else {
-        $("#confirm-section").addClass("hidden");
+        $(".confirm-section").addClass("hidden");
       }
 
       setTimeout(function () {
-        $("#order-info-area")[0].scrollIntoView({ behavior: "smooth", block: "start" });
+        $(".order-info-area")[0].scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
     });
   },
@@ -452,7 +452,7 @@ var NameplatePhotoUpload = {
   // ============== 订单信息渲染（body 多态块切换，骨架在 index.html） ==============
   renderOrderInfo: function () {
     var state = NameplatePhotoUpload.state;
-    var $area = $("#order-info-area");
+    var $area = $(".order-info-area");
 
     // 无订单信息：整区隐藏
     if (!state.orderInfo || (!state.orderInfo.machineCode && (!state.orderInfo.templates || !state.orderInfo.templates.length))) {
@@ -464,49 +464,49 @@ var NameplatePhotoUpload = {
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
-    $("#order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
+    $(".order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
     if (state.orderInfoCollapsed) return;
 
     // 态A：主机编码 + VIN
     var hasMachineVin = !!(state.orderInfo.machineCode || state.orderInfo.vin);
-    $("#block-machine-vin").toggleClass("hidden", !hasMachineVin);
-    $("#machine-code-value").text(state.orderInfo.machineCode || "-");
-    $("#vin-value").text(state.orderInfo.vin || "-");
+    $(".block-machine-vin").toggleClass("hidden", !hasMachineVin);
+    $(".machine-code-value").text(state.orderInfo.machineCode || "-");
+    $(".vin-value").text(state.orderInfo.vin || "-");
 
     // 态B/C/D：模板三态互斥
-    $("#block-template-single").addClass("hidden");
-    $("#block-template-selected").addClass("hidden");
-    $("#block-template-none").addClass("hidden");
+    $(".block-template-single").addClass("hidden");
+    $(".block-template-selected").addClass("hidden");
+    $(".block-template-none").addClass("hidden");
 
     var templates = state.orderInfo.templates || [];
     if (templates.length === 1) {
       // 单模板：自动选中
-      $("#block-template-single").removeClass("hidden");
-      $("#template-single-name-value").text(templates[0].templateName || "");
-      $("#template-single-image").attr("src", templates[0].templateImageUrl);
+      $(".block-template-single").removeClass("hidden");
+      $(".template-single-name-value").text(templates[0].templateName || "");
+      $(".template-single-image").attr("src", templates[0].templateImageUrl);
     } else if (state.selectedTemplateId) {
       // 多模板已选
-      $("#block-template-selected").removeClass("hidden");
-      $("#template-selected-name-value").text(state.selectedTemplateName);
-      $("#template-selected-image").attr("src", state.selectedTemplateUrl);
+      $(".block-template-selected").removeClass("hidden");
+      $(".template-selected-name-value").text(state.selectedTemplateName);
+      $(".template-selected-image").attr("src", state.selectedTemplateUrl);
     } else if (templates.length > 1) {
       // 多模板未选
-      $("#block-template-none").removeClass("hidden");
-      $("#block-template-none .btn-pick-template-inline").text("点击选择（" + templates.length + "个可选）");
+      $(".block-template-none").removeClass("hidden");
+      $(".block-template-none .btn-pick-template-inline").text("点击选择（" + templates.length + "个可选）");
     }
   },
 
   // ============== 照片类型卡片渲染（克隆 template-photo-card / template-photo-item） ==============
   renderPhotoTypeCards: function () {
-    var $area = $("#photo-cards-area");
+    var $area = $(".photo-cards-area");
     var state = NameplatePhotoUpload.state;
     $area.find(".photo-type-card").remove();
-    $("#empty-no-photo").addClass("hidden");
+    $(".empty-no-photo").addClass("hidden");
 
     if (!state.photoTypes.length) {
       // 空态提示：骨架在 index.html；无照片类型不显示保存/提交按钮
-      $("#empty-no-photo").removeClass("hidden");
-      $("#confirm-section").addClass("hidden");
+      $(".empty-no-photo").removeClass("hidden");
+      $(".confirm-section").addClass("hidden");
       return;
     }
 
@@ -548,8 +548,8 @@ var NameplatePhotoUpload = {
 
   // ============== 拍照处理 ==============
   handleTakePhoto: function (typeCode) {
-    $("#photo-input").data("current-type", typeCode);
-    $("#photo-input").click();
+    $(".photo-input").data("current-type", typeCode);
+    $(".photo-input").click();
   },
 
   handleFileSelect: function (files, typeCode) {
@@ -683,10 +683,10 @@ var NameplatePhotoUpload = {
 
   // ============== 照片预览（骨架预埋，每次打开重置状态并绑定事件） ==============
   showPhotoPreview: function (url) {
-    var $mask = $("#template-preview");
-    var $image = $("#preview-image");
-    var $panner = $("#preview-panner");
-    var $viewport = $("#preview-viewport");
+    var $mask = $(".template-preview");
+    var $image = $(".preview-image");
+    var $panner = $(".preview-panner");
+    var $viewport = $(".preview-viewport");
 
     var scale = 1;
     var panX = 0;
@@ -698,7 +698,7 @@ var NameplatePhotoUpload = {
     $image.off("dblclick load");
     $viewport.off("wheel touchstart touchmove touchend touchcancel");
     $mask.off("mousedown");
-    $("#template-preview .photo-preview-close").off("click");
+    $(".template-preview .photo-preview-close").off("click");
 
     $image.attr("src", url);
 
@@ -808,7 +808,7 @@ var NameplatePhotoUpload = {
     $mask.on("mousedown", function (e) {
       if (e.target === this) close();
     });
-    $("#template-preview .photo-preview-close").on("click", close);
+    $(".template-preview .photo-preview-close").on("click", close);
 
     // 图片加载后居中
     function init() {
@@ -1008,11 +1008,11 @@ var NameplatePhotoUpload = {
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
     // 工位输入框
-    $("#form-area").on("focus input click", "#input-station", function () {
+    $(".form-area").on("focus input click", ".input-station", function () {
       NameplatePhotoUpload.showStationDropdown();
     });
-    $("#form-area").on("input", "#input-station", function () {
-      $("#input-station-code").val("");
+    $(".form-area").on("input", ".input-station", function () {
+      $(".input-station-code").val("");
       NameplatePhotoUpload.state.stationCode = "";
       if (NameplatePhotoUpload.state.configLoaded) {
         NameplatePhotoUpload.state.configLoaded = false;
@@ -1021,13 +1021,13 @@ var NameplatePhotoUpload = {
     });
 
     // 下拉选项点击（mousedown 先于 document 关闭逻辑）
-    $("#form-area").on("mousedown", ".combobox-item", function () {
+    $(".form-area").on("mousedown", ".combobox-item", function () {
       NameplatePhotoUpload.selectStation($(this).data("code"), $(this).data("name"));
     });
 
     // 下拉箭头点击
-    $("#form-area").on("click", ".combobox-arrow", function () {
-      var $dropdown = $("#dropdown-station");
+    $(".form-area").on("click", ".combobox-arrow", function () {
+      var $dropdown = $(".dropdown-station");
       if ($dropdown.is(":visible")) {
         $dropdown.hide();
       } else {
@@ -1037,21 +1037,21 @@ var NameplatePhotoUpload = {
 
     // 点击页面其他地方关闭下拉
     $(document).on("mousedown", function (e) {
-      if (!$(e.target).closest("#combobox-station").length) {
-        $("#dropdown-station").hide();
+      if (!$(e.target).closest(".combobox-station").length) {
+        $(".dropdown-station").hide();
         if (NameplatePhotoUpload.state.stationCode) {
-          $("#input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
+          $(".input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
         }
       }
     });
 
     // 工位输入框回车
-    $("#form-area").on("keypress", "#input-station", function (e) {
+    $(".form-area").on("keypress", ".input-station", function (e) {
       if (e.which !== 13) {
-        $("#dropdown-station").hide();
+        $(".dropdown-station").hide();
         return;
       }
-      $("#dropdown-station").hide();
+      $(".dropdown-station").hide();
       if (!NameplatePhotoUpload.state.stationCode) {
         var val = $(this).val().trim();
         if (val) {
@@ -1066,50 +1066,50 @@ var NameplatePhotoUpload = {
     });
 
     // 查询按钮
-    $("#form-area").on("click", ".btn-query", function () {
+    $(".form-area").on("click", ".btn-query", function () {
       NameplatePhotoUpload.doQueryPhotoConfig();
     });
 
     // 表单卡片头：点击折叠/展开（与订单信息一致）
-    $("#form-area").on("click", "#btn-toggle-form", function () {
+    $(".form-area").on("click", ".btn-toggle-form", function () {
       NameplatePhotoUpload.toggleForm();
     });
 
     // 清空（header 清空图标 + 查询前清空按钮，class 委托）
-    $("#form-area").on("click", ".btn-clear-form", function () {
+    $(".form-area").on("click", ".btn-clear-form", function () {
       NameplatePhotoUpload.clearForm();
     });
 
     // 扫码按钮
-    $("#form-area").on("click", ".btn-scan-order", function () {
-      NameplatePhotoUpload.doScan("input-order", NameplatePhotoUpload.doQueryPhotoConfig);
+    $(".form-area").on("click", ".btn-scan-order", function () {
+      NameplatePhotoUpload.doScan(".input-order", NameplatePhotoUpload.doQueryPhotoConfig);
     });
 
     // 订单号回车
-    $("#form-area").on("keypress", "#input-order", function (e) {
+    $(".form-area").on("keypress", ".input-order", function (e) {
       if (e.which !== 13) return;
       NameplatePhotoUpload.doQueryPhotoConfig();
     });
 
     // 照片卡片区：拍照/预览/删除（委托，typeCode 从 data 属性读取，避免拼选择器）
-    $("#photo-cards-area").on("click", ".photo-add", function () {
+    $(".photo-cards-area").on("click", ".photo-add", function () {
       NameplatePhotoUpload.handleTakePhoto($(this).data("type"));
     });
-    $("#photo-cards-area").on("click", ".photo-item img", function () {
+    $(".photo-cards-area").on("click", ".photo-item img", function () {
       var $item = $(this).closest(".photo-item");
       var typeCode = $item.data("type");
       var index = parseInt($item.data("index"));
       var list = NameplatePhotoUpload.state.photos[typeCode] || [];
       if (list[index]) NameplatePhotoUpload.showPhotoPreview(list[index].url);
     });
-    $("#photo-cards-area").on("click", ".photo-delete", function (e) {
+    $(".photo-cards-area").on("click", ".photo-delete", function (e) {
       e.stopPropagation();
       var $item = $(this).closest(".photo-item");
       NameplatePhotoUpload.deletePhoto($item.data("type"), parseInt($item.data("index")));
     });
 
     // 文件选择
-    $("#photo-input").on("change", function () {
+    $(".photo-input").on("change", function () {
       var files = this.files;
       if (!files || files.length === 0) return;
       var currentType = $(this).data("current-type");
@@ -1118,15 +1118,15 @@ var NameplatePhotoUpload = {
     });
 
     // 底部按钮区
-    $("#confirm-section").on("click", ".btn-save", function () {
+    $(".confirm-section").on("click", ".btn-save", function () {
       NameplatePhotoUpload.handleSubmit("save");
     });
-    $("#confirm-section").on("click", ".btn-confirm", function () {
+    $(".confirm-section").on("click", ".btn-confirm", function () {
       NameplatePhotoUpload.handleSubmit("submit");
     });
 
     // 订单信息区：模板选择/预览/折叠
-    $("#order-info-area").on("click", ".pick-template-btn", function () {
+    $(".order-info-area").on("click", ".pick-template-btn", function () {
       if (!NameplatePhotoUpload.state.orderInfo.templates || !NameplatePhotoUpload.state.orderInfo.templates.length) return;
       NameplatePhotoUpload.showTemplatePicker(NameplatePhotoUpload.state.orderInfo.templates, function (templateId, templateName, templateUrl) {
         if (templateId) {
@@ -1139,25 +1139,25 @@ var NameplatePhotoUpload = {
         }
       });
     });
-    $("#order-info-area").on("click", ".template-image", function () {
+    $(".order-info-area").on("click", ".template-image", function () {
       var url = $(this).attr("src");
       if (url) NameplatePhotoUpload.showPhotoPreview(url);
     });
-    $("#order-info-area").on("click", "#btn-toggle-order-info", function () {
+    $(".order-info-area").on("click", ".btn-toggle-order-info", function () {
       NameplatePhotoUpload.state.orderInfoCollapsed = !NameplatePhotoUpload.state.orderInfoCollapsed;
       NameplatePhotoUpload.renderOrderInfo();
     });
 
     // ===== 弹窗骨架（常驻，事件绑一次） =====
     // Toast：点击遮罩或确定按钮关闭
-    $("#template-toast").on("click", function (e) {
+    $(".template-toast").on("click", function (e) {
       if (e.target === this || $(e.target).hasClass("toast-btn")) {
-        var callback = $("#template-toast").data("close-callback");
+        var callback = $(".template-toast").data("close-callback");
         if (callback) callback();
       }
     });
     // 二次确认：取消/遮罩关闭，确定执行回调
-    $("#template-confirm").on("click", function (e) {
+    $(".template-confirm").on("click", function (e) {
       if (e.target === this || $(e.target).hasClass("confirm-btn-cancel")) {
         $(this).addClass("hidden");
       } else if ($(e.target).hasClass("confirm-btn-ok")) {
@@ -1167,15 +1167,15 @@ var NameplatePhotoUpload = {
       }
     });
     // 模板选择：列表项/取消/遮罩
-    $("#picker-list").on("click", ".picker-item", function () {
-      var callback = $("#template-picker").data("on-pick");
-      $("#template-picker").addClass("hidden");
+    $(".picker-list").on("click", ".picker-item", function () {
+      var callback = $(".template-picker").data("on-pick");
+      $(".template-picker").addClass("hidden");
       if (callback) callback($(this).data("id"), $(this).data("name"), $(this).data("url"));
     });
-    $("#template-picker .picker-btn").on("click", function () {
-      $("#template-picker").addClass("hidden");
+    $(".template-picker .picker-btn").on("click", function () {
+      $(".template-picker").addClass("hidden");
     });
-    $("#template-picker").on("click", function (e) {
+    $(".template-picker").on("click", function (e) {
       if (e.target === this) $(this).addClass("hidden");
     });
   },
@@ -1183,7 +1183,7 @@ var NameplatePhotoUpload = {
   // ============== 页面初始化 ==============
   initPage: function () {
     // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
-    if (!$("#mom-photo-upload").length) {
+    if (!$(".mom-photo-upload").length) {
       NameplatePhotoUpload._initRetryCount++;
       if (NameplatePhotoUpload._initRetryCount > 100) return;
       setTimeout(function () {
@@ -1196,16 +1196,16 @@ var NameplatePhotoUpload = {
     $(".btn-confirm").data("label", $(".btn-confirm").text());
     $(".btn-save").data("label", $(".btn-save").text());
 
-    $("#header-operator").text(window.Operator);
+    $(".header-operator").text(window.Operator);
 
     function now() {
       var d = new Date();
       var pad = function (n) { return n < 10 ? "0" + n : n; };
       return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
-    $("#header-time").text(now());
+    $(".header-time").text(now());
     setInterval(function () {
-      $("#header-time").text(now());
+      $(".header-time").text(now());
     }, 1000);
 
     NameplatePhotoUpload.initEvents();
