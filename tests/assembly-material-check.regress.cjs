@@ -25,7 +25,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.goto(BASE, { timeout: 15000 });
   await page.waitForTimeout(1000);
   check("页面加载", (await page.title()) === "装配物料检查");
-  check("默认工位视图", (await page.locator("#station-select-view").isVisible()) && !(await page.locator("#material-check-view").isVisible()));
+  check("默认工位视图", (await page.locator(".station-select-view").isVisible()) && !(await page.locator(".material-check-view").isVisible()));
   check("工位列表渲染 5 项", (await page.locator(".station-item").count()) === 5);
   check("默认聚焦筛选框", (await page.evaluate(() => document.activeElement.classList.contains("input-station-filter"))));
   {
@@ -40,10 +40,10 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("筛选 ZB → 2 项", (await page.locator(".station-item").count()) === 2);
   await page.fill(".input-station-filter", "不存在");
   await page.waitForTimeout(300);
-  check("无匹配空态", (await page.locator(".station-item").count()) === 0 && (await page.locator("#empty-station-list").isVisible()));
+  check("无匹配空态", (await page.locator(".station-item").count()) === 0 && (await page.locator(".empty-station-list").isVisible()));
   await page.keyboard.press("Enter");
   await page.waitForTimeout(300);
-  check("无匹配回车不跳转", !(await page.locator("#material-check-view").isVisible()));
+  check("无匹配回车不跳转", !(await page.locator(".material-check-view").isVisible()));
   await page.fill(".input-station-filter", "ZA");
   await page.waitForTimeout(300);
   check("清筛选后恢复 2 项", (await page.locator(".station-item").count()) === 2);
@@ -57,31 +57,31 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("方向键选中第二项", (await page.locator(".station-item.selected").textContent()).indexOf("ZA02") !== -1);
   await page.keyboard.press("Enter");
   await page.waitForTimeout(400);
-  check("回车跳转物料检查页", await page.locator("#material-check-view").isVisible());
-  check("工位 tag", (await page.locator("#work-station-tag").textContent()) === "ZA02（总装一线-02）");
+  check("回车跳转物料检查页", await page.locator(".material-check-view").isVisible());
+  check("工位 tag", (await page.locator(".work-station-tag").textContent()) === "ZA02（总装一线-02）");
   check("跳转后聚焦订单输入", (await page.evaluate(() => document.activeElement.classList.contains("input-order-key"))));
 
   // ============ 4. 返回工位页（列表/筛选保留） ============
   await page.click(".btn-back-station");
   await page.waitForTimeout(300);
-  check("返回工位视图", (await page.locator("#station-select-view").isVisible()) && !(await page.locator("#material-check-view").isVisible()));
+  check("返回工位视图", (await page.locator(".station-select-view").isVisible()) && !(await page.locator(".material-check-view").isVisible()));
   check("筛选与列表保留", (await page.locator(".input-station-filter").inputValue()) === "ZA" && (await page.locator(".station-item").count()) === 2);
 
   // ============ 5. 点击工位跳转 ============
   await page.click(".station-item >> nth=0");
   await page.waitForTimeout(300);
-  check("点击跳转工位 tag", (await page.locator("#work-station-tag").textContent()) === "ZA01（总装一线-01）");
+  check("点击跳转工位 tag", (await page.locator(".work-station-tag").textContent()) === "ZA01（总装一线-01）");
 
   // ============ 6. 订单查询（回车触发） ============
   await page.fill(".input-order-key", "WO20260824001");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
-  check("计划上线时间", (await page.locator("#plan-start-time-tag").textContent()) === "2026-08-24 08:30:00");
-  check("月顺序号", (await page.locator("#month-sequence-tag").textContent()) === "202608-0012");
-  check("主机编码", (await page.locator("#host-code-tag").textContent()) === "HC2608-1207");
-  check("主机简称", (await page.locator("#host-alias-tag").textContent()) === "自卸130");
+  check("计划上线时间", (await page.locator(".plan-start-time-tag").textContent()) === "2026-08-24 08:30:00");
+  check("月顺序号", (await page.locator(".month-sequence-tag").textContent()) === "202608-0012");
+  check("主机编码", (await page.locator(".host-code-tag").textContent()) === "HC2608-1207");
+  check("主机简称", (await page.locator(".host-alias-tag").textContent()) === "自卸130");
   check("查询后聚焦二维码输入", (await page.evaluate(() => document.activeElement.classList.contains("input-material-qr"))));
-  check("结果区空态", await page.locator("#empty-check-result").isVisible());
+  check("结果区空态", await page.locator(".empty-check-result").isVisible());
 
   // ============ 7. BOM 内物料：pass + 保存 + 清空重聚焦 ============
   await page.fill(".input-material-qr", "MAT-BOLT-001|供应商A|SN001:2");
@@ -100,7 +100,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.waitForTimeout(1200);
   check("新增红色行", (await page.locator(".check-result-row.fail").count()) === 1 && (await page.locator(".check-result-row").count()) === 2);
   check("列表时间倒序(最新在前)", (await page.locator(".check-result-row").nth(0).textContent()).indexOf("MAT-X-999") !== -1 && (await page.locator(".check-result-row").nth(0).evaluate((el) => el.classList.contains("fail"))) && (await page.locator(".check-result-row").nth(1).textContent()).indexOf("MAT-BOLT-001") !== -1);
-  check("不存在提示", (await page.locator("#template-toast:not(.hidden) #toast-content").textContent()) === "WO20260824001-MAT-X-999 不存在");
+  check("不存在提示", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()) === "WO20260824001-MAT-X-999 不存在");
   const saved2 = await page.evaluate(() => window.__assemblyMockSaved[1]);
   check("fail 保存入参", saved2 && saved2.material === "MAT-X-999" && saved2.checkResult === "fail");
   check("非BOM后仍清空聚焦", (await page.locator(".input-material-qr").inputValue()) === "" && (await page.evaluate(() => document.activeElement.classList.contains("input-material-qr"))));
@@ -109,8 +109,8 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.fill(".input-order-key", "WO20260824002");
   await page.click(".input-material-qr");
   await page.waitForTimeout(900);
-  check("blur 触发换订单", (await page.locator("#host-code-tag").textContent()) === "HC2608-1208" && (await page.locator("#host-alias-tag").textContent()) === "搅拌140");
-  check("换订单后清空结果", (await page.locator(".check-result-row").count()) === 0 && (await page.locator("#empty-check-result").isVisible()));
+  check("blur 触发换订单", (await page.locator(".host-code-tag").textContent()) === "HC2608-1208" && (await page.locator(".host-alias-tag").textContent()) === "搅拌140");
+  check("换订单后清空结果", (await page.locator(".check-result-row").count()) === 0 && (await page.locator(".empty-check-result").isVisible()));
   check("blur 未重复保存", (await page.evaluate(() => window.__assemblyMockSaved.length)) === 2);
 
   // ============ 10. 失焦触发物料检查 ============
@@ -134,19 +134,19 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.fill(".input-order-key", "UNKNOWN-ORDER");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
-  check("查询失败 toast", (await page.locator("#template-toast:not(.hidden) #toast-title").textContent()) === "查询失败" && (await page.locator("#template-toast:not(.hidden) #toast-content").textContent()) === "未查询到订单信息");
+  check("查询失败 toast", (await page.locator(".template-toast:not(.hidden) .toast-title").textContent()) === "查询失败" && (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()) === "未查询到订单信息");
   check("失败保留现有结果", (await page.locator(".check-result-row").count()) === 1);
   check("失败仅调用一次", (await page.evaluate(() => window.__orderQueryCount)) === 1);
-  await page.click("#template-toast .toast-btn");
+  await page.click(".template-toast .toast-btn");
   await page.waitForTimeout(1000);
-  check("确定后不重复查询", (await page.evaluate(() => window.__orderQueryCount)) === 1 && !(await page.locator("#template-toast").isVisible()));
+  check("确定后不重复查询", (await page.evaluate(() => window.__orderQueryCount)) === 1 && !(await page.locator(".template-toast").isVisible()));
 
   // ============ 12. 检查完成：保留工位，其余重置 ============
   await page.click(".btn-check-complete");
   await page.waitForTimeout(300);
-  check("完成保留工位", (await page.locator("#work-station-tag").textContent()) === "ZA01（总装一线-01）");
-  check("完成清空订单信息", (await page.locator("#host-code-tag").textContent()) === "" && (await page.locator("#host-alias-tag").textContent()) === "");
-  check("完成清空结果区", (await page.locator(".check-result-row").count()) === 0 && (await page.locator("#empty-check-result").isVisible()));
+  check("完成保留工位", (await page.locator(".work-station-tag").textContent()) === "ZA01（总装一线-01）");
+  check("完成清空订单信息", (await page.locator(".host-code-tag").textContent()) === "" && (await page.locator(".host-alias-tag").textContent()) === "");
+  check("完成清空结果区", (await page.locator(".check-result-row").count()) === 0 && (await page.locator(".empty-check-result").isVisible()));
   check("完成聚焦订单输入", (await page.evaluate(() => document.activeElement.classList.contains("input-order-key"))));
 
   // ============ 13. 返回重新进入 ============
@@ -156,7 +156,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
 
   // ============ 14. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
   await page.evaluate(() => {
-    document.getElementById("mom-assembly-material-check").remove();
+    document.querySelector(".mom-assembly-material-check").remove();
     window.__probe = { filtered: null, initError: null };
     try {
       window.__probe.filtered = AssemblyMaterialCheck.getFilteredStations().length;

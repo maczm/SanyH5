@@ -30,8 +30,8 @@ var AssemblyMaterialCheck = {
   _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
-  cloneTemplate: function (id) {
-    var fragment = document.getElementById(id).content.cloneNode(true);
+  cloneTemplate: function (templateClassName) {
+    var fragment = document.querySelector("." + templateClassName).content.cloneNode(true);
     return $(fragment.firstElementChild); // 所有 template 均为单根结构
   },
 
@@ -67,11 +67,11 @@ var AssemblyMaterialCheck = {
       clearTimeout(AssemblyMaterialCheck._toastTimer);
       AssemblyMaterialCheck._toastTimer = null;
     }
-    $("#toast-title").text(title);
-    $("#toast-content").text(content).removeClass("hidden");
-    $("#template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
-    $("#template-toast .toast-icon-success").toggleClass("hidden", type === "error");
-    $("#template-toast").removeClass("hidden");
+    $(".toast-title").text(title);
+    $(".toast-content").text(content).removeClass("hidden");
+    $(".template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
+    $(".template-toast .toast-icon-success").toggleClass("hidden", type === "error");
+    $(".template-toast").removeClass("hidden");
     AssemblyMaterialCheck._toastTimer = setTimeout(function () {
       AssemblyMaterialCheck.hideToast();
     }, 3000);
@@ -82,30 +82,30 @@ var AssemblyMaterialCheck = {
       clearTimeout(AssemblyMaterialCheck._toastTimer);
       AssemblyMaterialCheck._toastTimer = null;
     }
-    $("#template-toast").addClass("hidden");
+    $(".template-toast").addClass("hidden");
   },
 
   showLoading: function (text) {
     AssemblyMaterialCheck._loadingCount++;
-    $("#loading-text").text(text || "加载中...");
-    $("#template-loading").removeClass("hidden");
+    $(".loading-text").text(text || "加载中...");
+    $(".template-loading").removeClass("hidden");
   },
 
   hideLoading: function () {
     AssemblyMaterialCheck._loadingCount = Math.max(0, AssemblyMaterialCheck._loadingCount - 1);
     if (AssemblyMaterialCheck._loadingCount === 0) {
-      $("#template-loading").addClass("hidden");
+      $(".template-loading").addClass("hidden");
     }
   },
 
   // ============== 扫码 ==============
-  doScan: function (inputId, callback) {
+  doScan: function (inputSelector, callback) {
     try {
       if (window.parent && typeof window.parent.OpenCamera === "function") {
         window.parent.OpenCamera(function (res) {
           var value = res.data || res.value || (typeof res === "string" ? res : "");
           if (value) {
-            $("#" + inputId).val(value);
+            $(inputSelector).val(value);
             callback();
           }
         });
@@ -124,10 +124,10 @@ var AssemblyMaterialCheck = {
     state.workStationDesc = workStationDesc || "";
     state.lastOrderActionAt = Date.now();
     state.lastMaterialActionAt = Date.now();
-    $("#work-station-tag").text(workStation + "（" + state.workStationDesc + "）");
+    $(".work-station-tag").text(workStation + "（" + state.workStationDesc + "）");
     AssemblyMaterialCheck.resetCheckForm();
-    $("#station-select-view").addClass("hidden");
-    $("#material-check-view").removeClass("hidden");
+    $(".station-select-view").addClass("hidden");
+    $(".material-check-view").removeClass("hidden");
     setTimeout(function () {
       $(".input-order-key").focus();
     }, 0);
@@ -137,8 +137,8 @@ var AssemblyMaterialCheck = {
     // 记录动作时间：屏蔽视图切换时输入框失焦触发的误动作
     AssemblyMaterialCheck.state.lastOrderActionAt = Date.now();
     AssemblyMaterialCheck.state.lastMaterialActionAt = Date.now();
-    $("#material-check-view").addClass("hidden");
-    $("#station-select-view").removeClass("hidden");
+    $(".material-check-view").addClass("hidden");
+    $(".station-select-view").removeClass("hidden");
     setTimeout(function () {
       $(".input-station-filter").focus();
     }, 0);
@@ -172,23 +172,23 @@ var AssemblyMaterialCheck = {
     var filtered = AssemblyMaterialCheck.getFilteredStations();
     AssemblyMaterialCheck.state.filteredStations = filtered;
     AssemblyMaterialCheck.state.selectedStationIndex = -1;
-    $("#station-list .station-item").remove();
-    $("#empty-station-list").toggleClass("hidden", filtered.length > 0);
+    $(".station-list .station-item").remove();
+    $(".empty-station-list").toggleClass("hidden", filtered.length > 0);
     filtered.forEach(function (station, index) {
       var $item = AssemblyMaterialCheck.cloneTemplate("template-station-item");
       $item.find(".station-code").text(station.workStation);
       $item.find(".station-desc").text(station.workStationDesc);
       $item.data("index", index);
-      $("#station-list").append($item);
+      $(".station-list").append($item);
     });
   },
 
   updateStationSelection: function () {
     var selectedIndex = AssemblyMaterialCheck.state.selectedStationIndex;
-    $("#station-list .station-item").each(function (index) {
+    $(".station-list .station-item").each(function (index) {
       $(this).toggleClass("selected", index === selectedIndex);
     });
-    var $selected = $("#station-list .station-item").eq(selectedIndex);
+    var $selected = $(".station-list .station-item").eq(selectedIndex);
     if ($selected.length) {
       $selected[0].scrollIntoView({ block: "nearest" });
     }
@@ -224,14 +224,14 @@ var AssemblyMaterialCheck = {
     var state = AssemblyMaterialCheck.state;
     state.orderInfo = null;
     state.lastQueriedOrderKey = "";
-    $("#plan-start-time-tag").text("");
-    $("#month-sequence-tag").text("");
-    $("#host-code-tag").text("");
-    $("#host-alias-tag").text("");
+    $(".plan-start-time-tag").text("");
+    $(".month-sequence-tag").text("");
+    $(".host-code-tag").text("");
+    $(".host-alias-tag").text("");
     $(".input-order-key").val("");
     $(".input-material-qr").val("");
-    $("#check-result-area .check-result-row").remove();
-    $("#empty-check-result").removeClass("hidden");
+    $(".check-result-area .check-result-row").remove();
+    $(".empty-check-result").removeClass("hidden");
   },
 
   queryOrderInfo: function () {
@@ -252,12 +252,12 @@ var AssemblyMaterialCheck = {
       var orderInfo = res.data || {};
       state.orderInfo = orderInfo;
       state.lastQueriedOrderKey = searchKey;
-      $("#plan-start-time-tag").text(orderInfo.wipPlanStartTime || "");
-      $("#month-sequence-tag").text(orderInfo.monthSequence || "");
-      $("#host-code-tag").text(orderInfo.hostCode || "");
-      $("#host-alias-tag").text(orderInfo.hostAlias || "");
-      $("#check-result-area .check-result-row").remove();
-      $("#empty-check-result").removeClass("hidden");
+      $(".plan-start-time-tag").text(orderInfo.wipPlanStartTime || "");
+      $(".month-sequence-tag").text(orderInfo.monthSequence || "");
+      $(".host-code-tag").text(orderInfo.hostCode || "");
+      $(".host-alias-tag").text(orderInfo.hostAlias || "");
+      $(".check-result-area .check-result-row").remove();
+      $(".empty-check-result").removeClass("hidden");
       $(".input-material-qr").val("");
       // 查询成功：聚焦物料二维码，开启连续扫码（先标记动作时间，屏蔽失焦误触发）
       state.lastMaterialActionAt = Date.now();
@@ -316,8 +316,8 @@ var AssemblyMaterialCheck = {
     $row.find(".cr-material-code").text(materialCode);
     $row.find(".cr-material-desc").text(materialDesc);
     $row.find(".cr-check-time").text(AssemblyMaterialCheck.now());
-    var $area = $("#check-result-area");
-    $("#empty-check-result").addClass("hidden");
+    var $area = $(".check-result-area");
+    $(".empty-check-result").addClass("hidden");
     // 检查列表按时间倒序：最新一条插到顶部
     $area.prepend($row);
     $area.prop("scrollTop", 0);
@@ -357,7 +357,7 @@ var AssemblyMaterialCheck = {
 
   // ============== 页面尺寸（表单宿主无高度链时按视口自适应，避免整页滚动条） ==============
   fitPageHeight: function () {
-    var $root = $("#mom-assembly-material-check");
+    var $root = $(".mom-assembly-material-check");
     if (!$root.length) return;
     var availableHeight = $(window).height() - $root.offset().top;
     $root.css("height", Math.max(240, availableHeight) + "px");
@@ -366,10 +366,10 @@ var AssemblyMaterialCheck = {
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
     // 工位筛选：失焦不触发任何动作，仅 输入/方向键/回车/按钮 交互
-    $("#station-select-view").on("input", ".input-station-filter", function () {
+    $(".station-select-view").on("input", ".input-station-filter", function () {
       AssemblyMaterialCheck.renderStationList();
     });
-    $("#station-select-view").on("keydown", ".input-station-filter", function (e) {
+    $(".station-select-view").on("keydown", ".input-station-filter", function (e) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         AssemblyMaterialCheck.moveStationSelection(e.key);
@@ -378,73 +378,73 @@ var AssemblyMaterialCheck = {
         AssemblyMaterialCheck.jumpToMaterialCheck();
       }
     });
-    $("#station-select-view").on("click", ".station-item", function () {
+    $(".station-select-view").on("click", ".station-item", function () {
       var station = AssemblyMaterialCheck.state.filteredStations[$(this).data("index")];
       if (station) {
         AssemblyMaterialCheck.jumpToMaterialCheck(station);
       }
     });
-    $("#station-select-view").on("click", ".btn-search-station", function () {
+    $(".station-select-view").on("click", ".btn-search-station", function () {
       AssemblyMaterialCheck.renderStationList();
     });
-    $("#station-select-view").on("click", ".btn-scan-station", function () {
-      AssemblyMaterialCheck.doScan("input-station-filter", function () {
+    $(".station-select-view").on("click", ".btn-scan-station", function () {
+      AssemblyMaterialCheck.doScan(".input-station-filter", function () {
         AssemblyMaterialCheck.renderStationList();
       });
     });
 
     // 物料检查：回车/失焦即触发对应动作
-    $("#material-check-view").on("keydown", ".input-order-key", function (e) {
+    $(".material-check-view").on("keydown", ".input-order-key", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
         AssemblyMaterialCheck.queryOrderInfo();
       }
     });
-    $("#material-check-view").on("focusout", ".input-order-key", function () {
+    $(".material-check-view").on("focusout", ".input-order-key", function () {
       var value = ($(".input-order-key").val() || "").trim();
       if (!value || value === AssemblyMaterialCheck.state.lastQueriedOrderKey) return;
       // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
-      if (!$("#template-toast").hasClass("hidden")) return;
+      if (!$(".template-toast").hasClass("hidden")) return;
       if (Date.now() - AssemblyMaterialCheck.state.lastOrderActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.queryOrderInfo();
     });
-    $("#material-check-view").on("click", ".btn-search-order", function () {
+    $(".material-check-view").on("click", ".btn-search-order", function () {
       AssemblyMaterialCheck.queryOrderInfo();
     });
-    $("#material-check-view").on("click", ".btn-scan-order", function () {
-      AssemblyMaterialCheck.doScan("input-order-key", function () {
+    $(".material-check-view").on("click", ".btn-scan-order", function () {
+      AssemblyMaterialCheck.doScan(".input-order-key", function () {
         AssemblyMaterialCheck.queryOrderInfo();
       });
     });
 
-    $("#material-check-view").on("keydown", ".input-material-qr", function (e) {
+    $(".material-check-view").on("keydown", ".input-material-qr", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
         AssemblyMaterialCheck.handleMaterialCheck();
       }
     });
-    $("#material-check-view").on("focusout", ".input-material-qr", function () {
+    $(".material-check-view").on("focusout", ".input-material-qr", function () {
       var value = ($(".input-material-qr").val() || "").trim();
       if (!value) return;
       // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
-      if (!$("#template-toast").hasClass("hidden")) return;
+      if (!$(".template-toast").hasClass("hidden")) return;
       if (Date.now() - AssemblyMaterialCheck.state.lastMaterialActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.handleMaterialCheck();
     });
-    $("#material-check-view").on("click", ".btn-search-material", function () {
+    $(".material-check-view").on("click", ".btn-search-material", function () {
       AssemblyMaterialCheck.handleMaterialCheck();
     });
-    $("#material-check-view").on("click", ".btn-scan-material", function () {
-      AssemblyMaterialCheck.doScan("input-material-qr", function () {
+    $(".material-check-view").on("click", ".btn-scan-material", function () {
+      AssemblyMaterialCheck.doScan(".input-material-qr", function () {
         AssemblyMaterialCheck.handleMaterialCheck();
       });
     });
 
     // 底部按钮
-    $("#material-check-view").on("click", ".btn-check-complete", function () {
+    $(".material-check-view").on("click", ".btn-check-complete", function () {
       AssemblyMaterialCheck.checkComplete();
     });
-    $("#material-check-view").on("click", ".btn-back-station", function () {
+    $(".material-check-view").on("click", ".btn-back-station", function () {
       AssemblyMaterialCheck.backToStation();
     });
 
@@ -454,7 +454,7 @@ var AssemblyMaterialCheck = {
     });
 
     // Toast：点击遮罩或确定按钮关闭
-    $("#template-toast").on("click", function (e) {
+    $(".template-toast").on("click", function (e) {
       if (e.target === this || $(e.target).hasClass("toast-btn")) {
         AssemblyMaterialCheck.hideToast();
       }
@@ -464,7 +464,7 @@ var AssemblyMaterialCheck = {
   // ============== 页面初始化 ==============
   initPage: function () {
     // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
-    if (!$("#mom-assembly-material-check").length) {
+    if (!$(".mom-assembly-material-check").length) {
       AssemblyMaterialCheck._initRetryCount++;
       if (AssemblyMaterialCheck._initRetryCount > 100) return;
       setTimeout(function () {
@@ -474,9 +474,9 @@ var AssemblyMaterialCheck = {
     }
 
     var now = AssemblyMaterialCheck.now;
-    $("#header-time").text(now());
+    $(".header-time").text(now());
     setInterval(function () {
-      $("#header-time").text(now());
+      $(".header-time").text(now());
     }, 1000);
 
     AssemblyMaterialCheck.initEvents();

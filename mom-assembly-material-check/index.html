@@ -10,15 +10,15 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div id="mom-assembly-material-check" class="app-container">
+    <div class="app-container mom-assembly-material-check">
       <!-- ==================== 页面头部 ==================== -->
       <div class="page-header">
         <span class="header-title">装配物料检查</span>
-        <span class="header-time" id="header-time"></span>
+        <span class="header-time"></span>
       </div>
 
       <!-- ==================== 视图1：工位选择 ==================== -->
-      <div class="station-select-view" id="station-select-view">
+      <div class="station-select-view">
         <div class="station-filter-area">
           <div class="input-row">
             <input
@@ -35,8 +35,8 @@
             </button>
           </div>
         </div>
-        <div class="station-list" id="station-list">
-          <div class="empty-state hidden" id="empty-station-list">
+        <div class="station-list">
+          <div class="empty-state hidden empty-station-list">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <p>暂无工位数据</p>
           </div>
@@ -44,11 +44,11 @@
       </div>
 
       <!-- ==================== 视图2：物料检查 ==================== -->
-      <div class="material-check-view hidden" id="material-check-view">
+      <div class="material-check-view hidden">
         <div class="check-form-area">
           <div class="check-form-row">
             <span class="check-form-label">检查工位</span>
-            <span class="info-tag" id="work-station-tag"></span>
+            <span class="info-tag work-station-tag"></span>
           </div>
           <div class="check-form-row">
             <span class="check-form-label">订单号/VIN码</span>
@@ -86,24 +86,24 @@
           </div>
           <div class="check-form-row">
             <span class="check-form-label">计划上线时间</span>
-            <span class="info-tag" id="plan-start-time-tag"></span>
+            <span class="info-tag plan-start-time-tag"></span>
           </div>
           <div class="check-form-row">
             <span class="check-form-label">月顺序号</span>
-            <span class="info-tag" id="month-sequence-tag"></span>
+            <span class="info-tag month-sequence-tag"></span>
           </div>
           <div class="check-form-row">
             <span class="check-form-label">主机编码</span>
-            <span class="info-tag" id="host-code-tag"></span>
+            <span class="info-tag host-code-tag"></span>
           </div>
           <div class="check-form-row">
             <span class="check-form-label">主机简称</span>
-            <span class="info-tag" id="host-alias-tag"></span>
+            <span class="info-tag host-alias-tag"></span>
           </div>
         </div>
 
-        <div class="check-result-area" id="check-result-area">
-          <div class="empty-state" id="empty-check-result">
+        <div class="check-result-area">
+          <div class="empty-state empty-check-result">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <p>暂无检查结果</p>
           </div>
@@ -116,13 +116,13 @@
       </div>
 
       <!-- ==================== 循环结构模板 ==================== -->
-      <template id="template-station-item">
+      <template class="template-station-item">
         <div class="station-item">
           <span class="station-code"></span>
           <span class="station-desc"></span>
         </div>
       </template>
-      <template id="template-check-result-row">
+      <template class="template-check-result-row">
         <div class="check-result-row">
           <span class="cr-material-code"></span>
           <span class="cr-join">-</span>
@@ -134,14 +134,14 @@
 
       <!-- ==================== 弹窗骨架（hidden 预埋，JS 只显隐/填值） ==================== -->
       <!-- 加载中 -->
-      <div class="loading-mask hidden" id="template-loading">
+      <div class="loading-mask hidden template-loading">
         <div class="loading-box">
           <div class="loading-spinner"></div>
-          <div class="loading-text" id="loading-text">加载中...</div>
+          <div class="loading-text">加载中...</div>
         </div>
       </div>
       <!-- Toast（非阻断，3s 自动消失） -->
-      <div class="toast-mask hidden" id="template-toast">
+      <div class="toast-mask hidden template-toast">
         <div class="toast-box">
           <div class="toast-icon-area">
             <div class="toast-icon-error hidden">
@@ -151,8 +151,8 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
             </div>
           </div>
-          <div class="toast-title" id="toast-title"></div>
-          <div class="toast-content hidden" id="toast-content"></div>
+          <div class="toast-title"></div>
+          <div class="toast-content hidden"></div>
           <button type="button" class="toast-btn">确定</button>
         </div>
       </div>
