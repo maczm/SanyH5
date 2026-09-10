@@ -27,7 +27,7 @@ const JPEG_1PX = Buffer.from(
   await page.goto(BASE, { timeout: 15000 });
   await page.waitForTimeout(1500);
   check("页面加载", (await page.title()) === "装箱作业");
-  check("header 操作员", (await page.locator("#header-operator").textContent()) === "开发用户");
+  check("header 操作员", (await page.locator(".header-operator").textContent()) === "开发用户");
   check("初始全量数据", (await page.locator("body").innerText()).includes("PC202405001"), "结果卡=" + (await page.locator(".result-card").count()));
   check("步骤1输入行", (await page.locator(".step-row.active .search-input").count()) === 1);
   check("步骤2锁定", (await page.locator(".step-row.locked").count()) === 1);
@@ -49,26 +49,26 @@ const JPEG_1PX = Buffer.from(
   // ============ 4. 选中装箱对象 → 面板 ============
   await page.click(".result-card");
   await page.waitForTimeout(500);
-  check("装箱面板显示", await page.locator("#packing-panel").isVisible());
-  check("面板信息行", (await page.locator("#packing-card .field-row").count()) === 8, "行数=" + (await page.locator("#packing-card .field-row").count()));
-  check("数量默认值", (await page.locator("#packing-qty").inputValue()) === "35", "qty=" + (await page.locator("#packing-qty").inputValue()));
-  check("数量提示", (await page.locator("#qty-hint").textContent()) === "待装箱数: 35");
-  check("确认按钮显示", await page.locator("#confirm-section").isVisible());
+  check("装箱面板显示", await page.locator(".packing-panel").isVisible());
+  check("面板信息行", (await page.locator(".packing-card .field-row").count()) === 8, "行数=" + (await page.locator(".packing-card .field-row").count()));
+  check("数量默认值", (await page.locator(".packing-qty").inputValue()) === "35", "qty=" + (await page.locator(".packing-qty").inputValue()));
+  check("数量提示", (await page.locator(".qty-hint").textContent()) === "待装箱数: 35");
+  check("确认按钮显示", await page.locator(".confirm-section").isVisible());
 
   // ============ 5. 数量校验（超限报错） ============
-  await page.fill("#packing-qty", "999");
+  await page.fill(".packing-qty", "999");
   await page.waitForTimeout(200);
-  check("超限报错", await page.locator("#qty-error").isVisible(), (await page.locator("#qty-error").textContent()));
-  await page.fill("#packing-qty", "10");
+  check("超限报错", await page.locator(".qty-error").isVisible(), (await page.locator(".qty-error").textContent()));
+  await page.fill(".packing-qty", "10");
   await page.waitForTimeout(200);
-  check("合法后错误消失", !(await page.locator("#qty-error").isVisible()));
+  check("合法后错误消失", !(await page.locator(".qty-error").isVisible()));
 
   // ============ 6. 真实文件上传 ============
-  await page.click("#photo-add-button");
-  await page.setInputFiles("#photo-input", { name: "p.jpg", mimeType: "image/jpeg", buffer: JPEG_1PX });
+  await page.click(".photo-add-button");
+  await page.setInputFiles(".photo-input", { name: "p.jpg", mimeType: "image/jpeg", buffer: JPEG_1PX });
   await page.waitForTimeout(1200);
   check("上传缩略图", (await page.locator(".photo-item").count()) === 1, "缩略图=" + (await page.locator(".photo-item").count()));
-  check("照片进度", (await page.locator("#photo-progress-text").textContent()).indexOf("1/") === 0, (await page.locator("#photo-progress-text").textContent()));
+  check("照片进度", (await page.locator(".photo-progress-text").textContent()).indexOf("1/") === 0, (await page.locator(".photo-progress-text").textContent()));
 
   // ============ 7. 提交（确定性 mock）→ 成功 → 重置 ============
   await page.evaluate(() => {
@@ -76,11 +76,11 @@ const JPEG_1PX = Buffer.from(
   });
   await page.click(".btn-confirm");
   await page.waitForTimeout(1000);
-  check("提交成功 toast", (await page.locator("#toast-title").textContent()) === "装箱成功");
-  check("toast 详情行", (await page.locator("#toast-content .detail-row").count()) >= 6, "行数=" + (await page.locator("#toast-content .detail-row").count()));
-  await page.click("#template-toast .toast-btn");
+  check("提交成功 toast", (await page.locator(".toast-title").textContent()) === "装箱成功");
+  check("toast 详情行", (await page.locator(".toast-content .detail-row").count()) >= 6, "行数=" + (await page.locator(".toast-content .detail-row").count()));
+  await page.click(".template-toast .toast-btn");
   await page.waitForTimeout(800);
-  check("重置回物料搜索", (await page.locator(".step-row.active .search-input").count()) === 1 && (await page.locator("#packing-panel").isVisible()) === false);
+  check("重置回物料搜索", (await page.locator(".step-row.active .search-input").count()) === 1 && (await page.locator(".packing-panel").isVisible()) === false);
 
   // ============ 8. 步骤回退（点已完成行） ============
   await page.click(".step-row.completed");

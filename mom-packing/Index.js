@@ -54,8 +54,8 @@ var Packing = {
   _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
-  cloneTemplate: function (id) {
-    var fragment = document.getElementById(id).content.cloneNode(true);
+  cloneTemplate: function (templateClassName) {
+    var fragment = document.querySelector("." + templateClassName).content.cloneNode(true);
     return $(fragment.firstElementChild); // 模板必须单根结构
   },
 
@@ -85,31 +85,31 @@ var Packing = {
   // ============== 加载动画（骨架预埋，仅显隐+填值；引用计数支持并发） ==============
   showLoading: function (text) {
     Packing._loadingCount++;
-    $("#loading-text").text(text || "加载中...");
-    $("#template-loading").removeClass("hidden");
+    $(".loading-text").text(text || "加载中...");
+    $(".template-loading").removeClass("hidden");
   },
 
   hideLoading: function () {
     Packing._loadingCount = Math.max(0, Packing._loadingCount - 1);
     if (Packing._loadingCount === 0) {
-      $("#template-loading").addClass("hidden");
+      $(".template-loading").addClass("hidden");
     }
   },
 
   // ============== Toast 消息提示框（骨架预埋，仅显隐+填值） ==============
   // content 三种形态：null / string / array（[{label,value}] 详情行）
   showToast: function (title, content, type, callback) {
-    var $toast = $("#template-toast");
+    var $toast = $(".template-toast");
     if (Packing._toastTimer) {
       clearTimeout(Packing._toastTimer);
       Packing._toastTimer = null;
     }
 
-    $("#toast-title").text(title);
-    $("#template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
-    $("#template-toast .toast-icon-success").toggleClass("hidden", type === "error");
+    $(".toast-title").text(title);
+    $(".template-toast .toast-icon-error").toggleClass("hidden", type !== "error");
+    $(".template-toast .toast-icon-success").toggleClass("hidden", type === "error");
 
-    var $content = $("#toast-content");
+    var $content = $(".toast-content");
     $content.empty();
     if (typeof content === "string") {
       $content.removeClass("hidden").text(content);
@@ -178,7 +178,7 @@ var Packing = {
 
   // ============== 搜索区渲染（三态行：完成/输入/锁定，模板克隆） ==============
   renderSearchSections: function () {
-    var $area = $("#search-area");
+    var $area = $(".search-area");
     $area.empty();
     var stepIndex = Packing.state.step;
 
@@ -213,7 +213,7 @@ var Packing = {
 
   // ============== 搜索结果卡片列表 ==============
   renderResultList: function (items) {
-    var $list = $("#result-area");
+    var $list = $(".result-area");
     $list.empty();
 
     if (!items || items.length === 0) {
@@ -280,33 +280,33 @@ var Packing = {
 
   // ============== 装箱面板 ==============
   renderPackingPanel: function (item) {
-    $("#packing-panel-container").show();
+    $(".packing-panel-container").show();
 
-    var $card = $("#packing-card");
+    var $card = $(".packing-card");
     $card.empty();
     Packing.fillFieldRows($card, item);
 
-    $("#packing-qty").val(item.pendingQty).attr({ min: "1", max: item.pendingQty });
-    $("#qty-hint").text("待装箱数: " + item.pendingQty);
-    $("#qty-error").addClass("hidden").text("");
+    $(".packing-qty").val(item.pendingQty).attr({ min: "1", max: item.pendingQty });
+    $(".qty-hint").text("待装箱数: " + item.pendingQty);
+    $(".qty-error").addClass("hidden").text("");
 
-    $("#photo-required-tip").text("(至少" + Packing.calcRequiredPhotos(item, item.pendingQty) + "张)");
-    $("#photo-error").addClass("hidden").text("");
+    $(".photo-required-tip").text("(至少" + Packing.calcRequiredPhotos(item, item.pendingQty) + "张)");
+    $(".photo-error").addClass("hidden").text("");
 
-    $("#confirm-section").removeClass("hidden");
+    $(".confirm-section").removeClass("hidden");
     $(".btn-confirm").prop("disabled", false).text("确认装箱");
 
     Packing.renderPhotoList();
 
     setTimeout(function () {
-      $("#packing-panel")[0].scrollIntoView({ behavior: "smooth", block: "start" });
+      $(".packing-panel")[0].scrollIntoView({ behavior: "smooth", block: "start" });
     }, 150);
   },
 
   removePackingPanel: function () {
     Packing.state.sessionId++; // 关闭面板：丢弃在途回调
-    $("#packing-panel-container").hide();
-    $("#confirm-section").addClass("hidden");
+    $(".packing-panel-container").hide();
+    $(".confirm-section").addClass("hidden");
     Packing.state.selectedItem = null;
     Packing.state.photos = [];
     Packing.state.submitting = false;
@@ -314,7 +314,7 @@ var Packing = {
 
   // ============== 照片列表渲染 ==============
   renderPhotoList: function () {
-    var $scroll = $("#photo-scroll");
+    var $scroll = $(".photo-scroll");
     // 移除旧缩略图（保留预埋的拍照按钮）
     $scroll.find(".photo-item").remove();
 
@@ -325,11 +325,11 @@ var Packing = {
       $scroll.append($item);
     });
 
-    $("#photo-add-button").toggleClass("hidden", Packing.state.photos.length >= CONFIG.MAX_PHOTOS);
+    $(".photo-add-button").toggleClass("hidden", Packing.state.photos.length >= CONFIG.MAX_PHOTOS);
 
-    var quantity = parseFloat(($("#packing-qty").val() || "").trim());
+    var quantity = parseFloat(($(".packing-qty").val() || "").trim());
     if (Packing.state.photos.length >= Packing.calcRequiredPhotos(Packing.state.selectedItem, quantity)) {
-      $("#photo-error").addClass("hidden").text("");
+      $(".photo-error").addClass("hidden").text("");
     }
 
     Packing.updatePhotoProgress();
@@ -338,14 +338,14 @@ var Packing = {
 
   // ============== 照片进度条 ==============
   updatePhotoProgress: function () {
-    var quantity = parseFloat(($("#packing-qty").val() || "").trim());
+    var quantity = parseFloat(($(".packing-qty").val() || "").trim());
     var required = Packing.calcRequiredPhotos(Packing.state.selectedItem, quantity);
     var taken = Packing.state.photos.length;
     var percent = Math.min(100, (taken / required) * 100);
 
-    $("#photo-progress-text").text(taken + "/" + required + "张");
-    $("#photo-progress-fill").css("width", percent + "%");
-    $("#photo-progress-fill").toggleClass("complete", taken >= required);
+    $(".photo-progress-text").text(taken + "/" + required + "张");
+    $(".photo-progress-fill").css("width", percent + "%");
+    $(".photo-progress-fill").toggleClass("complete", taken >= required);
   },
 
   // ============== 照片处理 ==============
@@ -496,8 +496,8 @@ var Packing = {
   showPhotoPreview: function (index) {
     var photo = Packing.state.photos[index];
     if (!photo) return;
-    $("#preview-image").attr("src", photo.url);
-    $("#template-preview").removeClass("hidden");
+    $(".preview-image").attr("src", photo.url);
+    $(".template-preview").removeClass("hidden");
   },
 
   // ============== 扫码 ==============
@@ -592,32 +592,32 @@ var Packing = {
     var item = Packing.state.selectedItem;
     if (!item || Packing.state.submitting) return;
 
-    var quantityString = $("#packing-qty").val().trim();
+    var quantityString = $(".packing-qty").val().trim();
     var quantity = parseFloat(quantityString);
     var quantityValid = true;
 
-    $("#packing-qty").removeClass("has-error");
-    $("#qty-error").addClass("hidden").text("");
+    $(".packing-qty").removeClass("has-error");
+    $(".qty-error").addClass("hidden").text("");
 
     if (!quantityString) {
-      $("#packing-qty").addClass("has-error");
-      $("#qty-error").text("请输入本次装箱数量").removeClass("hidden");
+      $(".packing-qty").addClass("has-error");
+      $(".qty-error").text("请输入本次装箱数量").removeClass("hidden");
       quantityValid = false;
     } else if (isNaN(quantity) || quantity <= 0) {
-      $("#packing-qty").addClass("has-error");
-      $("#qty-error").text("数量必须为正数").removeClass("hidden");
+      $(".packing-qty").addClass("has-error");
+      $(".qty-error").text("数量必须为正数").removeClass("hidden");
       quantityValid = false;
     } else if (quantity > item.pendingQty) {
-      $("#packing-qty").addClass("has-error");
-      $("#qty-error").text("不能超过待装箱数 " + item.pendingQty).removeClass("hidden");
+      $(".packing-qty").addClass("has-error");
+      $(".qty-error").text("不能超过待装箱数 " + item.pendingQty).removeClass("hidden");
       quantityValid = false;
     }
 
     var photoValid = true;
-    $("#photo-error").addClass("hidden").text("");
+    $(".photo-error").addClass("hidden").text("");
     var requiredPhotos = Packing.calcRequiredPhotos(item, quantity);
     if (Packing.state.photos.length < requiredPhotos) {
-      $("#photo-error")
+      $(".photo-error")
         .text("照片数量不足，至少需拍摄" + requiredPhotos + "张（当前" + Packing.state.photos.length + "张）")
         .removeClass("hidden");
       photoValid = false;
@@ -687,7 +687,7 @@ var Packing = {
     Packing.updateStepIndicator(1);
     Packing.renderSearchSections();
     Packing.removePackingPanel();
-    $("#packing-body")[0].scrollTop = 0;
+    $(".packing-body")[0].scrollTop = 0;
 
     // 用当前装箱单号重新查询，获取最新数据
     Packing.showLoading("刷新中...");
@@ -723,18 +723,18 @@ var Packing = {
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
     // 搜索按钮/扫码/回车（按 step-row 的 data-step 区分操作）
-    $("#search-area").on("click", ".btn-search", function () {
+    $(".search-area").on("click", ".btn-search", function () {
       var stepIndex = parseInt($(this).closest(".step-row").data("step"));
       if (stepIndex === 0) Packing.doSearchPackingList();
       else if (stepIndex === 1) Packing.doSearchMaterial();
     });
-    $("#search-area").on("click", ".btn-scan", function () {
+    $(".search-area").on("click", ".btn-scan", function () {
       var stepIndex = parseInt($(this).closest(".step-row").data("step"));
       var $input = $(this).closest(".step-row").find(".search-input");
       if (stepIndex === 0) Packing.doScan($input, Packing.doSearchPackingList);
       else if (stepIndex === 1) Packing.doScan($input, Packing.doSearchMaterial);
     });
-    $("#search-area").on("keypress", ".search-input", function (e) {
+    $(".search-area").on("keypress", ".search-input", function (e) {
       if (e.which !== 13) return;
       var stepIndex = parseInt($(this).closest(".step-row").data("step"));
       var value = $(this).val().trim();
@@ -742,7 +742,7 @@ var Packing = {
       else if (stepIndex === 1) { Packing.state.materialCode = value; Packing.doSearchMaterial(); }
     });
     // 输入时同步 state（点击搜索按钮时使用）
-    $("#search-area").on("input", ".search-input", function () {
+    $(".search-area").on("input", ".search-input", function () {
       var stepIndex = parseInt($(this).closest(".step-row").data("step"));
       var value = $(this).val().trim();
       if (stepIndex === 0) Packing.state.packingListNo = value;
@@ -750,7 +750,7 @@ var Packing = {
     });
 
     // 点击已完成步骤 → 回退重新编辑
-    $("#search-area").on("click", ".step-row.completed", function () {
+    $(".search-area").on("click", ".step-row.completed", function () {
       var stepIndex = parseInt($(this).data("step"));
       Packing.state.step = stepIndex;
       Packing.updateStepIndicator(stepIndex);
@@ -758,36 +758,36 @@ var Packing = {
     });
 
     // 结果卡片选中
-    $("#result-area").on("click", ".result-card", function () {
+    $(".result-area").on("click", ".result-card", function () {
       Packing.selectItem(parseInt($(this).data("index")));
     });
 
     // 数量输入校验 + 进度联动
-    $("#packing-qty").on("input", function () {
+    $(".packing-qty").on("input", function () {
       var value = $(this).val().trim();
       var quantity = parseFloat(value);
 
-      $("#photo-required-tip").text("(至少" + Packing.calcRequiredPhotos(Packing.state.selectedItem, quantity) + "张)");
+      $(".photo-required-tip").text("(至少" + Packing.calcRequiredPhotos(Packing.state.selectedItem, quantity) + "张)");
       Packing.updatePhotoProgress();
 
       $(this).removeClass("has-error");
-      $("#qty-error").addClass("hidden").text("");
+      $(".qty-error").addClass("hidden").text("");
 
       if (value === "") return;
       if (isNaN(quantity) || quantity <= 0) {
         $(this).addClass("has-error");
-        $("#qty-error").text("数量必须为正数").removeClass("hidden");
+        $(".qty-error").text("数量必须为正数").removeClass("hidden");
       } else if (quantity > Packing.state.selectedItem.pendingQty) {
         $(this).addClass("has-error");
-        $("#qty-error").text("不能超过待装箱数 " + Packing.state.selectedItem.pendingQty).removeClass("hidden");
+        $(".qty-error").text("不能超过待装箱数 " + Packing.state.selectedItem.pendingQty).removeClass("hidden");
       }
     });
 
     // 拍照
-    $("#photo-add-button").on("click", function () {
-      $("#photo-input").click();
+    $(".photo-add-button").on("click", function () {
+      $(".photo-input").click();
     });
-    $("#photo-input").on("change", function () {
+    $(".photo-input").on("change", function () {
       var files = this.files;
       if (!files || files.length === 0) return;
       Packing.handleFileSelect(files);
@@ -795,32 +795,32 @@ var Packing = {
     });
 
     // 照片删除/预览（委托）
-    $("#photo-scroll").on("click", ".photo-delete", function (e) {
+    $(".photo-scroll").on("click", ".photo-delete", function (e) {
       e.stopPropagation();
       Packing.deletePhoto(parseInt($(this).closest(".photo-item").data("index")));
     });
-    $("#photo-scroll").on("click", ".photo-item img", function () {
+    $(".photo-scroll").on("click", ".photo-item img", function () {
       Packing.showPhotoPreview(parseInt($(this).closest(".photo-item").data("index")));
     });
 
     // 确认装箱
-    $("#confirm-section").on("click", ".btn-confirm", function () {
+    $(".confirm-section").on("click", ".btn-confirm", function () {
       Packing.handleSubmit();
     });
 
     // Toast 关闭
-    $("#template-toast").on("click", function (e) {
+    $(".template-toast").on("click", function (e) {
       if (e.target === this || $(e.target).hasClass("toast-btn")) {
-        var closeCallback = $("#template-toast").data("close-callback");
+        var closeCallback = $(".template-toast").data("close-callback");
         if (closeCallback) closeCallback();
       }
     });
 
     // 预览关闭
-    $("#template-preview .photo-preview-close").on("click", function () {
-      $("#template-preview").addClass("hidden");
+    $(".template-preview .photo-preview-close").on("click", function () {
+      $(".template-preview").addClass("hidden");
     });
-    $("#template-preview").on("click", function (e) {
+    $(".template-preview").on("click", function (e) {
       if (e.target === this) $(this).addClass("hidden");
     });
   },
@@ -828,7 +828,7 @@ var Packing = {
   // ============== 页面初始化 ==============
   initPage: function () {
     // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
-    if (!$("#mom-packing-app").length) {
+    if (!$(".mom-packing-app").length) {
       Packing._initRetryCount++;
       if (Packing._initRetryCount > 100) return;
       setTimeout(function () {
@@ -838,16 +838,16 @@ var Packing = {
     }
 
     // 头部：操作员 + 时钟
-    $("#header-operator").text(window.Operator);
+    $(".header-operator").text(window.Operator);
 
     function now() {
       var d = new Date();
       var pad = function (n) { return n < 10 ? "0" + n : n; };
       return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
-    $("#header-time").text(now());
+    $(".header-time").text(now());
     setInterval(function () {
-      $("#header-time").text(now());
+      $(".header-time").text(now());
     }, 1000);
 
     Packing.initEvents();

@@ -1,4 +1,4 @@
-#mom-packing-app {
+.mom-packing-app {
   --primary: #1976d2;
   --primary-dark: #1565c0;
   --primary-light: #42a5f5;
@@ -27,13 +27,13 @@ body {
   padding: 0;
 }
 
-#mom-packing-app,
-#mom-packing-app * {
+.mom-packing-app,
+.mom-packing-app * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-#mom-packing-app {
+.mom-packing-app {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -45,19 +45,19 @@ body {
   background: #f5f7fa;
 }
 
-#mom-packing-app.app-container {
+.mom-packing-app.app-container {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 /* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
-#mom-packing-app .hidden {
+.mom-packing-app .hidden {
   display: none !important;
 }
 
 /* 隐藏的文件选择 input */
-#mom-packing-app .photo-input-hidden {
+.mom-packing-app .photo-input-hidden {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -66,7 +66,7 @@ body {
 }
 
 /* ==================== 页面头部 ==================== */
-#mom-packing-app .page-header {
+.mom-packing-app .page-header {
   background: var(--gradient-primary);
   color: #fff;
   padding: 10px 16px;
@@ -76,18 +76,18 @@ body {
   justify-content: space-between;
   align-items: center;
 }
-#mom-packing-app .page-header .header-operator {
+.mom-packing-app .page-header .header-operator {
   font-size: 14px;
   font-weight: 500;
 }
-#mom-packing-app .page-header .header-time {
+.mom-packing-app .page-header .header-time {
   font-size: 13px;
   opacity: 0.85;
   font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
 }
 
 /* ==================== 步骤指示器 ==================== */
-#mom-packing-app .step-indicator {
+.mom-packing-app .step-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@ body {
   border-bottom: 1px solid #eee;
   flex-shrink: 0;
 }
-#mom-packing-app .step-item {
+.mom-packing-app .step-item {
   display: flex;
   align-items: center;
   gap: 0;
@@ -104,7 +104,7 @@ body {
   color: #bbb;
   white-space: nowrap;
 }
-#mom-packing-app .step-item .step-dot {
+.mom-packing-app .step-item .step-dot {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -117,39 +117,39 @@ body {
   flex-shrink: 0;
   transition: all 0.3s;
 }
-#mom-packing-app .step-item .step-label {
+.mom-packing-app .step-item .step-label {
   margin-left: 6px;
 }
-#mom-packing-app .step-item.active {
+.mom-packing-app .step-item.active {
   color: var(--primary);
   font-weight: 600;
 }
-#mom-packing-app .step-item.active .step-dot {
+.mom-packing-app .step-item.active .step-dot {
   border-color: var(--primary);
   background: var(--primary);
   color: #fff;
 }
-#mom-packing-app .step-item.completed {
+.mom-packing-app .step-item.completed {
   color: var(--success);
 }
-#mom-packing-app .step-item.completed .step-dot {
+.mom-packing-app .step-item.completed .step-dot {
   border-color: var(--success);
   background: var(--success);
   color: #fff;
 }
-#mom-packing-app .step-line {
+.mom-packing-app .step-line {
   width: 32px;
   height: 2px;
   background: #ddd;
   margin: 0 4px;
   transition: background 0.3s;
 }
-#mom-packing-app .step-line.done {
+.mom-packing-app .step-line.done {
   background: var(--success);
 }
 
 /* ==================== 可滚动内容区 ==================== */
-#mom-packing-app .packing-body {
+.mom-packing-app .packing-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -157,13 +157,13 @@ body {
 }
 
 /* ==================== 搜索区域（手风琴） ==================== */
-#mom-packing-app .search-area {
+.mom-packing-app .search-area {
   flex-shrink: 0;
   background: #fff;
   border-bottom: 1px solid #eee;
 }
 
-#mom-packing-app .step-row {
+.mom-packing-app .step-row {
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -172,7 +172,7 @@ body {
   gap: 8px;
 }
 
-#mom-packing-app .step-chip {
+.mom-packing-app .step-chip {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -184,7 +184,7 @@ body {
   flex-shrink: 0;
 }
 
-#mom-packing-app .step-name {
+.mom-packing-app .step-name {
   font-size: 13px;
   font-weight: 500;
   color: #333;
@@ -192,15 +192,15 @@ body {
 }
 
 /* 完成态 */
-#mom-packing-app .step-row.completed {
+.mom-packing-app .step-row.completed {
   cursor: pointer;
   background: #f8f9fa;
 }
-#mom-packing-app .step-row.completed .step-chip {
+.mom-packing-app .step-row.completed .step-chip {
   background: var(--success);
   color: #fff;
 }
-#mom-packing-app .step-row.completed .step-value {
+.mom-packing-app .step-row.completed .step-value {
   font-size: 12px;
   color: var(--text-muted);
   flex: 1;
@@ -208,7 +208,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#mom-packing-app .step-row.completed .step-expand {
+.mom-packing-app .step-row.completed .step-expand {
   width: 24px;
   height: 24px;
   border: none;
@@ -220,22 +220,22 @@ body {
 }
 
 /* 展开态 */
-#mom-packing-app .step-row.active {
+.mom-packing-app .step-row.active {
   flex-wrap: wrap;
   padding: 8px 12px;
 }
-#mom-packing-app .step-row.active .step-chip {
+.mom-packing-app .step-row.active .step-chip {
   background: var(--primary);
   color: #fff;
 }
-#mom-packing-app .step-row.active .step-input-row {
+.mom-packing-app .step-row.active .step-input-row {
   width: 100%;
   display: flex;
   gap: 8px;
   align-items: center;
   padding-top: 6px;
 }
-#mom-packing-app .step-row.active .search-input {
+.mom-packing-app .step-row.active .search-input {
   flex: 1;
   height: 36px;
   padding: 0 10px;
@@ -245,25 +245,25 @@ body {
   outline: none;
   background: var(--bg-input);
 }
-#mom-packing-app .step-row.active .search-input:focus {
+.mom-packing-app .step-row.active .search-input:focus {
   border-color: var(--primary);
   background: #fff;
 }
 
 /* 锁定态 */
-#mom-packing-app .step-row.locked {
+.mom-packing-app .step-row.locked {
   opacity: 0.4;
 }
-#mom-packing-app .step-row.locked .step-chip {
+.mom-packing-app .step-row.locked .step-chip {
   background: #eee;
   color: #bbb;
 }
-#mom-packing-app .step-row.locked .step-hint {
+.mom-packing-app .step-row.locked .step-hint {
   font-size: 11px;
   color: #bbb;
   margin-left: auto;
 }
-#mom-packing-app .icon-btn {
+.mom-packing-app .icon-btn {
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -274,31 +274,31 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
-#mom-packing-app .icon-btn svg {
+.mom-packing-app .icon-btn svg {
   width: 20px;
   height: 20px;
 }
-#mom-packing-app .btn-search {
+.mom-packing-app .btn-search {
   background: var(--primary) !important;
   color: #fff !important;
 }
-#mom-packing-app .btn-search:active {
+.mom-packing-app .btn-search:active {
   background: var(--primary-dark) !important;
 }
-#mom-packing-app .btn-scan {
+.mom-packing-app .btn-scan {
   background: var(--bg-btn-secondary) !important;
   color: var(--text-secondary) !important;
 }
-#mom-packing-app .btn-scan:active {
+.mom-packing-app .btn-scan:active {
   background: var(--border-color) !important;
 }
 
 /* ==================== 搜索结果卡片列表 ==================== */
-#mom-packing-app .result-area,
-#mom-packing-app .result-list {
+.mom-packing-app .result-area,
+.mom-packing-app .result-list {
   margin-top: 12px;
 }
-#mom-packing-app .result-card {
+.mom-packing-app .result-card {
   background: #fff;
   border-radius: 10px;
   border: 1px solid #eee;
@@ -308,29 +308,29 @@ body {
   cursor: pointer;
   transition: background 0.15s;
 }
-#mom-packing-app .result-card:last-child {
+.mom-packing-app .result-card:last-child {
   margin-bottom: 0;
 }
-#mom-packing-app .result-card:active {
+.mom-packing-app .result-card:active {
   background: var(--primary-bg);
 }
-#mom-packing-app .result-card .field-row {
+.mom-packing-app .result-card .field-row {
   display: flex;
   padding: 5px 0;
 }
-#mom-packing-app .result-card .field-row:first-child {
+.mom-packing-app .result-card .field-row:first-child {
   padding-top: 0;
 }
-#mom-packing-app .result-card .field-row:last-child {
+.mom-packing-app .result-card .field-row:last-child {
   padding-bottom: 0;
 }
-#mom-packing-app .result-card .field-label {
+.mom-packing-app .result-card .field-label {
   color: var(--text-muted);
   font-size: 12px;
   width: 72px;
   flex-shrink: 0;
 }
-#mom-packing-app .result-card .field-value {
+.mom-packing-app .result-card .field-value {
   color: #333;
   font-size: 13px;
   font-weight: 500;
@@ -339,48 +339,48 @@ body {
 }
 
 /* 三列并排 */
-#mom-packing-app .field-row-triple {
+.mom-packing-app .field-row-triple {
   display: flex;
   gap: 8px;
 }
-#mom-packing-app .field-row-triple .triple-item {
+.mom-packing-app .field-row-triple .triple-item {
   flex: 1;
   text-align: center;
   border-right: 1px solid #eee;
 }
-#mom-packing-app .field-row-triple .triple-item:last-child {
+.mom-packing-app .field-row-triple .triple-item:last-child {
   border-right: none;
 }
-#mom-packing-app .field-row-triple .field-label {
+.mom-packing-app .field-row-triple .field-label {
   display: block;
   width: auto;
   font-size: 11px;
 }
-#mom-packing-app .field-row-triple .field-value {
+.mom-packing-app .field-row-triple .field-value {
   display: block;
   font-size: 14px;
   font-weight: 600;
 }
 
 /* 空状态 */
-#mom-packing-app .empty-state {
+.mom-packing-app .empty-state {
   text-align: center;
   padding: 30px 20px;
   color: #999;
 }
-#mom-packing-app .empty-state svg {
+.mom-packing-app .empty-state svg {
   width: 48px;
   height: 48px;
   margin-bottom: 10px;
   opacity: 0.5;
 }
-#mom-packing-app .empty-state p {
+.mom-packing-app .empty-state p {
   font-size: 13px;
   margin: 0;
 }
 
 /* ==================== 装箱界面 ==================== */
-#mom-packing-app .packing-panel {
+.mom-packing-app .packing-panel {
   background: #fff;
   border-radius: var(--card-radius);
   padding: 16px;
@@ -401,26 +401,26 @@ body {
   }
 }
 
-#mom-packing-app .packing-card {
+.mom-packing-app .packing-card {
   background: #f8f9fa;
   border-radius: 10px;
   padding: 12px;
 }
-#mom-packing-app .packing-card .field-row {
+.mom-packing-app .packing-card .field-row {
   display: flex;
   padding: 6px 0;
   border-bottom: 1px solid #eee;
 }
-#mom-packing-app .packing-card .field-row:last-child {
+.mom-packing-app .packing-card .field-row:last-child {
   border-bottom: none;
 }
-#mom-packing-app .packing-card .field-label {
+.mom-packing-app .packing-card .field-label {
   color: var(--text-muted);
   font-size: 13px;
   width: 76px;
   flex-shrink: 0;
 }
-#mom-packing-app .packing-card .field-value {
+.mom-packing-app .packing-card .field-value {
   color: #333;
   font-size: 14px;
   font-weight: 500;
@@ -429,16 +429,16 @@ body {
 }
 
 /* ==================== 数量输入 ==================== */
-#mom-packing-app .qty-section {
+.mom-packing-app .qty-section {
   margin-top: 16px;
 }
-#mom-packing-app .qty-label {
+.mom-packing-app .qty-label {
   font-size: 14px;
   font-weight: 500;
   color: #333;
   margin-bottom: 8px;
 }
-#mom-packing-app .qty-input {
+.mom-packing-app .qty-input {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--border-color);
@@ -450,80 +450,80 @@ body {
   height: 48px;
   font-weight: 600;
 }
-#mom-packing-app .qty-input:focus {
+.mom-packing-app .qty-input:focus {
   border-color: var(--primary);
   background: #fff;
 }
-#mom-packing-app .qty-input.has-error {
+.mom-packing-app .qty-input.has-error {
   border-color: var(--error);
   background: #fff5f5;
 }
-#mom-packing-app .qty-hint {
+.mom-packing-app .qty-hint {
   margin-top: 6px;
   font-size: 12px;
   color: var(--text-muted);
 }
-#mom-packing-app .qty-error {
+.mom-packing-app .qty-error {
   margin-top: 4px;
   font-size: 12px;
   color: var(--error);
 }
 
 /* ==================== 拍照区域 ==================== */
-#mom-packing-app .photo-section {
+.mom-packing-app .photo-section {
   margin-top: 16px;
 }
-#mom-packing-app .photo-header {
+.mom-packing-app .photo-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
 }
-#mom-packing-app .photo-label {
+.mom-packing-app .photo-label {
   font-size: 14px;
   font-weight: 500;
   color: #333;
 }
-#mom-packing-app .photo-required {
+.mom-packing-app .photo-required {
   font-size: 12px;
   color: var(--error);
 }
-#mom-packing-app .photo-error {
+.mom-packing-app .photo-error {
   font-size: 12px;
   color: var(--error);
   margin-left: 8px;
 }
 /* 照片进度条 */
-#mom-packing-app .photo-progress {
+.mom-packing-app .photo-progress {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
 }
-#mom-packing-app .photo-progress-bar {
+.mom-packing-app .photo-progress-bar {
   flex: 1;
   height: 5px;
   background: #eef0f2;
   border-radius: 3px;
   overflow: hidden;
 }
-#mom-packing-app .photo-progress-fill {
+.mom-packing-app .photo-progress-fill {
   height: 100%;
   width: 0;
   background: var(--gradient-primary);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#mom-packing-app .photo-progress-fill.complete {
+.mom-packing-app .photo-progress-fill.complete {
   background: linear-gradient(90deg, #34a853, var(--success));
 }
-#mom-packing-app .photo-progress-text {
+.mom-packing-app .photo-progress-text {
   font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
-#mom-packing-app .photo-scroll {
+.mom-packing-app .photo-scroll {
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -532,11 +532,11 @@ body {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
-#mom-packing-app .photo-scroll::-webkit-scrollbar {
+.mom-packing-app .photo-scroll::-webkit-scrollbar {
   display: none;
 }
 
-#mom-packing-app .photo-item {
+.mom-packing-app .photo-item {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
@@ -545,13 +545,13 @@ body {
   position: relative;
   border: 1px solid var(--border-color);
 }
-#mom-packing-app .photo-item img {
+.mom-packing-app .photo-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-#mom-packing-app .photo-delete {
+.mom-packing-app .photo-delete {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -566,12 +566,12 @@ body {
   cursor: pointer;
   padding: 0;
 }
-#mom-packing-app .photo-delete svg {
+.mom-packing-app .photo-delete svg {
   width: 12px;
   height: 12px;
 }
 
-#mom-packing-app .photo-add {
+.mom-packing-app .photo-add {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
@@ -585,21 +585,21 @@ body {
   background: var(--bg-input);
   gap: 4px;
 }
-#mom-packing-app .photo-add:active {
+.mom-packing-app .photo-add:active {
   background: #eee;
 }
-#mom-packing-app .photo-add svg {
+.mom-packing-app .photo-add svg {
   width: 24px;
   height: 24px;
   color: #999;
 }
-#mom-packing-app .photo-add span {
+.mom-packing-app .photo-add span {
   font-size: 10px;
   color: #999;
 }
 
 /* ==================== 照片全屏预览 ==================== */
-#mom-packing-app .photo-preview-mask {
+.mom-packing-app .photo-preview-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -612,12 +612,12 @@ body {
   justify-content: center;
   animation: fadeIn 0.2s ease;
 }
-#mom-packing-app .photo-preview-mask img {
+.mom-packing-app .photo-preview-mask img {
   max-width: 95vw;
   max-height: 95vh;
   object-fit: contain;
 }
-#mom-packing-app .photo-preview-close {
+.mom-packing-app .photo-preview-close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -636,13 +636,13 @@ body {
 }
 
 /* ==================== 确认按钮 ==================== */
-#mom-packing-app .confirm-section {
+.mom-packing-app .confirm-section {
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   background: #fff;
   border-top: 1px solid #eee;
 }
-#mom-packing-app .btn-confirm {
+.mom-packing-app .btn-confirm {
   width: 100%;
   padding: 14px;
   border: none;
@@ -653,16 +653,16 @@ body {
   background: var(--gradient-primary);
   color: #fff;
 }
-#mom-packing-app .btn-confirm:active {
+.mom-packing-app .btn-confirm:active {
   opacity: 0.9;
 }
-#mom-packing-app .btn-confirm:disabled {
+.mom-packing-app .btn-confirm:disabled {
   background: #90caf9;
   cursor: not-allowed;
 }
 
 /* ==================== 加载动画 ==================== */
-#mom-packing-app .loading-mask {
+.mom-packing-app .loading-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -675,7 +675,7 @@ body {
   justify-content: center;
   animation: fadeIn 0.2s ease;
 }
-#mom-packing-app .loading-box {
+.mom-packing-app .loading-box {
   background: #fff;
   border-radius: 16px;
   padding: 32px 28px;
@@ -685,7 +685,7 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   animation: scaleIn 0.25s ease;
 }
-#mom-packing-app .loading-spinner {
+.mom-packing-app .loading-spinner {
   width: 40px;
   height: 40px;
   border: 4px solid var(--border-color);
@@ -693,7 +693,7 @@ body {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-#mom-packing-app .loading-text {
+.mom-packing-app .loading-text {
   margin-top: 16px;
   font-size: 14px;
   color: var(--text-secondary);
@@ -722,7 +722,7 @@ body {
 }
 
 /* ==================== Toast 消息提示框 ==================== */
-#mom-packing-app .toast-mask {
+.mom-packing-app .toast-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -735,7 +735,7 @@ body {
   justify-content: center;
   animation: fadeIn 0.2s ease;
 }
-#mom-packing-app .toast-box {
+.mom-packing-app .toast-box {
   background: #fff;
   border-radius: 16px;
   width: 85%;
@@ -744,18 +744,18 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
   animation: scaleIn 0.25s ease;
 }
-#mom-packing-app .toast-mask.closing {
+.mom-packing-app .toast-mask.closing {
   animation: fadeOut 0.12s 0.15s ease forwards;
   pointer-events: none;
 }
-#mom-packing-app .toast-mask.closing .toast-box {
+.mom-packing-app .toast-mask.closing .toast-box {
   animation: scaleOut 0.25s ease-in forwards;
 }
-#mom-packing-app .toast-icon-area {
+.mom-packing-app .toast-icon-area {
   padding: 24px 16px 16px;
   text-align: center;
 }
-#mom-packing-app .toast-icon-success {
+.mom-packing-app .toast-icon-success {
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -764,12 +764,12 @@ body {
   align-items: center;
   justify-content: center;
 }
-#mom-packing-app .toast-icon-success svg {
+.mom-packing-app .toast-icon-success svg {
   width: 32px;
   height: 32px;
   color: var(--success);
 }
-#mom-packing-app .toast-icon-error {
+.mom-packing-app .toast-icon-error {
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -778,45 +778,45 @@ body {
   align-items: center;
   justify-content: center;
 }
-#mom-packing-app .toast-icon-error svg {
+.mom-packing-app .toast-icon-error svg {
   width: 32px;
   height: 32px;
   color: var(--error);
 }
-#mom-packing-app .toast-title {
+.mom-packing-app .toast-title {
   font-size: 18px;
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
   text-align: center;
 }
-#mom-packing-app .toast-content {
+.mom-packing-app .toast-content {
   padding: 0 20px 20px;
   max-height: 50vh;
   overflow-y: auto;
 }
-#mom-packing-app .toast-content .detail-row {
+.mom-packing-app .toast-content .detail-row {
   display: flex;
   padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
 }
-#mom-packing-app .toast-content .detail-row:last-child {
+.mom-packing-app .toast-content .detail-row:last-child {
   border-bottom: none;
 }
-#mom-packing-app .toast-content .detail-label {
+.mom-packing-app .toast-content .detail-label {
   color: var(--text-muted);
   font-size: 13px;
   width: 85px;
   flex-shrink: 0;
 }
-#mom-packing-app .toast-content .detail-value {
+.mom-packing-app .toast-content .detail-value {
   color: #333;
   font-size: 13px;
   font-weight: 500;
   flex: 1;
   word-break: break-all;
 }
-#mom-packing-app .toast-btn {
+.mom-packing-app .toast-btn {
   margin: 0 16px 16px;
   padding: 14px;
   background: var(--primary);
@@ -828,6 +828,6 @@ body {
   width: calc(100% - 32px);
   cursor: pointer;
 }
-#mom-packing-app .toast-btn:active {
+.mom-packing-app .toast-btn:active {
   background: var(--primary-dark);
 }
