@@ -60,6 +60,7 @@ var NameplatePhotoUpload = {
 
   _toastTimer: null,
   _loadingCount: 0,       // loading 引用计数（并发上传时避免提前消失）
+  _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
   /**
@@ -1181,6 +1182,16 @@ var NameplatePhotoUpload = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
+    // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
+    if (!$("#mom-photo-upload").length) {
+      NameplatePhotoUpload._initRetryCount++;
+      if (NameplatePhotoUpload._initRetryCount > 100) return;
+      setTimeout(function () {
+        NameplatePhotoUpload.initPage();
+      }, 50);
+      return;
+    }
+
     // 缓存按钮初始文案（骨架在 index.html，JS 恢复时用，避免双重定义）
     $(".btn-confirm").data("label", $(".btn-confirm").text());
     $(".btn-save").data("label", $(".btn-save").text());

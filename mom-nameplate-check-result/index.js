@@ -16,6 +16,7 @@
 // ============== 应用命名空间 ==============
 var NameplateCheckResult = {
   _pollTimer: null,
+  _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (id) {
@@ -94,6 +95,16 @@ var NameplateCheckResult = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
+    // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
+    if (!$("#mom-check-result").length) {
+      NameplateCheckResult._initRetryCount++;
+      if (NameplateCheckResult._initRetryCount > 100) return;
+      setTimeout(function () {
+        NameplateCheckResult.initPage();
+      }, 50);
+      return;
+    }
+
     function now() {
       var d = new Date();
       var pad = function (n) { return n < 10 ? "0" + n : n; };

@@ -51,6 +51,7 @@ var Packing = {
 
   _toastTimer: null,
   _loadingCount: 0,
+  _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (id) {
@@ -826,6 +827,16 @@ var Packing = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
+    // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
+    if (!$("#mom-packing-app").length) {
+      Packing._initRetryCount++;
+      if (Packing._initRetryCount > 100) return;
+      setTimeout(function () {
+        Packing.initPage();
+      }, 50);
+      return;
+    }
+
     // 头部：操作员 + 时钟
     $("#header-operator").text(window.Operator);
 
