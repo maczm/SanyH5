@@ -293,7 +293,7 @@ var Packing = {
     $("#photo-error").addClass("hidden").text("");
 
     $("#confirm-section").removeClass("hidden");
-    $("#btn-confirm").prop("disabled", false).text("确认装箱");
+    $(".btn-confirm").prop("disabled", false).text("确认装箱");
 
     Packing.renderPhotoList();
 
@@ -625,7 +625,7 @@ var Packing = {
     if (!quantityValid || !photoValid) return;
 
     Packing.state.submitting = true;
-    var $confirmButton = $("#btn-confirm");
+    var $confirmButton = $(".btn-confirm");
     $confirmButton.prop("disabled", true).text("提交中...");
     Packing.showLoading("提交中...");
 
@@ -803,7 +803,7 @@ var Packing = {
     });
 
     // 确认装箱
-    $("#confirm-section").on("click", "#btn-confirm", function () {
+    $("#confirm-section").on("click", ".btn-confirm", function () {
       Packing.handleSubmit();
     });
 

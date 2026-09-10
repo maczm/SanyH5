@@ -852,8 +852,8 @@ var NameplatePhotoUpload = {
 
   // ============== 按钮状态（两按钮交互一致） ==============
   updateButtons: function () {
-    var $confirmButton = $("#btn-confirm");
-    var $saveButton = $("#btn-save");
+    var $confirmButton = $(".btn-confirm");
+    var $saveButton = $(".btn-save");
     var state = NameplatePhotoUpload.state;
 
     if (!state.configLoaded || !state.photoTypes.length) {
@@ -932,8 +932,8 @@ var NameplatePhotoUpload = {
     var submitData = NameplatePhotoUpload.buildSubmitData(photoList, saveType);
 
     NameplatePhotoUpload.state.submitting = true;
-    var $confirmButton = $("#btn-confirm");
-    var $saveButton = $("#btn-save");
+    var $confirmButton = $(".btn-confirm");
+    var $saveButton = $(".btn-save");
     $confirmButton.prop("disabled", true);
     $saveButton.prop("disabled", true);
     if (isSave) {
@@ -1065,7 +1065,7 @@ var NameplatePhotoUpload = {
     });
 
     // 查询按钮
-    $("#form-area").on("click", "#btn-query", function () {
+    $("#form-area").on("click", ".btn-query", function () {
       NameplatePhotoUpload.doQueryPhotoConfig();
     });
 
@@ -1080,7 +1080,7 @@ var NameplatePhotoUpload = {
     });
 
     // 扫码按钮
-    $("#form-area").on("click", "#btn-scan-order", function () {
+    $("#form-area").on("click", ".btn-scan-order", function () {
       NameplatePhotoUpload.doScan("input-order", NameplatePhotoUpload.doQueryPhotoConfig);
     });
 
@@ -1117,10 +1117,10 @@ var NameplatePhotoUpload = {
     });
 
     // 底部按钮区
-    $("#confirm-section").on("click", "#btn-save", function () {
+    $("#confirm-section").on("click", ".btn-save", function () {
       NameplatePhotoUpload.handleSubmit("save");
     });
-    $("#confirm-section").on("click", "#btn-confirm", function () {
+    $("#confirm-section").on("click", ".btn-confirm", function () {
       NameplatePhotoUpload.handleSubmit("submit");
     });
 
@@ -1182,8 +1182,8 @@ var NameplatePhotoUpload = {
   // ============== 页面初始化 ==============
   initPage: function () {
     // 缓存按钮初始文案（骨架在 index.html，JS 恢复时用，避免双重定义）
-    $("#btn-confirm").data("label", $("#btn-confirm").text());
-    $("#btn-save").data("label", $("#btn-save").text());
+    $(".btn-confirm").data("label", $(".btn-confirm").text());
+    $(".btn-save").data("label", $(".btn-save").text());
 
     $("#header-operator").text(window.Operator);
 

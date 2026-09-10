@@ -4,6 +4,10 @@
 // （生产不部署，Portal 只取 index.html / index.js / index.css 三个文件）。
 // 页面结构：全部骨架在 index.html（含 template 循环模板），JS 只克隆赋值。
 
+// ============== Portal 表单回车提交拦截 ==============
+// 平台约定：页面定义该空实现钩子即可（定义即生效），不需要页面调用，用于消除输入框回车提交刷新。
+function Portal_OnDocumentKeyDown() {}
+
 // ============== 应用命名空间 ==============
 var AssemblyMaterialCheck = {
   API_TIMEOUT: 10000,
@@ -370,10 +374,10 @@ var AssemblyMaterialCheck = {
         AssemblyMaterialCheck.jumpToMaterialCheck(station);
       }
     });
-    $("#station-select-view").on("click", "#btn-search-station", function () {
+    $("#station-select-view").on("click", ".btn-search-station", function () {
       AssemblyMaterialCheck.renderStationList();
     });
-    $("#station-select-view").on("click", "#btn-scan-station", function () {
+    $("#station-select-view").on("click", ".btn-scan-station", function () {
       AssemblyMaterialCheck.doScan("input-station-filter", function () {
         AssemblyMaterialCheck.renderStationList();
       });
@@ -394,10 +398,10 @@ var AssemblyMaterialCheck = {
       if (Date.now() - AssemblyMaterialCheck.state.lastOrderActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.queryOrderInfo();
     });
-    $("#material-check-view").on("click", "#btn-search-order", function () {
+    $("#material-check-view").on("click", ".btn-search-order", function () {
       AssemblyMaterialCheck.queryOrderInfo();
     });
-    $("#material-check-view").on("click", "#btn-scan-order", function () {
+    $("#material-check-view").on("click", ".btn-scan-order", function () {
       AssemblyMaterialCheck.doScan("input-order-key", function () {
         AssemblyMaterialCheck.queryOrderInfo();
       });
@@ -417,20 +421,20 @@ var AssemblyMaterialCheck = {
       if (Date.now() - AssemblyMaterialCheck.state.lastMaterialActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
       AssemblyMaterialCheck.handleMaterialCheck();
     });
-    $("#material-check-view").on("click", "#btn-search-material", function () {
+    $("#material-check-view").on("click", ".btn-search-material", function () {
       AssemblyMaterialCheck.handleMaterialCheck();
     });
-    $("#material-check-view").on("click", "#btn-scan-material", function () {
+    $("#material-check-view").on("click", ".btn-scan-material", function () {
       AssemblyMaterialCheck.doScan("input-material-qr", function () {
         AssemblyMaterialCheck.handleMaterialCheck();
       });
     });
 
     // 底部按钮
-    $("#material-check-view").on("click", "#btn-check-complete", function () {
+    $("#material-check-view").on("click", ".btn-check-complete", function () {
       AssemblyMaterialCheck.checkComplete();
     });
-    $("#material-check-view").on("click", "#btn-back-station", function () {
+    $("#material-check-view").on("click", ".btn-back-station", function () {
       AssemblyMaterialCheck.backToStation();
     });
 
@@ -449,11 +453,6 @@ var AssemblyMaterialCheck = {
 
   // ============== 页面初始化 ==============
   initPage: function () {
-    // Portal 表单回车提交拦截：调用 Portal 内置方法（本地独立预览无此方法，先检测）
-    if (typeof window.Portal_OnDocumentKeyDown === "function") {
-      window.Portal_OnDocumentKeyDown();
-    }
-
     var now = AssemblyMaterialCheck.now;
     $("#header-time").text(now());
     setInterval(function () {

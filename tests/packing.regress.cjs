@@ -74,7 +74,7 @@ const JPEG_1PX = Buffer.from(
   await page.evaluate(() => {
     window.submitPacking = function (data, callback) { setTimeout(() => callback({ code: 0, msg: "装箱成功" }), 200); };
   });
-  await page.click("#btn-confirm");
+  await page.click(".btn-confirm");
   await page.waitForTimeout(1000);
   check("提交成功 toast", (await page.locator("#toast-title").textContent()) === "装箱成功");
   check("toast 详情行", (await page.locator("#toast-content .detail-row").count()) >= 6, "行数=" + (await page.locator("#toast-content .detail-row").count()));

@@ -47,12 +47,12 @@ const JPEG_1PX = Buffer.from(
 
   // ============ 3. 查询（S002：单模板自动选中） ============
   await page.fill("#input-order", "WO-2024-06001");
-  await page.click("#btn-query");
+  await page.click(".btn-query");
   await page.waitForTimeout(800);
   check("卡片克隆", (await page.locator(".photo-type-card").count()) === 4);
   check("表单卡片头显示", await page.locator("#btn-toggle-form").isVisible());
   check("订单信息区", await page.locator("#order-info-area").isVisible(), (await page.locator("#machine-code-value").textContent()));
-  check("按钮初始禁用", (await page.locator("#btn-confirm").isDisabled()) && (await page.locator("#btn-save").isDisabled()));
+  check("按钮初始禁用", (await page.locator(".btn-confirm").isDisabled()) && (await page.locator(".btn-save").isDisabled()));
 
   // ============ 4. 真实文件上传链路 ============
   await page.click(".photo-add");
@@ -81,7 +81,7 @@ const JPEG_1PX = Buffer.from(
   // ============ 7. 模板多态（S001 多模板） ============
   await page.evaluate(() => { NameplatePhotoUpload.selectStation("S001", "1号工位-外观检测"); });
   await page.fill("#input-order", "WO-2024-06001");
-  await page.click("#btn-query");
+  await page.click(".btn-query");
   await page.waitForTimeout(800);
   check("多模板未选态", await page.locator("#block-template-none").isVisible());
   await page.evaluate(() => { document.querySelector("#block-template-none .pick-template-btn").click(); });
@@ -102,8 +102,8 @@ const JPEG_1PX = Buffer.from(
     window.submitPhotoRecord = function (data, callback) { window.__captured.push(data); setTimeout(() => callback({ code: 0, msg: "ok" }), 200); };
   }, DATA_URI);
   await page.waitForTimeout(300);
-  check("照片齐全后按钮可用", !(await page.locator("#btn-save").isDisabled()) && !(await page.locator("#btn-confirm").isDisabled()));
-  await page.click("#btn-save");
+  check("照片齐全后按钮可用", !(await page.locator(".btn-save").isDisabled()) && !(await page.locator(".btn-confirm").isDisabled()));
+  await page.click(".btn-save");
   await page.waitForTimeout(400);
   check("保存无确认弹窗", (await page.locator("#template-confirm").isVisible()) === false);
   await page.waitForTimeout(800);
@@ -116,7 +116,7 @@ const JPEG_1PX = Buffer.from(
   // ============ 9. 提交AI检测（二次确认，saveType=submit） ============
   await page.evaluate(() => { NameplatePhotoUpload.selectStation("S001", "1号工位-外观检测"); });
   await page.fill("#input-order", "WO-2024-06001");
-  await page.click("#btn-query");
+  await page.click(".btn-query");
   await page.waitForTimeout(800);
   await page.evaluate((d) => {
     NameplatePhotoUpload.state.photos["appearance_front"] = [{ url: d }, { url: d }];
@@ -129,7 +129,7 @@ const JPEG_1PX = Buffer.from(
     NameplatePhotoUpload.renderPhotoTypeCards();
   }, DATA_URI);
   await page.waitForTimeout(300);
-  await page.click("#btn-confirm");
+  await page.click(".btn-confirm");
   await page.waitForTimeout(300);
   check("确认弹窗文案", (await page.locator("#confirm-content").textContent()) === "车辆所有工位铭牌是否全部上传");
   await page.click("#template-confirm .confirm-btn-ok");
@@ -143,7 +143,7 @@ const JPEG_1PX = Buffer.from(
   // ============ 10. 表单折叠（卡片头交互） ============
   await page.evaluate(() => { NameplatePhotoUpload.selectStation("S001", "1号工位-外观检测"); });
   await page.fill("#input-order", "WO-2024-06001");
-  await page.click("#btn-query");
+  await page.click(".btn-query");
   await page.waitForTimeout(800);
   await page.click("#btn-toggle-form");
   await page.waitForTimeout(300);

@@ -62,7 +62,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("跳转后聚焦订单输入", (await page.evaluate(() => document.activeElement.id)) === "input-order-key");
 
   // ============ 4. 返回工位页（列表/筛选保留） ============
-  await page.click("#btn-back-station");
+  await page.click(".btn-back-station");
   await page.waitForTimeout(300);
   check("返回工位视图", (await page.locator("#station-select-view").isVisible()) && !(await page.locator("#material-check-view").isVisible()));
   check("筛选与列表保留", (await page.locator("#input-station-filter").inputValue()) === "ZA" && (await page.locator(".station-item").count()) === 2);
@@ -142,7 +142,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("确定后不重复查询", (await page.evaluate(() => window.__orderQueryCount)) === 1 && !(await page.locator("#template-toast").isVisible()));
 
   // ============ 12. 检查完成：保留工位，其余重置 ============
-  await page.click("#btn-check-complete");
+  await page.click(".btn-check-complete");
   await page.waitForTimeout(300);
   check("完成保留工位", (await page.locator("#work-station-tag").textContent()) === "ZA01（总装一线-01）");
   check("完成清空订单信息", (await page.locator("#host-code-tag").textContent()) === "" && (await page.locator("#host-alias-tag").textContent()) === "");
@@ -150,7 +150,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("完成聚焦订单输入", (await page.evaluate(() => document.activeElement.id)) === "input-order-key");
 
   // ============ 13. 返回重新进入 ============
-  await page.click("#btn-back-station");
+  await page.click(".btn-back-station");
   await page.waitForTimeout(300);
   check("返回后列表保留", (await page.evaluate(() => document.activeElement.id)) === "input-station-filter" && (await page.locator(".station-item").count()) === 2);
 
