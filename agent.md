@@ -46,7 +46,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 横切 | 公共文件（eslint.config/工具/跨页同步组件） | **所有被波及子项目**全验证 |
 
 > 子项目互不影响：改动只在单页内时，只验证该页，不跑其他页回归。
-> 结构变更（骨架/模板/id 变化）**必须同步更新对应回归脚本**再重跑。
+> 结构变更（骨架/模板/class 变化）**必须同步更新对应回归脚本**再重跑。
 
 ### 4.2 步骤
 
@@ -112,7 +112,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 弹窗（toast/确认/模板选择/预览/loading） | 骨架常驻 HTML（hidden），JS 只显隐 + 填值 |
 
 - 赋值一律用 `.text()/.val()/.attr()`（天然防 XSS，**不需要转义函数**）
-- 列表/多态块中同功能按钮用 **class 委托**，禁止重复 id
+- 列表/多态块中同功能按钮用 **class 委托**，禁止重复标识（一个 class 只标识一个元素）
 
 ### 8.4 技术坑（工具/平台相关）
 
@@ -131,7 +131,8 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 
 - **禁止缩写标识符**：`cb`→`callback`、`tpl`→`template`、`pt`→`photoType`、`$dd`→`$dropdown`、`s`→`state`、`sid`→`sessionId` 等
 - 变量/函数/对象属性：用**完整单词或完整词组**（`sessionId`、`selectedTemplateId`、`renderOrderInfo`）
-- DOM id：完整语义词组（如 `machine-code-value`），**禁止拼凑缩写**（如 `machvin`）
+- DOM class：完整语义词组（如 `machine-code-value`），**禁止拼凑缩写**（如 `machvin`）
+- 禁止 id（§8.10）：元素定位只用 class
 - CSS 类名：`btn-`/`icon-` 等行业前缀可沿用，但类名主体用完整单词（新命名不缩写）
 - 循环变量允许 `i/j/k`（惯例），其余一律全称
 
@@ -160,12 +161,13 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - 拦截方式：页面**直接定义空实现的全局函数** `function Portal_OnDocumentKeyDown() {}` 即可（Portal 约定的页面钩子，定义即生效）；**不需要页面调用，也不需要写任何逻辑**，更不要覆盖成有副作用的实现
 - 页面自身对 Enter 的业务响应（搜索/确认）绑定在输入框自身的 **keydown** 事件；与该钩子职责分离，互不影响
 
-## 8.10 表单控件不支持 id 属性（平台约束）
+## 8.10 全面禁用 id（平台约束，一刀切）
 
-- SanyH5（Portal 表单环境）下 **表单控件（`button` / `input` / `select` / `textarea`）不保留 `id`**：写在控件上的 id 在运行页面里取不到，**控件一律不写 id、也不用 id 定位**
-- 控件一律用 **class 标识 + 事件委托**（与 §8.3 一致）：HTML 写 `class="search-input input-order-key"`，JS 用 `$(".input-order-key")`
-- 非控件元素（div / span / template 等）的 id 正常保留，可继续使用（§8.6 命名规范）
-- 排查线索：按钮点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用 id 定位了控件
+- SanyH5（Portal 表单环境）下 **id 属性一律不可用**：表单控件（button / input / select / textarea）的 id 在运行页面里取不到；页面**一律不写 id、不用 id 选择器**（含 div / span / template 等所有元素）
+- HTML 用 **class 标识**，JS / CSS 用 **class 选择器**，事件用 **class 委托**（§8.3）
+- `<template>` 用 class 标识，`cloneTemplate` 内部用 `document.querySelector("." + templateClassName)` 获取；工具函数（如扫码）接收 class 选择器而非 id
+- 唯一例外：mom-cert 第三方 HTML（只读、含大量第三方 id），其 index.js 只能按第三方 id 定位；此例外不扩散到自研页面
+- 排查线索：元素点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用了 id
 
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
@@ -190,7 +192,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
 - [ ] Portal 表单回车拦截符合 §8.9（定义空实现 `function Portal_OnDocumentKeyDown() {}`，不调用）
-- [ ] 表单控件符合 §8.10（button/input/select/textarea 不写 id，class 标识 + 事件委托）
+- [ ] 符合 §8.10（页面零 id，class 标识 + 事件委托，cloneTemplate 用 querySelector）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
 - [ ] 提交符合 §5（含验证摘要），工作区干净
 
