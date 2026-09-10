@@ -154,6 +154,25 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.waitForTimeout(300);
   check("返回后列表保留", (await page.evaluate(() => document.activeElement.id)) === "input-station-filter" && (await page.locator(".station-item").count()) === 2);
 
+  // ============ 14. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
+  await page.evaluate(() => {
+    document.getElementById("mom-assembly-material-check").remove();
+    window.__probe = { filtered: null, initError: null };
+    try {
+      window.__probe.filtered = AssemblyMaterialCheck.getFilteredStations().length;
+    } catch (e) {
+      window.__probe.filtered = "throw:" + e.message;
+    }
+    try {
+      AssemblyMaterialCheck.initPage();
+    } catch (e) {
+      window.__probe.initError = "throw:" + e.message;
+    }
+  });
+  await page.waitForTimeout(300);
+  check("容器缺失时筛选不崩", typeof (await page.evaluate(() => window.__probe.filtered)) === "number");
+  check("容器缺失时初始化不崩", (await page.evaluate(() => window.__probe.initError)) === null);
+
   // ============ 汇总 ============
   console.log("----");
   console.log("JS错误数:", errors.length);
