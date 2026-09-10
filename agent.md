@@ -119,6 +119,8 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - **`cloneTemplate` 必须取 `firstElementChild`**：`$(fragment)` 上 `.data()` 存在 DocumentFragment 节点，append 进 DOM 后元素读不到 → 模板必须单根结构
 - **`.hidden`（display:none !important）与 jQuery `show()/hide()/toggle()` 冲突**：统一用 `addClass/removeClass/toggleClass("hidden")`
 - **骨架常驻后的事件策略**：动态克隆元素一律委托绑定；弹窗回调数据挂 `.data()`；预览缩放等实例状态每次打开先 `off()` 再 `on()` 重新绑定
+- **禁止用失焦（blur / focusout）触发业务动作**：移动端与表单宿主下失焦时机不可靠，且与按钮点击抢事件（点击按钮会先失焦）；业务动作只由 **回车 / 按钮 / 扫码** 触发
+- 回车处理统一入口：委托在页面根容器上按输入框 class 分派，并跳过输入法组字中的回车（`isComposing` 或 `keyCode === 229`）
 - 页面初次渲染（初始显隐状态）必须在 `initPage` 中显式执行一次
 
 ### 8.5 UI 一致性规范（用户确认的交互标准）

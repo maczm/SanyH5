@@ -286,7 +286,7 @@ window.assemblyMaterialCheck_getWorkStationList(callback)
 ### API-AM2：查询订单信息
 
 ```js
-window.assemblyMaterialCheck_getWipOrderNoInfo({ serachKey }, callback)
+window.assemblyMaterialCheck_getWipOrderNoInfo({ serachKey, workStation }, callback)
 ```
 
 **入参**
@@ -294,6 +294,7 @@ window.assemblyMaterialCheck_getWipOrderNoInfo({ serachKey }, callback)
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `serachKey` | string | 是 | 订单号或 VIN（手动输入或扫码） |
+| `workStation` | string | 是 | 当前检查工位编码（工位选择页带入） |
 
 > 字段名 `serachKey` 按业务提供方原文保留（疑似 `searchKey` 拼写，待 Portal 侧确认后统一）。
 
