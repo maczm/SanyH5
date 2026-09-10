@@ -19,8 +19,8 @@ var NameplateCheckResult = {
   _initRetryCount: 0,
 
   // ============== 模板克隆 ==============
-  cloneTemplate: function (id) {
-    var fragment = document.getElementById(id).content.cloneNode(true);
+  cloneTemplate: function (templateClassName) {
+    var fragment = document.querySelector("." + templateClassName).content.cloneNode(true);
     return $(fragment.firstElementChild);
   },
 
@@ -96,7 +96,7 @@ var NameplateCheckResult = {
   // ============== 页面初始化 ==============
   initPage: function () {
     // Portal 表单环境：HTML 片段可能晚于 JS 就绪注入，先等根容器出现再初始化（选择器空集合会崩）
-    if (!$("#mom-check-result").length) {
+    if (!$(".mom-check-result").length) {
       NameplateCheckResult._initRetryCount++;
       if (NameplateCheckResult._initRetryCount > 100) return;
       setTimeout(function () {
@@ -110,9 +110,9 @@ var NameplateCheckResult = {
       var pad = function (n) { return n < 10 ? "0" + n : n; };
       return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
     }
-    $("#header-time").text(now());
+    $(".header-time").text(now());
     setInterval(function () {
-      $("#header-time").text(now());
+      $(".header-time").text(now());
     }, 1000);
 
     NameplateCheckResult.renderResult();
@@ -138,7 +138,7 @@ var NameplateCheckResult = {
     }
     var data = (payload && payload.data) ? payload.data : payload;
 
-    var $body = $("#result-body");
+    var $body = $(".result-body");
     $body.empty();
 
     if (!data) {
@@ -200,7 +200,7 @@ var NameplateCheckResult = {
   showEmptyState: function (message) {
     var $empty = NameplateCheckResult.cloneTemplate("template-empty-state");
     $empty.find("p").text(message);
-    $("#result-body").html($empty);
+    $(".result-body").html($empty);
   },
 
   // ============== 任务状态横幅（待处理/处理中/失败） ==============

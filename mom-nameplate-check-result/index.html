@@ -10,19 +10,19 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div id="mom-check-result" class="app-container">
+    <div class="app-container mom-check-result">
       <!-- ==================== 页面头部 ==================== -->
       <div class="page-header">
         <span class="header-title">铭牌检查结果</span>
-        <span class="header-time" id="header-time"></span>
+        <span class="header-time"></span>
       </div>
 
       <!-- ==================== 结果内容区（banner/卡片由模板克隆渲染） ==================== -->
-      <div class="result-body" id="result-body"></div>
+      <div class="result-body"></div>
 
       <!-- ==================== 循环结构模板 ==================== -->
       <!-- 任务状态横幅（待处理/处理中/失败） -->
-      <template id="template-task-banner">
+      <template class="template-task-banner">
         <div class="status-banner processing">
           <div class="sb-icon"><span class="sb-spinner"></span></div>
           <div class="sb-title"></div>
@@ -34,7 +34,7 @@
         </div>
       </template>
       <!-- 整体结论横幅（通过/不通过/不确定/需重试 + 统计） -->
-      <template id="template-status-banner">
+      <template class="template-status-banner">
         <div class="status-banner">
           <div class="sb-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"></svg>
@@ -50,7 +50,7 @@
         </div>
       </template>
       <!-- 检查项卡片 -->
-      <template id="template-check-card">
+      <template class="template-check-card">
         <div class="check-card">
           <div class="check-card-header">
             <div class="check-title-wrap">
@@ -67,7 +67,7 @@
         </div>
       </template>
       <!-- 字段明细行 -->
-      <template id="template-field-row">
+      <template class="template-field-row">
         <div class="field-row">
           <div class="field-label-wrap">
             <span class="field-name-cn"></span>
@@ -93,14 +93,14 @@
         </div>
       </template>
       <!-- 空态提示 -->
-      <template id="template-empty-state">
+      <template class="template-empty-state">
         <div class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           <p></p>
         </div>
       </template>
       <!-- 统计 chip（通过/未通过/跳过） -->
-      <template id="template-sum-chip">
+      <template class="template-sum-chip">
         <span class="sum-chip"><b></b></span>
       </template>
 
