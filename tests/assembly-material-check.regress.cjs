@@ -48,7 +48,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.waitForTimeout(300);
   check("清筛选后恢复 2 项", (await page.locator(".station-item").count()) === 2);
 
-  // ============ 3. 方向键选择 + 回车跳转 ============
+  // ============ 3. 方向键选择 + 回车只筛选不跳转 ============
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(200);
   check("方向键选中第一项", (await page.locator(".station-item.selected").count()) === 1 && (await page.locator(".station-item.selected").textContent()).indexOf("ZA01") !== -1);
@@ -57,22 +57,28 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("方向键选中第二项", (await page.locator(".station-item.selected").textContent()).indexOf("ZA02") !== -1);
   await page.keyboard.press("Enter");
   await page.waitForTimeout(400);
-  check("回车跳转物料检查页", await page.locator(".material-check-view").isVisible());
+  check("回车不跳转", !(await page.locator(".material-check-view").isVisible()) && (await page.locator(".station-select-view").isVisible()));
+  check("回车只筛选", (await page.locator(".station-item").count()) === 2 && (await page.locator(".input-station-filter").inputValue()) === "ZA");
+
+  // ============ 4. 点击工位跳转进入检查页 ============
+  await page.click(".station-item >> nth=1");
+  await page.waitForTimeout(400);
+  check("点击跳转物料检查页", await page.locator(".material-check-view").isVisible());
   check("工位 tag", (await page.locator(".work-station-tag").textContent()) === "ZA02（总装一线-02）");
   check("跳转后聚焦订单输入", (await page.evaluate(() => document.activeElement.classList.contains("input-order-key"))));
 
-  // ============ 4. 返回工位页（列表/筛选保留） ============
+  // ============ 5. 返回工位页（列表/筛选保留） ============
   await page.click(".btn-back-station");
   await page.waitForTimeout(300);
   check("返回工位视图", (await page.locator(".station-select-view").isVisible()) && !(await page.locator(".material-check-view").isVisible()));
   check("筛选与列表保留", (await page.locator(".input-station-filter").inputValue()) === "ZA" && (await page.locator(".station-item").count()) === 2);
 
-  // ============ 5. 点击工位跳转 ============
+  // ============ 6. 重新点击第一项进入（工位 tag 更新） ============
   await page.click(".station-item >> nth=0");
   await page.waitForTimeout(300);
   check("点击跳转工位 tag", (await page.locator(".work-station-tag").textContent()) === "ZA01（总装一线-01）");
 
-  // ============ 6. 订单查询（回车触发，请求带当前工位） ============
+  // ============ 7. 订单查询（回车触发，请求带当前工位） ============
   await page.evaluate(() => {
     window.__orderRequests = [];
     window.__materialRequests = [];
@@ -100,7 +106,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   const orderRequest0 = await page.evaluate(() => window.__orderRequests[0]);
   check("查询请求带工位", orderRequest0 && orderRequest0.serachKey === "WO20260824001" && orderRequest0.workStation === "ZA01");
 
-  // ============ 7. BOM 内物料：pass + 保存 + 清空重聚焦 ============
+  // ============ 8. BOM 内物料：pass + 保存 + 清空重聚焦 ============
   await page.fill(".input-material-qr", "MAT-BOLT-001|供应商A|SN001:2");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);

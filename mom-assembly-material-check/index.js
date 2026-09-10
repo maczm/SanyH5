@@ -378,12 +378,13 @@ var AssemblyMaterialCheck = {
       if (e.key !== "Enter") return;
 
       e.preventDefault();
-      if ($input.hasClass("input-station-filter")) {
-        AssemblyMaterialCheck.jumpToMaterialCheck();
-      } else if ($input.hasClass("input-order-key")) {
+      if ($input.hasClass("input-order-key")) {
         AssemblyMaterialCheck.queryOrderInfo();
       } else if ($input.hasClass("input-material-qr")) {
         AssemblyMaterialCheck.handleMaterialCheck();
+      } else if ($input.hasClass("input-station-filter")) {
+        // 工位页回车只筛选，不跳转（进检查页靠点击工位卡片）
+        AssemblyMaterialCheck.renderStationList();
       }
     });
 
