@@ -160,12 +160,12 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - 拦截方式：页面**直接定义空实现的全局函数** `function Portal_OnDocumentKeyDown() {}` 即可（Portal 约定的页面钩子，定义即生效）；**不需要页面调用，也不需要写任何逻辑**，更不要覆盖成有副作用的实现
 - 页面自身对 Enter 的业务响应（搜索/确认）绑定在输入框自身的 **keydown** 事件；与该钩子职责分离，互不影响
 
-## 8.10 button 不支持 id 属性（平台约束）
+## 8.10 表单控件不支持 id 属性（平台约束）
 
-- SanyH5（Portal 表单环境）下 **`<button>` 不支持 `id` 属性**：写在 button 上的 id 不生效，**按钮一律不写 id**
-- 按钮一律用 **class 标识 + 事件委托**绑定（与 §8.3 一致）：HTML 写 `class="icon-btn btn-scan-order"`，JS 用 `$("#form-area").on("click", ".btn-scan-order", ...)`
-- 非按钮元素（input / div / span / template 等）继续用 id（§8.6 命名规范），不受此限
-- 排查线索：按钮点击无响应、选择器取不到按钮 → 先检查是否为 button 写了 id
+- SanyH5（Portal 表单环境）下 **表单控件（`button` / `input` / `select` / `textarea`）不保留 `id`**：写在控件上的 id 在运行页面里取不到，**控件一律不写 id、也不用 id 定位**
+- 控件一律用 **class 标识 + 事件委托**（与 §8.3 一致）：HTML 写 `class="search-input input-order-key"`，JS 用 `$(".input-order-key")`
+- 非控件元素（div / span / template 等）的 id 正常保留，可继续使用（§8.6 命名规范）
+- 排查线索：按钮点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用 id 定位了控件
 
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
@@ -190,7 +190,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
 - [ ] Portal 表单回车拦截符合 §8.9（定义空实现 `function Portal_OnDocumentKeyDown() {}`，不调用）
-- [ ] 按钮符合 §8.10（button 不写 id，class 标识 + 事件委托）
+- [ ] 表单控件符合 §8.10（button/input/select/textarea 不写 id，class 标识 + 事件委托）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
 - [ ] 提交符合 §5（含验证摘要），工作区干净
 
