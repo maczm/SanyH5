@@ -157,10 +157,15 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 ## 8.9 Portal 表单粘贴：回车提交拦截（平台约束）
 
 - 页面以 index.html / index.js / index.css 三文件交付；生产侧将代码**按 html/js/css 三段粘贴进 Portal 表单页**，页面处于 form 上下文：输入框内按回车会默认提交表单、整页刷新，必须拦截
-- **`Portal_OnDocumentKeyDown` 是 Portal 已内置的表单回车拦截方法**：页面不定义、不覆盖，只在页面初始化时调用一次，即可消除回车提交刷新
-- 调用方式（本地独立预览无此方法，必须 typeof 检测兜底）：
-  `if (typeof window.Portal_OnDocumentKeyDown === "function") { window.Portal_OnDocumentKeyDown(); }`
-- 页面自身对 Enter 的业务响应（搜索/确认）绑定在输入框自身的 **keydown** 事件；与拦截方法职责分离，互不影响
+- 拦截方式：页面**直接定义空实现的全局函数** `function Portal_OnDocumentKeyDown() {}` 即可（Portal 约定的页面钩子，定义即生效）；**不需要页面调用，也不需要写任何逻辑**，更不要覆盖成有副作用的实现
+- 页面自身对 Enter 的业务响应（搜索/确认）绑定在输入框自身的 **keydown** 事件；与该钩子职责分离，互不影响
+
+## 8.10 button 不支持 id 属性（平台约束）
+
+- SanyH5（Portal 表单环境）下 **`<button>` 不支持 `id` 属性**：写在 button 上的 id 不生效，**按钮一律不写 id**
+- 按钮一律用 **class 标识 + 事件委托**绑定（与 §8.3 一致）：HTML 写 `class="icon-btn btn-scan-order"`，JS 用 `$("#form-area").on("click", ".btn-scan-order", ...)`
+- 非按钮元素（input / div / span / template 等）继续用 id（§8.6 命名规范），不受此限
+- 排查线索：按钮点击无响应、选择器取不到按钮 → 先检查是否为 button 写了 id
 
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
@@ -184,7 +189,8 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] Mock/演示数据符合 §8.8（独立 mock.js，业务 JS 零内联）
 - [ ] 骨架符合 §8.3/§9（HTML 骨架 + template + JS 赋值，零拼接）
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
-- [ ] Portal 表单回车拦截符合 §8.9（初始化调用 `Portal_OnDocumentKeyDown()`，本地预览 typeof 兜底）
+- [ ] Portal 表单回车拦截符合 §8.9（定义空实现 `function Portal_OnDocumentKeyDown() {}`，不调用）
+- [ ] 按钮符合 §8.10（button 不写 id，class 标识 + 事件委托）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
 - [ ] 提交符合 §5（含验证摘要），工作区干净
 
