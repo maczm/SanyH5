@@ -355,8 +355,21 @@ var AssemblyMaterialCheck = {
     }, 0);
   },
 
+  // ============== 页面尺寸（表单宿主无高度链时按视口自适应，避免整页滚动条） ==============
+  fitPageHeight: function () {
+    var $root = $("#mom-assembly-material-check");
+    if (!$root.length) return;
+    var availableHeight = $(window).height() - $root.offset().top;
+    $root.css("height", Math.max(240, availableHeight) + "px");
+  },
+
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
+    // 平台 document 级按键拦截会吞掉页面输入：在页面根部阻断冒泡（本页 Enter 已自行 preventDefault）
+    $("#mom-assembly-material-check").on("keydown keypress keyup", "input", function (e) {
+      e.stopPropagation();
+    });
+
     // 工位筛选：失焦不触发任何动作，仅 输入/方向键/回车/按钮 交互
     $("#station-select-view").on("input", "#input-station-filter", function () {
       AssemblyMaterialCheck.renderStationList();
@@ -471,6 +484,10 @@ var AssemblyMaterialCheck = {
     }, 1000);
 
     AssemblyMaterialCheck.initEvents();
+    AssemblyMaterialCheck.fitPageHeight();
+    $(window).on("resize", function () {
+      AssemblyMaterialCheck.fitPageHeight();
+    });
     setTimeout(function () {
       $("#input-station-filter").focus();
     }, 0);
