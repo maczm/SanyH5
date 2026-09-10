@@ -11,7 +11,9 @@ function Portal_OnDocumentKeyDown() {}
 // ============== 应用命名空间 ==============
 var AssemblyMaterialCheck = {
   API_TIMEOUT: 10000,
-  BLUR_GUARD_MS: 800,
+
+  // 扫码按钮开关：false 时隐藏全部扫码按钮（改这一行即可切换）
+  SCAN_BUTTON_ENABLED: true,
 
   state: {
     stations: [],
@@ -20,9 +22,6 @@ var AssemblyMaterialCheck = {
     workStation: "",
     workStationDesc: "",
     orderInfo: null,
-    lastQueriedOrderKey: "",
-    lastOrderActionAt: 0,
-    lastMaterialActionAt: 0,
   },
 
   _loadingCount: 0,
@@ -122,8 +121,6 @@ var AssemblyMaterialCheck = {
     var state = AssemblyMaterialCheck.state;
     state.workStation = workStation;
     state.workStationDesc = workStationDesc || "";
-    state.lastOrderActionAt = Date.now();
-    state.lastMaterialActionAt = Date.now();
     $(".work-station-tag").text(workStation + "（" + state.workStationDesc + "）");
     AssemblyMaterialCheck.resetCheckForm();
     $(".station-select-view").addClass("hidden");
@@ -134,14 +131,17 @@ var AssemblyMaterialCheck = {
   },
 
   backToStation: function () {
-    // 记录动作时间：屏蔽视图切换时输入框失焦触发的误动作
-    AssemblyMaterialCheck.state.lastOrderActionAt = Date.now();
-    AssemblyMaterialCheck.state.lastMaterialActionAt = Date.now();
     $(".material-check-view").addClass("hidden");
     $(".station-select-view").removeClass("hidden");
     setTimeout(function () {
       $(".input-station-filter").focus();
     }, 0);
+  },
+
+  /** 扫码按钮开关：关闭时隐藏全部扫码按钮（配置见 SCAN_BUTTON_ENABLED） */
+  applyScanButtonSwitch: function () {
+    var enabled = AssemblyMaterialCheck.SCAN_BUTTON_ENABLED;
+    $(".btn-scan-station, .btn-scan-order, .btn-scan-material").toggleClass("hidden", !enabled);
   },
 
   // ============== 工位选择视图 ==============
@@ -221,9 +221,7 @@ var AssemblyMaterialCheck = {
 
   // ============== 物料检查视图 ==============
   resetCheckForm: function () {
-    var state = AssemblyMaterialCheck.state;
-    state.orderInfo = null;
-    state.lastQueriedOrderKey = "";
+    AssemblyMaterialCheck.state.orderInfo = null;
     $(".plan-start-time-tag").text("");
     $(".month-sequence-tag").text("");
     $(".host-code-tag").text("");
@@ -234,6 +232,7 @@ var AssemblyMaterialCheck = {
     $(".empty-check-result").removeClass("hidden");
   },
 
+  /** 查询订单信息：请求带当前工位（workStation）+ 订单号/VIN 检索键 */
   queryOrderInfo: function () {
     var state = AssemblyMaterialCheck.state;
     var searchKey = ($(".input-order-key").val() || "").trim();
@@ -241,30 +240,31 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.showToast("提示", "请输入订单号或VIN", "error");
       return;
     }
-    state.lastOrderActionAt = Date.now();
     AssemblyMaterialCheck.showLoading("查询订单中...");
-    AssemblyMaterialCheck.apiCall(window.assemblyMaterialCheck_getWipOrderNoInfo, [{ serachKey: searchKey }], function (res) {
-      AssemblyMaterialCheck.hideLoading();
-      if (res.code !== 0) {
-        AssemblyMaterialCheck.showToast("查询失败", res.msg || "查询订单信息失败", "error");
-        return;
-      }
-      var orderInfo = res.data || {};
-      state.orderInfo = orderInfo;
-      state.lastQueriedOrderKey = searchKey;
-      $(".plan-start-time-tag").text(orderInfo.wipPlanStartTime || "");
-      $(".month-sequence-tag").text(orderInfo.monthSequence || "");
-      $(".host-code-tag").text(orderInfo.hostCode || "");
-      $(".host-alias-tag").text(orderInfo.hostAlias || "");
-      $(".check-result-area .check-result-row").remove();
-      $(".empty-check-result").removeClass("hidden");
-      $(".input-material-qr").val("");
-      // 查询成功：聚焦物料二维码，开启连续扫码（先标记动作时间，屏蔽失焦误触发）
-      state.lastMaterialActionAt = Date.now();
-      setTimeout(function () {
-        $(".input-material-qr").focus();
-      }, 0);
-    });
+    AssemblyMaterialCheck.apiCall(
+      window.assemblyMaterialCheck_getWipOrderNoInfo,
+      [{ serachKey: searchKey, workStation: state.workStation }],
+      function (res) {
+        AssemblyMaterialCheck.hideLoading();
+        if (res.code !== 0) {
+          AssemblyMaterialCheck.showToast("查询失败", res.msg || "查询订单信息失败", "error");
+          return;
+        }
+        var orderInfo = res.data || {};
+        state.orderInfo = orderInfo;
+        $(".plan-start-time-tag").text(orderInfo.wipPlanStartTime || "");
+        $(".month-sequence-tag").text(orderInfo.monthSequence || "");
+        $(".host-code-tag").text(orderInfo.hostCode || "");
+        $(".host-alias-tag").text(orderInfo.hostAlias || "");
+        $(".check-result-area .check-result-row").remove();
+        $(".empty-check-result").removeClass("hidden");
+        $(".input-material-qr").val("");
+        // 查询成功：聚焦物料二维码，开启连续扫码
+        setTimeout(function () {
+          $(".input-material-qr").focus();
+        }, 0);
+      },
+    );
   },
 
   isInOrderBom: function (materialCode) {
@@ -285,7 +285,6 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.showToast("提示", "请输入或扫码物料二维码", "error");
       return;
     }
-    state.lastMaterialActionAt = Date.now();
     var materialCode = qrText.split("|")[0];
     AssemblyMaterialCheck.showLoading("查询物料中...");
     AssemblyMaterialCheck.apiCall(window.assemblyMaterialCheck_getMaterialInfo, [{ material: materialCode }], function (res) {
@@ -341,14 +340,12 @@ var AssemblyMaterialCheck = {
         return;
       }
       // 保存成功：清空二维码并保持聚焦，连续扫码
-      state.lastMaterialActionAt = Date.now();
       $(".input-material-qr").val("");
       $(".input-material-qr").focus();
     });
   },
 
   checkComplete: function () {
-    AssemblyMaterialCheck.state.lastMaterialActionAt = Date.now();
     AssemblyMaterialCheck.resetCheckForm();
     setTimeout(function () {
       $(".input-order-key").focus();
@@ -365,18 +362,34 @@ var AssemblyMaterialCheck = {
 
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
-    // 工位筛选：失焦不触发任何动作，仅 输入/方向键/回车/按钮 交互
+    // 键盘统一入口：工位筛选方向键移动高亮；回车按当前输入框触发对应动作（输入法组字中的回车不响应）
+    $(".mom-assembly-material-check").on("keydown", "input", function (e) {
+      var $input = $(this);
+      var originalEvent = e.originalEvent || e;
+      if (originalEvent.isComposing || e.keyCode === 229) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if ($input.hasClass("input-station-filter")) {
+          e.preventDefault();
+          AssemblyMaterialCheck.moveStationSelection(e.key);
+        }
+        return;
+      }
+      if (e.key !== "Enter") return;
+
+      e.preventDefault();
+      if ($input.hasClass("input-station-filter")) {
+        AssemblyMaterialCheck.jumpToMaterialCheck();
+      } else if ($input.hasClass("input-order-key")) {
+        AssemblyMaterialCheck.queryOrderInfo();
+      } else if ($input.hasClass("input-material-qr")) {
+        AssemblyMaterialCheck.handleMaterialCheck();
+      }
+    });
+
+    // 工位筛选：实时筛选 + 卡片点击选择（失焦不触发任何动作）
     $(".station-select-view").on("input", ".input-station-filter", function () {
       AssemblyMaterialCheck.renderStationList();
-    });
-    $(".station-select-view").on("keydown", ".input-station-filter", function (e) {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        AssemblyMaterialCheck.moveStationSelection(e.key);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        AssemblyMaterialCheck.jumpToMaterialCheck();
-      }
     });
     $(".station-select-view").on("click", ".station-item", function () {
       var station = AssemblyMaterialCheck.state.filteredStations[$(this).data("index")];
@@ -393,21 +406,7 @@ var AssemblyMaterialCheck = {
       });
     });
 
-    // 物料检查：回车/失焦即触发对应动作
-    $(".material-check-view").on("keydown", ".input-order-key", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        AssemblyMaterialCheck.queryOrderInfo();
-      }
-    });
-    $(".material-check-view").on("focusout", ".input-order-key", function () {
-      var value = ($(".input-order-key").val() || "").trim();
-      if (!value || value === AssemblyMaterialCheck.state.lastQueriedOrderKey) return;
-      // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
-      if (!$(".template-toast").hasClass("hidden")) return;
-      if (Date.now() - AssemblyMaterialCheck.state.lastOrderActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
-      AssemblyMaterialCheck.queryOrderInfo();
-    });
+    // 物料检查：动作只由 回车/搜索按钮/扫码按钮 触发
     $(".material-check-view").on("click", ".btn-search-order", function () {
       AssemblyMaterialCheck.queryOrderInfo();
     });
@@ -415,21 +414,6 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.doScan(".input-order-key", function () {
         AssemblyMaterialCheck.queryOrderInfo();
       });
-    });
-
-    $(".material-check-view").on("keydown", ".input-material-qr", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        AssemblyMaterialCheck.handleMaterialCheck();
-      }
-    });
-    $(".material-check-view").on("focusout", ".input-material-qr", function () {
-      var value = ($(".input-material-qr").val() || "").trim();
-      if (!value) return;
-      // Toast 弹层期间点击遮罩/确定会先夺焦点触发失焦，此时不重复调用
-      if (!$(".template-toast").hasClass("hidden")) return;
-      if (Date.now() - AssemblyMaterialCheck.state.lastMaterialActionAt < AssemblyMaterialCheck.BLUR_GUARD_MS) return;
-      AssemblyMaterialCheck.handleMaterialCheck();
     });
     $(".material-check-view").on("click", ".btn-search-material", function () {
       AssemblyMaterialCheck.handleMaterialCheck();
@@ -448,7 +432,7 @@ var AssemblyMaterialCheck = {
       AssemblyMaterialCheck.backToStation();
     });
 
-    // 按钮按下不夺焦点：避免先触发输入框失焦动作，再执行按钮动作的重复执行
+    // 按钮按下不夺焦点，避免点击时输入框闪失焦
     $(".icon-btn, .btn-check-complete, .btn-back-station").on("mousedown", function (e) {
       e.preventDefault();
     });
@@ -480,6 +464,7 @@ var AssemblyMaterialCheck = {
     }, 1000);
 
     AssemblyMaterialCheck.initEvents();
+    AssemblyMaterialCheck.applyScanButtonSwitch();
     AssemblyMaterialCheck.fitPageHeight();
     $(window).on("resize", function () {
       AssemblyMaterialCheck.fitPageHeight();
