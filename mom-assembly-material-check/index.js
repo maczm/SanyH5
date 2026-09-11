@@ -266,7 +266,8 @@ var AssemblyMaterialCheck = {
         }
         var orderInfo = res.data || {};
         state.orderInfo = orderInfo;
-        $(".plan-start-time-tag").text(orderInfo.wipPlanStartTime || "");
+        // 计划上线时间只显示到天（接口可能带时分秒：2026-08-24 08:30:00 或 2026-08-24T08:30:00）
+        $(".plan-start-time-tag").text((orderInfo.wipPlanStartTime || "").replace("T", " ").split(" ")[0]);
         $(".month-sequence-tag").text(orderInfo.monthSequence || "");
         $(".host-code-tag").text(orderInfo.hostCode || "");
         $(".host-alias-tag").text(orderInfo.hostAlias || "");
