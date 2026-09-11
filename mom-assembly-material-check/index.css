@@ -287,6 +287,23 @@ body {
 .mom-assembly-material-check .check-result-row .cr-join {
   color: var(--text-muted);
 }
+/* 结果徽标：与结果同行的独立小块（成功/失败） */
+.mom-assembly-material-check .check-result-row .cr-result-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.mom-assembly-material-check .check-result-row.pass .cr-result-badge {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+.mom-assembly-material-check .check-result-row.fail .cr-result-badge {
+  background: #fce8e6;
+  color: var(--error);
+}
 .mom-assembly-material-check .check-result-row.pass {
   color: #1e7e34;
   border-left-color: var(--success);

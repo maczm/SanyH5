@@ -75,6 +75,7 @@
                 type="text"
                 placeholder="扫码或输入：物料编码|供应商|序列号:数量"
                 autocomplete="off"
+                readonly
               />
               <button type="button" class="icon-btn btn-search btn-search-material" aria-label="搜索物料">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -124,6 +125,7 @@
       </template>
       <template class="template-check-result-row">
         <div class="check-result-row">
+          <span class="cr-result-badge"></span>
           <span class="cr-material-code"></span>
           <span class="cr-join">-</span>
           <span class="cr-material-desc"></span>

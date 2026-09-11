@@ -228,8 +228,17 @@ var AssemblyMaterialCheck = {
     $(".host-alias-tag").text("");
     $(".input-order-key").val("");
     $(".input-material-qr").val("");
+    AssemblyMaterialCheck.lockMaterialInput();
     $(".check-result-area .check-result-row").remove();
     $(".empty-check-result").removeClass("hidden");
+  },
+
+  /**
+   * 二维码输入框只读锁：程序化聚焦不弹键盘，只有手动点击时才解锁（解锁绑定见 initEvents）。
+   * 连续扫码走 OpenCamera 赋值，不依赖键盘输入。
+   */
+  lockMaterialInput: function () {
+    $(".input-material-qr").prop("readonly", true);
   },
 
   /** 查询订单信息：请求带当前工位（workStation）+ 订单号/VIN 检索键 */
@@ -259,7 +268,8 @@ var AssemblyMaterialCheck = {
         $(".check-result-area .check-result-row").remove();
         $(".empty-check-result").removeClass("hidden");
         $(".input-material-qr").val("");
-        // 查询成功：聚焦物料二维码，开启连续扫码
+        // 查询成功：只读状态下聚焦二维码（不弹键盘），开启连续扫码
+        AssemblyMaterialCheck.lockMaterialInput();
         setTimeout(function () {
           $(".input-material-qr").focus();
         }, 0);
@@ -312,6 +322,7 @@ var AssemblyMaterialCheck = {
   appendCheckRow: function (materialCode, materialDesc, checkResult) {
     var $row = AssemblyMaterialCheck.cloneTemplate("template-check-result-row");
     $row.addClass(checkResult === "pass" ? "pass" : "fail");
+    $row.find(".cr-result-badge").text(checkResult === "pass" ? "成功" : "失败");
     $row.find(".cr-material-code").text(materialCode);
     $row.find(".cr-material-desc").text(materialDesc);
     $row.find(".cr-check-time").text(AssemblyMaterialCheck.now());
@@ -339,9 +350,12 @@ var AssemblyMaterialCheck = {
         AssemblyMaterialCheck.showToast("保存失败", res.msg || "保存检查结果失败", "error");
         return;
       }
-      // 保存成功：清空二维码并保持聚焦，连续扫码
-      $(".input-material-qr").val("");
-      $(".input-material-qr").focus();
+      // 保存成功：清空二维码、收回键盘并重新聚焦，准备扫下一个（只读聚焦不弹键盘）
+      $(".input-material-qr").val("").blur();
+      AssemblyMaterialCheck.lockMaterialInput();
+      setTimeout(function () {
+        $(".input-material-qr").focus();
+      }, 0);
     });
   },
 
@@ -408,6 +422,10 @@ var AssemblyMaterialCheck = {
     });
 
     // 物料检查：动作只由 回车/搜索按钮/扫码按钮 触发
+    // 二维码输入框：默认只读（程序化聚焦不弹键盘），仅手动点击时解锁
+    $(".material-check-view").on("mousedown touchstart", ".input-material-qr", function () {
+      $(this).prop("readonly", false);
+    });
     $(".material-check-view").on("click", ".btn-search-order", function () {
       AssemblyMaterialCheck.queryOrderInfo();
     });
