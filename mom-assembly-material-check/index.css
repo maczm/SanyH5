@@ -507,6 +507,123 @@ body {
   background: var(--primary-dark);
 }
 
+/* ==================== 小屏（工业 PDA）紧凑排布 ==================== */
+/* 结果行：编码与描述都可收缩省略号，时间固定不被顶出（窄屏换行见媒体查询） */
+.mom-assembly-material-check .check-result-row .cr-material-code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mom-assembly-material-check .check-result-row .cr-check-time {
+  flex-shrink: 0;
+}
+
+/* 屏窄（≤420px）或屏矮（≤600px）时压缩排布，元素全部保留 */
+@media (max-width: 420px), (max-height: 600px) {
+  .mom-assembly-material-check .page-header {
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .mom-assembly-material-check .page-header .header-title {
+    font-size: 14px;
+  }
+  .mom-assembly-material-check .page-header .header-time {
+    font-size: 11px;
+  }
+
+  .mom-assembly-material-check .check-form-area {
+    padding: 6px 10px;
+  }
+  .mom-assembly-material-check .check-form-row {
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 0;
+  }
+  .mom-assembly-material-check .check-form-label {
+    width: 72px;
+    font-size: 12px;
+  }
+  .mom-assembly-material-check .input-row {
+    gap: 6px;
+  }
+  .mom-assembly-material-check .search-input {
+    height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+  .mom-assembly-material-check .icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+  .mom-assembly-material-check .icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .mom-assembly-material-check .info-tag {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  /* 信息 4 项：2 列 × 2 行栅格（标签在上、值在下） */
+  .mom-assembly-material-check .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+  }
+  .mom-assembly-material-check .info-grid .check-form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-height: 0;
+  }
+  .mom-assembly-material-check .info-grid .check-form-label {
+    width: auto;
+    font-size: 11px;
+  }
+  .mom-assembly-material-check .info-grid .info-tag {
+    max-width: 100%;
+  }
+
+  /* 结果行两行：徽标 + 编码 + 时间 / 描述 */
+  .mom-assembly-material-check .check-result-area {
+    padding: 8px 10px;
+  }
+  .mom-assembly-material-check .check-result-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 9px 10px;
+  }
+  .mom-assembly-material-check .check-result-row .cr-material-desc {
+    flex: 1 0 100%;
+    order: 9;
+  }
+  .mom-assembly-material-check .check-result-row .cr-join {
+    display: none;
+  }
+
+  .mom-assembly-material-check .bottom-action-area {
+    gap: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  .mom-assembly-material-check .btn-check-complete,
+  .mom-assembly-material-check .btn-back-station {
+    padding: 12px;
+    font-size: 15px;
+  }
+}
+
+/* 超矮屏（≤520px）：表单区可滚动、结果区保底高度，保证结果与按钮恒可见 */
+@media (max-height: 520px) {
+  .mom-assembly-material-check .check-form-area {
+    flex-shrink: 1;
+    overflow-y: auto;
+  }
+  .mom-assembly-material-check .check-result-area {
+    min-height: 140px;
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
