@@ -233,7 +233,36 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.waitForTimeout(300);
   check("返回后列表保留", (await page.evaluate(() => document.activeElement.classList.contains("input-station-filter"))) && (await page.locator(".station-item").count()) === 2);
 
-  // ============ 18. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
+  // ============ 18. 连续扫码（扫码按钮 → OpenCamera 回调，键盘全程不弹） ============
+  await page.click(".station-item >> nth=0");
+  await page.waitForTimeout(400);
+  await page.fill(".input-order-key", "WO20260824001");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(900);
+  await page.evaluate(() => {
+    window.__scanValues = ["MAT-BOLT-001|供应商A|SN101:1", "MAT-NUT-002|供应商B|SN102:1"];
+    window.OpenCamera = function (callback) {
+      callback({ data: window.__scanValues.shift() });
+    };
+  });
+  const savedBeforeScan = await page.evaluate(() => window.__assemblyMockSaved.length);
+  await page.click(".btn-scan-material");
+  await page.waitForTimeout(1300);
+  check("扫码1新增一行", (await page.locator(".check-result-row").count()) === 1);
+  check("扫码1后清空聚焦且只读", await page.evaluate(() => {
+    const input = document.querySelector(".input-material-qr");
+    return input.value === "" && document.activeElement === input && input.readOnly;
+  }));
+  await page.click(".btn-scan-material");
+  await page.waitForTimeout(1300);
+  check("扫码2继续新增（连续扫码）", (await page.locator(".check-result-row").count()) === 2);
+  check("连续扫码各保存一次", (await page.evaluate(() => window.__assemblyMockSaved.length)) === savedBeforeScan + 2);
+  check("连续扫码后仍清空聚焦且只读", await page.evaluate(() => {
+    const input = document.querySelector(".input-material-qr");
+    return input.value === "" && document.activeElement === input && input.readOnly;
+  }));
+
+  // ============ 19. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
   await page.evaluate(() => {
     document.querySelector(".mom-assembly-material-check").remove();
     window.__probe = { filtered: null, initError: null };
