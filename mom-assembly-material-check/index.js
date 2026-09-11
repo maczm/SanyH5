@@ -228,17 +228,22 @@ var AssemblyMaterialCheck = {
     $(".host-alias-tag").text("");
     $(".input-order-key").val("");
     $(".input-material-qr").val("");
-    AssemblyMaterialCheck.lockMaterialInput();
     $(".check-result-area .check-result-row").remove();
     $(".empty-check-result").removeClass("hidden");
   },
 
   /**
-   * 二维码输入框只读锁：程序化聚焦不弹键盘，只有手动点击时才解锁（解锁绑定见 initEvents）。
-   * 连续扫码走 OpenCamera 赋值，不依赖键盘输入。
+   * 聚焦二维码输入框并抑制软键盘：聚焦瞬间临时只读，聚焦后解锁。
+   * 程序化聚焦不弹键盘；输入框平时保持可编辑，扫码枪可直接键入（连续扫）；
+   * 手动点击时浏览器按常规弹键盘。连续扫码走 OpenCamera 赋值或扫码枪键入，均不依赖软键盘。
    */
-  lockMaterialInput: function () {
-    $(".input-material-qr").prop("readonly", true);
+  focusMaterialInput: function () {
+    var $input = $(".input-material-qr");
+    $input.prop("readonly", true);
+    $input.focus();
+    setTimeout(function () {
+      $input.prop("readonly", false);
+    }, 150);
   },
 
   /** 查询订单信息：请求带当前工位（workStation）+ 订单号/VIN 检索键 */
@@ -268,10 +273,9 @@ var AssemblyMaterialCheck = {
         $(".check-result-area .check-result-row").remove();
         $(".empty-check-result").removeClass("hidden");
         $(".input-material-qr").val("");
-        // 查询成功：只读状态下聚焦二维码（不弹键盘），开启连续扫码
-        AssemblyMaterialCheck.lockMaterialInput();
+        // 查询成功：抑制键盘地聚焦二维码，开启连续扫码
         setTimeout(function () {
-          $(".input-material-qr").focus();
+          AssemblyMaterialCheck.focusMaterialInput();
         }, 0);
       },
     );
@@ -350,11 +354,10 @@ var AssemblyMaterialCheck = {
         AssemblyMaterialCheck.showToast("保存失败", res.msg || "保存检查结果失败", "error");
         return;
       }
-      // 保存成功：清空二维码、收回键盘并重新聚焦，准备扫下一个（只读聚焦不弹键盘）
+      // 保存成功：清空二维码、收回键盘并抑制键盘地重新聚焦，准备扫下一个
       $(".input-material-qr").val("").blur();
-      AssemblyMaterialCheck.lockMaterialInput();
       setTimeout(function () {
-        $(".input-material-qr").focus();
+        AssemblyMaterialCheck.focusMaterialInput();
       }, 0);
     });
   },
@@ -422,10 +425,6 @@ var AssemblyMaterialCheck = {
     });
 
     // 物料检查：动作只由 回车/搜索按钮/扫码按钮 触发
-    // 二维码输入框：默认只读（程序化聚焦不弹键盘），仅手动点击时解锁
-    $(".material-check-view").on("mousedown touchstart", ".input-material-qr", function () {
-      $(this).prop("readonly", false);
-    });
     $(".material-check-view").on("click", ".btn-search-order", function () {
       AssemblyMaterialCheck.queryOrderInfo();
     });

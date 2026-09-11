@@ -20,11 +20,6 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
     step(n, ok, extra);
     if (!ok) failed = true;
   };
-  // 二维码输入框默认只读（防键盘）：先模拟手动点击解锁，再输入
-  const fillMaterialQr = async (value) => {
-    await page.click(".input-material-qr");
-    await page.fill(".input-material-qr", value);
-  };
 
   // ============ 1. 加载 ============
   await page.goto(BASE, { timeout: 15000 });
@@ -38,7 +33,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
     const descBefore = await firstItem.locator(".station-desc").evaluate((el) => getComputedStyle(el, "::before").content);
     check("卡片文案格式(编码（名称）)", (await firstItem.locator(".station-code").textContent()) === "ZA01" && (await firstItem.locator(".station-desc").textContent()) === "总装一线-01" && descBefore.indexOf("（") !== -1);
   }
-  check("二维码输入框默认只读", await page.evaluate(() => document.querySelector(".input-material-qr").readOnly));
+  check("二维码输入框默认可编辑(扫码枪可输入)", (await page.evaluate(() => document.querySelector(".input-material-qr").readOnly)) === false);
 
   // ============ 2. 实时筛选 ============
   await page.fill(".input-station-filter", "ZB");
@@ -108,16 +103,28 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("主机编码", (await page.locator(".host-code-tag").textContent()) === "HC2608-1207");
   check("主机简称", (await page.locator(".host-alias-tag").textContent()) === "自卸130");
   check("查询后聚焦二维码输入", (await page.evaluate(() => document.activeElement.classList.contains("input-material-qr"))));
-  check("程序化聚焦仍只读", await page.evaluate(() => document.querySelector(".input-material-qr").readOnly));
+  check("聚焦瞬间临时只读(抑制键盘)", await page.evaluate(() => {
+    const input = document.querySelector(".input-material-qr");
+    let readOnlyAtFocus = null;
+    const originalFocus = input.focus.bind(input);
+    input.focus = function () {
+      readOnlyAtFocus = input.readOnly;
+      originalFocus();
+    };
+    AssemblyMaterialCheck.focusMaterialInput();
+    input.focus = originalFocus;
+    return readOnlyAtFocus;
+  }));
+  await page.waitForTimeout(300);
+  check("聚焦后可编辑(扫码枪可用)", (await page.evaluate(() => document.querySelector(".input-material-qr").readOnly)) === false);
   check("结果区空态", await page.locator(".empty-check-result").isVisible());
   const orderRequest0 = await page.evaluate(() => window.__orderRequests[0]);
   check("查询请求带工位", orderRequest0 && orderRequest0.serachKey === "WO20260824001" && orderRequest0.workStation === "ZA01");
 
   // ============ 8. BOM 内物料：pass + 保存 + 清空重聚焦 ============
-  check("程序化聚焦不解除只读", await page.evaluate(() => document.querySelector(".input-material-qr").readOnly));
-  await page.click(".input-material-qr");
-  check("手动点击解锁键盘", (await page.evaluate(() => document.querySelector(".input-material-qr").readOnly)) === false);
-  await page.fill(".input-material-qr", "MAT-BOLT-001|供应商A|SN001:2");
+  // 扫码枪式键入：聚焦后直接敲字符（无需点击解锁），扫码枪尾部的回车自动提交
+  await page.focus(".input-material-qr");
+  await page.keyboard.type("MAT-BOLT-001|供应商A|SN001:2", { delay: 5 });
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);
   check("新增绿色行", (await page.locator(".check-result-row.pass").count()) === 1 && (await page.locator(".check-result-row").count()) === 1);
@@ -136,10 +143,10 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("保存入参(1)", saved1 && saved1.wipOrderNo === "WO20260824001" && saved1.vin === "LSVU2A0N260800001" && saved1.workStation === "ZA01");
   check("保存入参(2)", saved1 && saved1.qrCode === "MAT-BOLT-001|供应商A|SN001:2" && saved1.material === "MAT-BOLT-001" && saved1.checkResult === "pass");
   check("扫码后清空并聚焦", (await page.locator(".input-material-qr").inputValue()) === "" && (await page.evaluate(() => document.activeElement.classList.contains("input-material-qr"))));
-  check("保存后恢复只读", await page.evaluate(() => document.querySelector(".input-material-qr").readOnly));
+  check("保存后清空聚焦且可编辑", await page.evaluate(() => { const input = document.querySelector(".input-material-qr"); return input.value === "" && document.activeElement === input && !input.readOnly; }));
 
   // ============ 9. 非 BOM 物料：toast 提示 + fail 行 + 保存 fail ============
-  await fillMaterialQr("MAT-X-999|供应商B|SN002:1");
+  await page.fill(".input-material-qr", "MAT-X-999|供应商B|SN002:1");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);
   check("新增红色行", (await page.locator(".check-result-row.fail").count()) === 1 && (await page.locator(".check-result-row").count()) === 2);
@@ -152,7 +159,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
 
   // ============ 10. 失焦不触发任何动作（去失焦约定的回归） ============
   await page.fill(".input-order-key", "WO20260824002");
-  await fillMaterialQr("MAT-NUT-002|供应商C|SN003:1");
+  await page.fill(".input-material-qr", "MAT-NUT-002|供应商C|SN003:1");
   const savedBeforeBlur = await page.evaluate(() => window.__assemblyMockSaved.length);
   const queryBeforeBlur = await page.evaluate(() => window.__orderRequests.length);
   await page.evaluate(() => document.activeElement.blur());
@@ -194,7 +201,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   check("开关恢复后显示扫码按钮", (await scanHiddenFlags()).every((hidden) => !hidden) && (await page.locator(".btn-scan-order").isVisible()));
 
   // ============ 14. 回车扫码新增一条（订单2，BOM 内） ============
-  await fillMaterialQr("MAT-NUT-002|供应商C|SN003:1");
+  await page.fill(".input-material-qr", "MAT-NUT-002|供应商C|SN003:1");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1200);
   check("订单2 扫码通过", (await page.locator(".check-result-row.pass").count()) === 1 && (await page.locator(".check-result-row").count()) === 1);
@@ -233,7 +240,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.waitForTimeout(300);
   check("返回后列表保留", (await page.evaluate(() => document.activeElement.classList.contains("input-station-filter"))) && (await page.locator(".station-item").count()) === 2);
 
-  // ============ 18. 连续扫码（扫码按钮 → OpenCamera 回调，键盘全程不弹） ============
+  // ============ 18. 连续扫码（扫码按钮 → OpenCamera 回调；输入框保持可编辑供扫码枪键入） ============
   await page.click(".station-item >> nth=0");
   await page.waitForTimeout(400);
   await page.fill(".input-order-key", "WO20260824001");
@@ -249,17 +256,17 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.click(".btn-scan-material");
   await page.waitForTimeout(1300);
   check("扫码1新增一行", (await page.locator(".check-result-row").count()) === 1);
-  check("扫码1后清空聚焦且只读", await page.evaluate(() => {
+  check("扫码1后清空聚焦且可编辑", await page.evaluate(() => {
     const input = document.querySelector(".input-material-qr");
-    return input.value === "" && document.activeElement === input && input.readOnly;
+    return input.value === "" && document.activeElement === input && !input.readOnly;
   }));
   await page.click(".btn-scan-material");
   await page.waitForTimeout(1300);
   check("扫码2继续新增（连续扫码）", (await page.locator(".check-result-row").count()) === 2);
   check("连续扫码各保存一次", (await page.evaluate(() => window.__assemblyMockSaved.length)) === savedBeforeScan + 2);
-  check("连续扫码后仍清空聚焦且只读", await page.evaluate(() => {
+  check("连续扫码后仍清空聚焦且可编辑", await page.evaluate(() => {
     const input = document.querySelector(".input-material-qr");
-    return input.value === "" && document.activeElement === input && input.readOnly;
+    return input.value === "" && document.activeElement === input && !input.readOnly;
   }));
 
   // ============ 19. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
