@@ -98,7 +98,7 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
   check("订单输入回车触发搜索", (await page.evaluate(() => window.__orderRequests.length)) === 1);
-  check("计划上线时间", (await page.locator(".plan-start-time-tag").textContent()) === "2026-08-24 08:30:00");
+  check("计划上线时间只到天", (await page.locator(".plan-start-time-tag").textContent()) === "2026-08-24");
   check("月顺序号", (await page.locator(".month-sequence-tag").textContent()) === "202608-0012");
   check("主机编码", (await page.locator(".host-code-tag").textContent()) === "HC2608-1207");
   check("主机简称", (await page.locator(".host-alias-tag").textContent()) === "自卸130");
@@ -269,7 +269,46 @@ const BASE = "http://127.0.0.1:8080/SanyH5/mom-assembly-material-check/index.htm
     return input.value === "" && document.activeElement === input && !input.readOnly;
   }));
 
-  // ============ 19. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
+  // ============ 19. 小屏布局（320×480 / 360×640，元素全保留） ============
+  for (const [width, height] of [[320, 480], [360, 640]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(400);
+    const layout = await page.evaluate(() => {
+      const rect = (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), right: Math.round(r.right), width: Math.round(r.width), height: Math.round(r.height) };
+      };
+      const resultRow = document.querySelector(".check-result-row");
+      const cells = Array.from(document.querySelectorAll(".info-grid .check-form-row"));
+      return {
+        pageScroll: document.documentElement.scrollHeight - window.innerHeight,
+        resultHeight: rect(".check-result-area").height,
+        inputWidth: rect(".input-order-key").width,
+        rowOverflow: resultRow ? resultRow.scrollWidth - resultRow.clientWidth : -1,
+        timeRight: rect(".cr-check-time").right,
+        descWidth: rect(".cr-material-desc").width,
+        headerTop: rect(".page-header").top,
+        cellCount: cells.length,
+        cellsVisible: cells.every((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; }),
+        buttonsVisible: [".btn-check-complete", ".btn-back-station"].every((selector) => { const r = document.querySelector(selector).getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; }),
+        viewportWidth: window.innerWidth,
+      };
+    });
+    const tag = `${width}x${height}`;
+    check(`${tag} 无整页滚动`, layout.pageScroll <= 1, `scroll=${layout.pageScroll}`);
+    check(`${tag} 结果区高度 ≥140`, layout.resultHeight >= 140, `h=${layout.resultHeight}`);
+    check(`${tag} 输入框宽度 ≥130`, layout.inputWidth >= 130, `w=${layout.inputWidth}`);
+    check(`${tag} 结果行无横向溢出`, layout.rowOverflow <= 0, `overflow=${layout.rowOverflow}`);
+    check(`${tag} 时间未被裁`, layout.timeRight <= layout.viewportWidth, `right=${layout.timeRight}`);
+    check(`${tag} 描述可见`, layout.descWidth > 0, `w=${layout.descWidth}`);
+    check(`${tag} 元素全保留(页头/4格/两按钮)`, layout.headerTop >= 0 && layout.cellCount === 4 && layout.cellsVisible && layout.buttonsVisible);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+
+  // ============ 20. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
   await page.evaluate(() => {
     document.querySelector(".mom-assembly-material-check").remove();
     window.__probe = { filtered: null, initError: null };
