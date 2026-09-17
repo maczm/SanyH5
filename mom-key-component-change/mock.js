@@ -177,9 +177,18 @@ if (typeof window.KeyComponentChange_Remove != "function") {
           return serial.serialNo !== reported.materialSerialNo;
         });
       }
-      var changeOrderData = mockOrderDataMap[mockActiveChangeOrderNo];
-      if (changeOrderData && changeOrderData.removeQty < changeOrderData.needRemoveQty) {
-        changeOrderData.removeQty = (changeOrderData.removeQty || 0) + 1;
+      // 已解绑数量只随“待移除清单”（移除页）推进；更换页移除旧件不影响解绑进度
+      var isRemoveListSerial = mockRemoveRecordList.some(function (record) {
+        return record.materialSerialNo === reported.materialSerialNo;
+      });
+      if (isRemoveListSerial) {
+        mockRemoveRecordList = mockRemoveRecordList.filter(function (record) {
+          return record.materialSerialNo !== reported.materialSerialNo;
+        });
+        var changeOrderData = mockOrderDataMap[mockActiveChangeOrderNo];
+        if (changeOrderData && changeOrderData.removeQty < changeOrderData.needRemoveQty) {
+          changeOrderData.removeQty = (changeOrderData.removeQty || 0) + 1;
+        }
       }
       if (!window.__keyComponentMockRemoved) window.__keyComponentMockRemoved = [];
       window.__keyComponentMockRemoved.push(reported);

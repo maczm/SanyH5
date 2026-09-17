@@ -206,6 +206,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   const removeRequest = await lastRequest("Remove");
   check("移除入参带行内订单", removeRequest && removeRequest.wipOrderNo === "184000000001" && removeRequest.wipOrderType === 1 && removeRequest.serialNo === "SN-HOST-0101" && removeRequest.materialSerialNo === "SN-MOTOR-OLD-1");
   check("移除后重新拉取 KC5", (await requestCount("GetRemoveKeyComponentInfo")) === 2);
+  check("移除后待移除清单剩 1 条", (await page.locator(".remove-record-card").count()) === 1);
 
   const kc2BeforeBack = await requestCount("GetKeyComponentInfo");
   await page.click(".btn-back-remove");
@@ -241,6 +242,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   }
   check("更换成功回到视图1", await page.locator(".key-component-check-view").isVisible());
   check("更换后清空二维码输入", (await page.evaluate(() => document.querySelector(".input-material-qr").value)) === "");
+  check("更换旧件不推进需解绑数量(仍 1/2)", (await page.locator(".remove-quantity-tag").textContent()) === "1/2");
 
   // ============ 9. 更换页 Save 失败重试：不重复移除（改用仍有采集余量的关重件） ============
   await queryOrder(PRODUCTION_ORDER);
@@ -289,19 +291,23 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   const collectedAfterDelete = Number((await page.locator(".collect-quantity-tag").textContent()).split("/")[0]);
   check("删除后已采集数量减 1", collectedAfterDelete === collectedBeforeDelete - 1, `${collectedBeforeDelete}->${collectedAfterDelete}`);
 
-  // ============ 11. 需解绑数量达标（移除页移除 + 更换流程移除）后解绑按钮消失 ============
+  // ============ 11. 需解绑数量只随移除页推进：解绑完 2/2 后按钮消失 ============
   await queryOrder(CHANGE_ORDER);
-  check("已解绑数量不超过需解绑总数 2/2", (await page.locator(".remove-quantity-tag").textContent()) === "2/2");
-  check("达标后隐藏解绑按钮", !(await page.locator(".btn-unbind").isVisible()));
+  check("更换流程不推进解绑进度 1/2", (await page.locator(".remove-quantity-tag").textContent()) === "1/2");
+  check("未达标仍显示解绑按钮", await page.locator(".btn-unbind").isVisible());
   check("改制订单需解绑数量行仍显示", await page.locator(".remove-quantity-row").isVisible());
-  check("达标后仍可从移除页刷新", await page.evaluate(() => {
-    KeyComponentChange.enterRemoveView();
-    return true;
-  }));
+  await page.click(".btn-unbind");
   await page.waitForTimeout(1400);
-  check("达标后移除页可正常渲染", (await page.locator(".remove-record-card").count()) === 2);
+  check("移除页剩 1 条待移除", (await page.locator(".remove-record-card").count()) === 1);
+  await page.click(".btn-remove-row >> nth=0");
+  await page.waitForTimeout(300);
+  await page.click(".confirm-btn-ok");
+  await page.waitForTimeout(1400);
+  check("移除后待移除清单清空", (await page.locator(".remove-record-card").count()) === 0 && (await page.locator(".empty-remove-record").isVisible()));
   await page.click(".btn-back-remove");
   await page.waitForTimeout(1400);
+  check("移除页解绑后达标 2/2", (await page.locator(".remove-quantity-tag").textContent()) === "2/2");
+  check("达标后隐藏解绑按钮", !(await page.locator(".btn-unbind").isVisible()));
 
   // ============ 12. 满量扫描：不保存，直接进入更换页（更换清单按关重件物料编码过滤） ============
   await queryOrder(PRODUCTION_ORDER);
@@ -454,12 +460,12 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
       const card = document.querySelector(".remove-record-card");
       return {
         cardCount: document.querySelectorAll(".remove-record-card").length,
-        overflow: card ? card.scrollWidth - card.clientWidth : -1,
+        overflow: card ? card.scrollWidth - card.clientWidth : 0,
         buttonVisible: document.querySelector(".btn-back-remove").getBoundingClientRect().bottom <= window.innerHeight,
         pageScroll: document.documentElement.scrollHeight - window.innerHeight,
       };
     });
-    check(`${tag} 视图2 卡片无横向溢出且返回可见`, removeLayout.cardCount === 2 && removeLayout.overflow <= 0 && removeLayout.buttonVisible && removeLayout.pageScroll <= 1, JSON.stringify(removeLayout));
+    check(`${tag} 视图2 无横向溢出且返回可见`, removeLayout.overflow <= 0 && removeLayout.buttonVisible && removeLayout.pageScroll <= 1, JSON.stringify(removeLayout));
     await page.click(".btn-back-remove");
     await page.waitForTimeout(1400);
 
