@@ -378,7 +378,7 @@ window.assemblyMaterialCheck_saveCheckResult({
 - **物料二维码格式**：`物料编码|供应商|序列号:数量`；三段均不得为空，数量必须是大于 0 的数字，否则页面直接拦截、不调用 API-KC3
 - **采集数量上限（满量即更换）**：同一关重件物料编码的已扫描数量达到需扫描总数（该物料 `materialQty` 求和）后，本次扫描不调用 API-KC3，页面直接进入「关重件更换页」：带该关重件物料编码查询更换清单（API-KC6），由操作员选定被替换旧件后 API-KC4 移除、API-KC7 保存新件，数量始终保持不超过需扫描总数
 - **订单号 / VIN 共用一个输入框**：输入值 `^[0-9]+$` → 填 `wipOrderNo`；17 位非纯数字 → 填 `vin`；其余非纯数字 → 兜底填 `wipOrderNo`
-- **关重件序号**：`keyComponentList` 的 `materialSeq` 是**配置序号**，`snList` 的 `materialSeq` 是**采集序号**（1=前电机，2=后电机，null=页面不显示类型描述）。永磁体同步电机的两条配置 `materialID` 相同、无法用物料区分前后：仅当两条配置序号恰为 1 和 2 时，页面自动分配给该物料尚未采集的那个序号；序号不明确时弹窗由操作员选择前电机(1)/后电机(2)
+- **关重件序号**：`keyComponentList` 的 `materialSeq` 是**配置序号**，`snList` 的 `materialSeq` 是**采集序号**，取值均为**字符串** `"1"`（前电机）/ `"2"`（后电机）/ `null`（页面不显示类型描述）。永磁体同步电机的两条配置 `materialID` 相同、无法用物料区分前后：仅当两条配置序号恰为 `"1"` 和 `"2"` 时，页面自动分配给该物料尚未采集的那个序号；序号不明确时弹窗由操作员选择前电机(`"1"`)/后电机(`"2"`)
 - **订单类型标注**：`wipOrderType` 1=生产订单、2=改制订单；页面所有展示订单号的位置都带该标注
 - **需解绑数量 / 解绑按钮**：仅改制订单（`wipOrderType = 2`）显示该行；`needRemoveQty > removeQty` 时才显示解绑按钮（进入视图2）
 - **更换分支**：API-KC3 返回 `isChange = 1` → 本次不保存，页面进入视图3 由操作员指定被替换的旧件，移除成功后用 API-KC7 保存；`isChange` 为其它值 → 后台已直接保存，页面重新拉取 API-KC2 刷新
@@ -442,7 +442,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 | `materialQty` | number | 关重件物料数量（该物料需采集总数） |
 | `uomCode` | string | 单位 |
 | `materialType` | string | 关重件类型（`永磁体同步电机` 走前后电机规则） |
-| `materialSeq` | number | 关重件序号（配置值：1=前电机，2=后电机，null=不显示类型描述） |
+| `materialSeq` | string | 关重件序号（配置值，**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述） |
 
 **snList 每项**
 
@@ -450,7 +450,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 |---|---|---|
 | `serialNo` | string | 关重件序列号 |
 | `materialID` | number | 关重件物料 ID（归属到同 ID 的配置条目） |
-| `materialSeq` | number | 关重件序号（采集值：1=前电机，2=后电机，null=不显示类型描述） |
+| `materialSeq` | string | 关重件序号（采集值，**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述） |
 | `scanTime` | string | 扫描时间 |
 
 > 页面统计：已采集数量 = `snList.length`，需采集总数 = Σ`materialQty`；卡片右侧「已扫描/需扫描」= 该物料已采集条数 / 该物料 Σ`materialQty`。
@@ -477,7 +477,7 @@ window.KeyComponentChange_CheckAndSave(
 | `materialID` | number | 是 | 关重件物料 ID（API-KC2 配置条目） |
 | `materialNo` | string | 是 | 关重件物料编码（二维码第一段） |
 | `materialDesc` | string | 是 | 关重件物料描述（API-KC2 配置条目） |
-| `materialSeq` | number | 是 | 关重件序号（1=前电机，2=后电机，null=不显示类型描述） |
+| `materialSeq` | string | 是 | 关重件序号（**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述）；页面按字符串回传 |
 | `materialSerialNo` | string | 是 | 关重件序列号（二维码第三段） |
 | `materialQty` | number | 是 | 关重件数量（二维码第三段） |
 | `uomCode` | string | 是 | 单位（API-KC2 配置条目） |
