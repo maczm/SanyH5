@@ -1,6 +1,7 @@
 // ============== mom-key-component-change 回归测试 ==============
 // 用法：cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/key-component-change.regress.cjs
 // 前置：nginx 8080 运行中（http://localhost:8080/SanyH5/<页面目录>/）
+// 等待策略：动作后等 loading 遮罩消失（waitIdle）而不是固定 sleep，单次全量约 45s
 // 覆盖：加载/按钮开关(显示+权限)/订单查询(回车+搜索、订单号与VIN判定)/数量标签/卡片合并与排序/
 //       二维码校验/前电机后电机(自动分配+弹窗+取消)/CheckAndSave 两分支/移除页/更换页(Remove+Save)/
 //       行删除/解绑按钮业务条件/小屏布局/容器缺失
@@ -14,6 +15,8 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  // 压缩 Mock 接口延迟（页面脚本执行前注入），断言全部走状态等待，不依赖固定 sleep
+  await page.addInitScript(() => { window.__mockDelayMilliseconds = 60; });
   const errors = [];
   page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message.slice(0, 100)));
   page.on("console", (m) => {
@@ -33,21 +36,30 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
       return list.length ? list[list.length - 1].reported : null;
     }, taskType);
   const savedList = () => page.evaluate(() => window.__keyComponentMockSaved || []);
+  // 动作后等 loading 遮罩消失（接口回调已跑完），比固定 sleep 快得多
+  // 收尾 200ms：覆盖 focusMaterialInput 的 150ms 临时只读窗口，确保断言看到的是就绪态
+  const waitIdle = async (timeout = 8000) => {
+    await page.waitForFunction(() => {
+      const mask = document.querySelector(".template-loading");
+      return !mask || mask.classList.contains("hidden");
+    }, { timeout }).catch(() => {});
+    await page.waitForTimeout(200);
+  };
   const closeToast = async () => {
     if (await page.locator(".template-toast:not(.hidden)").count()) {
       await page.click(".template-toast .toast-btn");
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(120);
     }
   };
   const queryOrder = async (key) => {
     await page.fill(".input-order-key", key);
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(1400);
+    await waitIdle();
   };
   const scanMaterial = async (text) => {
     await page.fill(".input-material-qr", text);
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(1400);
+    await waitIdle();
   };
 
   // ============ 1. 加载 ============
@@ -66,7 +78,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("VIN 判定为 vin 字段", vinRequest && vinRequest.wipOrderNo === "" && vinRequest.vin === PRODUCTION_VIN);
   check("订单号标签带生产标注", (await page.locator(".order-no-tag").textContent()) === PRODUCTION_ORDER + "（生产订单）");
   await page.click(".btn-search-order");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("搜索按钮触发查询", (await requestCount("GetWipOrderNoInfo")) === 2);
 
   await queryOrder(PRODUCTION_ORDER);
@@ -163,7 +175,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
 
   await scanMaterial("MAT-MOTOR-011|供应商C|SN-MOTOR-C1:1");
   await page.click(".motor-option >> nth=1");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   {
     const saved = await savedList();
     const last = saved[saved.length - 1];
@@ -172,7 +184,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
 
   // ============ 7. 视图2：移除页（渲染 / 二次确认 / 移除 / 返回刷新） ============
   await page.click(".btn-unbind");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("进入移除页", await page.locator(".key-component-remove-view").isVisible());
   check("移除页头部改制订单号", (await page.locator(".remove-order-no-tag").textContent()) === CHANGE_ORDER + "（改制订单）");
   check("待移除明细 2 条", (await page.locator(".remove-record-card").count()) === 2);
@@ -203,7 +215,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-remove-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   const removeRequest = await lastRequest("Remove");
   check("移除入参带行内订单", removeRequest && removeRequest.wipOrderNo === "184000000001" && removeRequest.wipOrderType === 1 && removeRequest.serialNo === "SN-HOST-0101" && removeRequest.materialSerialNo === "SN-MOTOR-OLD-1");
   check("移除后重新拉取 KC5", (await requestCount("GetRemoveKeyComponentInfo")) === 2);
@@ -212,7 +224,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
 
   const kc2BeforeBack = await requestCount("GetKeyComponentInfo");
   await page.click(".btn-back-remove");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("返回视图1", await page.locator(".key-component-check-view").isVisible());
   check("返回后刷新 KC2", (await requestCount("GetKeyComponentInfo")) === kc2BeforeBack + 1);
   check("已解绑数量更新 1/2", (await page.locator(".remove-quantity-tag").textContent()) === "1/2");
@@ -234,7 +246,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(300);
   check("更换二次确认", await page.locator(".template-confirm").isVisible());
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1800);
+  await waitIdle();
   {
     const removeRequests = await page.evaluate(() => (window.__keyComponentMockRequests || []).filter((item) => item.taskType === "Remove").length);
     const saved = await savedList();
@@ -268,7 +280,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-change-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1600);
+  await waitIdle();
   const removeCountAfterFailure = await requestCount("Remove");
   check("Save 失败提示", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()) === "移除成功，保存失败，请重试");
   check("Save 失败停留更换页", await page.locator(".key-component-change-view").isVisible());
@@ -276,7 +288,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-change-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1800);
+  await waitIdle();
   check("重试不重复移除", (await requestCount("Remove")) === removeCountAfterFailure);
   check("重试保存成功回视图1", await page.locator(".key-component-check-view").isVisible());
 
@@ -289,7 +301,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(300);
   check("删除二次确认", await page.locator(".template-confirm").isVisible());
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   const deleteRequest = await lastRequest("Remove");
   check("删除入参 = 订单序列号 + 关重件序列号", (await requestCount("Remove")) === removeCountBeforeDelete + 1 && deleteRequest.wipOrderNo === PRODUCTION_ORDER && deleteRequest.wipOrderType === 1 && deleteRequest.serialNo === "SN-HOST-0001" && deleteRequest.materialSerialNo === firstSerialNo);
   const collectedAfterDelete = Number((await page.locator(".collect-quantity-tag").textContent()).split("/")[0]);
@@ -301,15 +313,15 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("未达标仍显示解绑按钮", await page.locator(".btn-unbind").isVisible());
   check("改制订单需解绑数量行仍显示", await page.locator(".remove-quantity-row").isVisible());
   await page.click(".btn-unbind");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("移除页剩 1 条待移除", (await page.locator(".remove-record-card").count()) === 1);
   await page.click(".btn-remove-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("移除后待移除清单清空", (await page.locator(".remove-record-card").count()) === 0 && (await page.locator(".empty-remove-record").isVisible()));
   await page.click(".btn-back-remove");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("移除页解绑后达标 2/2", (await page.locator(".remove-quantity-tag").textContent()) === "2/2");
   check("达标后隐藏解绑按钮", !(await page.locator(".btn-unbind").isVisible()));
 
@@ -331,7 +343,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     await page.click(".btn-change-row >> nth=0");
     await page.waitForTimeout(300);
     await page.click(".confirm-btn-ok");
-    await page.waitForTimeout(1800);
+    await waitIdle();
     check("更换后回到视图1", await page.locator(".key-component-check-view").isVisible());
     check("换件后驱动桥数量不超需扫描总数(1/1)", (await cardQuantity("MAT-AXLE-002")) === "1/1");
   }
@@ -340,12 +352,12 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("满量电机弹出位置选择", await page.locator(".template-motor-picker").isVisible());
   check("更换时已采集位置可选", await page.evaluate(() => Array.from(document.querySelectorAll(".motor-option")).every((option) => !option.classList.contains("disabled"))));
   await page.click(".motor-option >> nth=0");
-  await page.waitForTimeout(1400);
+  await waitIdle();
   check("选择位置后进入更换页", (await page.locator(".key-component-change-view").isVisible()) && (await lastRequest("GetChangeKeyComponentInfo")).materialNo === "MAT-MOTOR-001");
   await page.click(".btn-change-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
-  await page.waitForTimeout(1800);
+  await waitIdle();
   {
     const saveItems = (await savedList()).filter((item) => item.taskType === "Save");
     const lastSave = saveItems[saveItems.length - 1];
@@ -374,7 +386,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-3:1");
     check("满量后第 3 颗不保存直接进更换页", (await requestCount("CheckAndSave")) === checkAndSaveBefore && (await page.locator(".key-component-change-view").isVisible()) && (await page.locator(".new-serial-tag").textContent()) === "SN-BOX-3");
     await page.click(".btn-back-change");
-    await page.waitForTimeout(1400);
+    await waitIdle();
   }
   check("返回视图1且数量不变 2/2", (await cardQuantity("MAT-BOX-003")) === "2/2");
   check("总采集数量不超过需采集总数 5/5", (await page.locator(".collect-quantity-tag").textContent()) === "5/5");
@@ -459,7 +471,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     check(`${tag} 视图1 序列号与时间未互相顶出`, layout.serialNoWidth > 0 && layout.timeRight <= layout.viewportWidth, `serial=${layout.serialNoWidth} timeRight=${layout.timeRight}`);
 
     await page.evaluate(() => KeyComponentChange.enterRemoveView());
-    await page.waitForTimeout(1400);
+    await waitIdle();
     const removeLayout = await page.evaluate(() => {
       const card = document.querySelector(".remove-record-card");
       return {
@@ -471,13 +483,13 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     });
     check(`${tag} 视图2 无横向溢出且返回可见`, removeLayout.overflow <= 0 && removeLayout.buttonVisible && removeLayout.pageScroll <= 1, JSON.stringify(removeLayout));
     await page.click(".btn-back-remove");
-    await page.waitForTimeout(1400);
+    await waitIdle();
 
     await page.evaluate(() => {
       KeyComponentChange.state.pendingScan = { materialNo: "MAT-BOX-003", materialDesc: "变速箱总成", materialSerialNo: "SN-PREVIEW" };
       KeyComponentChange.enterChangeView();
     });
-    await page.waitForTimeout(1400);
+    await waitIdle();
     const changeLayout = await page.evaluate(() => {
       const card = document.querySelector(".change-record-card");
       return {
@@ -490,7 +502,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     });
     check(`${tag} 视图3 卡片无横向溢出且返回可见`, changeLayout.cardCount === 2 && changeLayout.overflow <= 0 && changeLayout.buttonVisible && changeLayout.pageScroll <= 1 && changeLayout.materialTagVisible, JSON.stringify(changeLayout));
     await page.click(".btn-back-change");
-    await page.waitForTimeout(1400);
+    await waitIdle();
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);

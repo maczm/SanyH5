@@ -224,4 +224,5 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | mom-assembly-material-check | `tests/assembly-material-check.regress.cjs` | 工位加载与实时筛选/方向键选择/双视图切换/订单查询/BOM 校验(pass-fail)/连续扫码/失焦触发/检查完成重置/返回 |
 | mom-key-component-change | `tests/key-component-change.regress.cjs` | 加载/按钮开关(显示+权限, 含克隆行重放)/订单查询(回车+搜索, 订单号与VIN判定)/数量标签/卡片合并与排序/二维码校验/前后电机(自动分配+弹窗+取消)/CheckAndSave 两分支/移除页/更换页(Remove+Save+失败重试)/行删除/解绑按钮业务条件/完成重置/小屏布局/容器缺失 |
 
-运行：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（前置：nginx 8080）
+运行：单页 `cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`；全量 `NODE_PATH=$(npm root -g) node tests/run-all.regress.cjs`（并行，约 45s）（前置：nginx 8080）
+提速约定见 TOOLCHAIN §验证提速约定：迭代中只跑受影响单页脚本，提交前才跑全量；断言用状态等待，禁止为统计通过数重跑整套

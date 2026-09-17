@@ -52,11 +52,25 @@ for f in mom-cert/index.html mom-packing/index.html \
   tidy -q -e --show-warnings no "$f"
 done
 
-# 3. 回归全量（6 个页面脚本）
-for script in tests/*.regress.cjs; do
-  NODE_PATH=$(npm root -g) node "$script"
-done
+# 3. 回归全量（6 个页面脚本，并行执行器，约 45s）
+NODE_PATH=$(npm root -g) node tests/run-all.regress.cjs        # 可选并发数：… .cjs 4
 ```
+
+## 验证提速约定（迭代期 vs 提交前）
+
+改代码时的验证要快，别每改一行就跑全量：
+
+| 时机 | 命令 | 耗时 |
+|---|---|---|
+| 迭代中（改完一个点） | `eslint <改的文件>` + 受影响单页脚本，如 `NODE_PATH=$(npm root -g) node tests/key-component-change.regress.cjs` | 2s + ~45s |
+| 提交前（一次） | 上面「全量体检」三步 | ~50s（并行） |
+| 只为看通过数 | 跑一次 `tee` 到文件再统计，**不要为了 `grep -c ✅` 重跑整套** | — |
+
+提速手段（已落地，新脚本照做）：
+- 断言等待用「状态等待」而不是固定 sleep（本项目样板：回归脚本里的 `waitIdle()`，等 loading 遮罩消失）
+- 长命令丢后台任务（`run_in_background`），前台只做短命令；别在一条命令里重复跑同一套脚本
+- 6 个回归脚本走并行执行器；eslint/tidy 合并成一条命令只跑一次
+- 单页回归可用 `window.__mockDelayMilliseconds` 调低 Mock 延迟（见各页 `mock.js`）
 
 ## 环境坑（调用工具时注意）
 

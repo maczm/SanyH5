@@ -2,7 +2,8 @@
 // 生产环境不部署本文件：Portal 部署只取 index.html / index.js / index.css。
 // Portal 在页面加载前注入同名 window 函数，本文件的 typeof 检测会跳过 Mock。
 // 入参形态与生产一致：{ taskType, reported }。
-var MOCK_DELAY = 400;
+// 回归脚本可用 window.__mockDelayMilliseconds 调低延迟（页面脚本执行前注入），默认 400ms 贴近真机
+var MOCK_DELAY = typeof window.__mockDelayMilliseconds === "number" ? window.__mockDelayMilliseconds : 400;
 
 var mockOrderDataMap = {
   // 生产订单：永磁体同步电机序号恰为 1、2（自动分配），另有序号为 null 的关重件
