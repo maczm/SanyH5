@@ -740,6 +740,8 @@ var KeyComponentChange = {
             return;
           }
           KeyComponentChange.showToast("提示", "移除成功", "success");
+          // 删除后刷新订单数据（需解绑数量、卡片列表）与待移除清单
+          KeyComponentChange.loadKeyComponentInfo();
           KeyComponentChange.loadRemoveRecordList();
         },
       );
@@ -825,6 +827,8 @@ var KeyComponentChange = {
               return;
             }
             state.changedOldGenealogyId = (res.data || {}).oldGenealogyID;
+            // 删除旧件后立即刷新订单数据（数量与卡片），保存新件后再刷新一次
+            KeyComponentChange.loadKeyComponentInfo();
             KeyComponentChange.saveChangedKeyComponent();
           },
         );

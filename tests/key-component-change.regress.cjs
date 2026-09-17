@@ -199,6 +199,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(300);
   check("取消不移除", (await requestCount("Remove")) === 0 && (await page.locator(".remove-record-card").count()) === 2);
 
+  const kc2BeforeRemove = await requestCount("GetKeyComponentInfo");
   await page.click(".btn-remove-row >> nth=0");
   await page.waitForTimeout(300);
   await page.click(".confirm-btn-ok");
@@ -206,6 +207,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   const removeRequest = await lastRequest("Remove");
   check("移除入参带行内订单", removeRequest && removeRequest.wipOrderNo === "184000000001" && removeRequest.wipOrderType === 1 && removeRequest.serialNo === "SN-HOST-0101" && removeRequest.materialSerialNo === "SN-MOTOR-OLD-1");
   check("移除后重新拉取 KC5", (await requestCount("GetRemoveKeyComponentInfo")) === 2);
+  check("移除后刷新订单数据", (await requestCount("GetKeyComponentInfo")) === kc2BeforeRemove + 1);
   check("移除后待移除清单剩 1 条", (await page.locator(".remove-record-card").count()) === 1);
 
   const kc2BeforeBack = await requestCount("GetKeyComponentInfo");
@@ -227,6 +229,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
       card.querySelector(".change-record-scan-time").textContent === "2026-08-22 10:00:00";
   }, CHANGE_ORDER));
 
+  const kc2BeforeChange = await requestCount("GetKeyComponentInfo");
   await page.click(".btn-change-row >> nth=0");
   await page.waitForTimeout(300);
   check("更换二次确认", await page.locator(".template-confirm").isVisible());
@@ -243,6 +246,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("更换成功回到视图1", await page.locator(".key-component-check-view").isVisible());
   check("更换后清空二维码输入", (await page.evaluate(() => document.querySelector(".input-material-qr").value)) === "");
   check("更换旧件不推进需解绑数量(仍 1/2)", (await page.locator(".remove-quantity-tag").textContent()) === "1/2");
+  check("更换：移除后与保存后各刷新一次数据", (await requestCount("GetKeyComponentInfo")) === kc2BeforeChange + 2, `+${(await requestCount("GetKeyComponentInfo")) - kc2BeforeChange}`);
 
   // ============ 9. 更换页 Save 失败重试：不重复移除（改用仍有采集余量的关重件） ============
   await queryOrder(PRODUCTION_ORDER);
