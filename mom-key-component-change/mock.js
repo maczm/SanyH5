@@ -16,13 +16,13 @@ var mockOrderDataMap = {
     removeQty: 0,
     needRemoveQty: 0,
     keyComponentList: [
-      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: 1 },
-      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: 2 },
+      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
       { materialID: 2002, materialNo: "MAT-AXLE-002", materialDesc: "驱动桥总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: null },
-      { materialID: 2003, materialNo: "MAT-BOX-003", materialDesc: "变速箱总成", materialQty: 2, uomCode: "EA", materialType: "关重件", materialSeq: 3 },
+      { materialID: 2003, materialNo: "MAT-BOX-003", materialDesc: "变速箱总成", materialQty: 2, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
     ],
     snList: [
-      { serialNo: "SN-MOTOR-A1", materialID: 2001, materialSeq: 1, scanTime: "2026-08-24 09:10:00" },
+      { serialNo: "SN-MOTOR-A1", materialID: 2001, materialSeq: "1", scanTime: "2026-08-24 09:10:00" },
       { serialNo: "SN-AXLE-A1", materialID: 2002, materialSeq: null, scanTime: "2026-08-24 09:05:00" },
     ],
   },
@@ -37,12 +37,12 @@ var mockOrderDataMap = {
     removeQty: 0,
     needRemoveQty: 2,
     keyComponentList: [
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: 1 },
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: 1 },
-      { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: 2 },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
     ],
     snList: [
-      { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: 1, scanTime: "2026-08-24 10:00:00" },
+      { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
     ],
   },
 };
@@ -229,12 +229,20 @@ if (typeof window.KeyComponentChange_Save != "function") {
         var collectedSerialList = orderData.snList.filter(function (serial) {
           return materialIds.indexOf(serial.materialID) !== -1;
         });
-        // 更换：已满量时置换最旧的同物料序列号，数量始终不超过需扫描总数
-        if (collectedSerialList.length >= requiredQuantity) {
+        // 更换：优先置换同位置（同 materialSeq）的旧件，位置明确时才替换对应前/后电机
+        var sequenceText = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
+        var sameSequenceSerialList = collectedSerialList.filter(function (serial) {
+          var serialSequenceText = serial.materialSeq === null || serial.materialSeq === undefined ? "" : String(serial.materialSeq);
+          return sequenceText !== "" && serialSequenceText === sequenceText;
+        });
+        var replacedSerialList = sameSequenceSerialList.length
+          ? sameSequenceSerialList
+          : (collectedSerialList.length >= requiredQuantity ? [collectedSerialList[0]] : []);
+        replacedSerialList.forEach(function (replacedSerial) {
           orderData.snList = orderData.snList.filter(function (serial) {
-            return serial.serialNo !== collectedSerialList[0].serialNo;
+            return serial.serialNo !== replacedSerial.serialNo;
           });
-        }
+        });
         orderData.snList.push({
           serialNo: reported.materialSerialNo,
           materialID: reported.materialID,

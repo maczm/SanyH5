@@ -115,7 +115,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await scanMaterial("MAT-MOTOR-001|供应商A|SN-MOTOR-A2:1");
   {
     const saved = await savedList();
-    check("自动分配后电机(序号2，不弹窗)", saved.length === 1 && saved[0].reported.materialSeq === 2 && !(await page.locator(".template-motor-picker").isVisible()));
+    check("自动分配后电机(序号字符串\"2\"，不弹窗)", saved.length === 1 && saved[0].reported.materialSeq === "2" && !(await page.locator(".template-motor-picker").isVisible()));
     check("KC3 入参完整", saved[0].reported.wipOrderNo === PRODUCTION_ORDER && saved[0].reported.productNo === "MAT-HOST-001" && saved[0].reported.materialSerialNo === "SN-MOTOR-A2" && saved[0].reported.materialQty === 1 && saved[0].reported.partner === "供应商A" && saved[0].reported.inputType === "手输" && saved[0].reported.inputCode === 13);
   }
   check("保存后刷新数量 3/5", (await page.locator(".collect-quantity-tag").textContent()) === "3/5");
@@ -167,7 +167,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   {
     const saved = await savedList();
     const last = saved[saved.length - 1];
-    check("人工选择后电机保存 materialSeq=2", last.reported.materialSeq === 2 && last.reported.materialNo === "MAT-MOTOR-011");
+    check("人工选择后电机保存 materialSeq 字符串\"2\"", last.reported.materialSeq === "2" && last.reported.materialNo === "MAT-MOTOR-011");
   }
 
   // ============ 7. 视图2：移除页（渲染 / 二次确认 / 移除 / 返回刷新） ============
@@ -339,9 +339,21 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   {
     const saveItems = (await savedList()).filter((item) => item.taskType === "Save");
     const lastSave = saveItems[saveItems.length - 1];
-    check("更换保存携带所选前电机序号与旧件 ID", lastSave.reported.materialSerialNo === "SN-MOTOR-A4" && lastSave.reported.materialSeq === 1 && !!lastSave.reported.oldGenealogyID);
+    check("更换保存携带所选前电机序号与旧件 ID", lastSave.reported.materialSerialNo === "SN-MOTOR-A4" && lastSave.reported.materialSeq === "1" && !!lastSave.reported.oldGenealogyID);
   }
   check("换件后电机数量不超需扫描总数(2/2)", (await cardQuantity("MAT-MOTOR-001")) === "2/2");
+  {
+    const motorRows = await page.evaluate(() => {
+      const card = Array.from(document.querySelectorAll(".key-component-card")).find((item) => item.querySelector(".key-component-material-no").textContent === "MAT-MOTOR-001");
+      return Array.from(card.querySelectorAll(".serial-row")).map((row) => ({
+        serialNo: row.querySelector(".serial-no").textContent,
+        position: row.querySelector(".motor-position").textContent,
+      }));
+    });
+    const frontRowList = motorRows.filter((row) => row.position === "前电机");
+    const rearRowList = motorRows.filter((row) => row.position === "后电机");
+    check("更换前电机只替换前电机那一件", motorRows.length === 2 && frontRowList.length === 1 && frontRowList[0].serialNo === "SN-MOTOR-A4" && rearRowList.length === 1 && rearRowList[0].serialNo === "SN-MOTOR-A2", JSON.stringify(motorRows));
+  }
 
   await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-1:1");
   check("多件关重件第 1 颗入库(1/2)", (await cardQuantity("MAT-BOX-003")) === "1/2");

@@ -316,7 +316,10 @@ var KeyComponentChange = {
       if (!rightTime) return -1;
       return leftTime < rightTime ? 1 : -1;
     }
-    return (Number(left.materialSeq) || 0) - (Number(right.materialSeq) || 0);
+    var leftSequence = String(left.materialSeq === null || left.materialSeq === undefined ? "" : left.materialSeq);
+    var rightSequence = String(right.materialSeq === null || right.materialSeq === undefined ? "" : right.materialSeq);
+    if (leftSequence === rightSequence) return 0;
+    return leftSequence < rightSequence ? -1 : 1;
   },
 
   /** 卡片排序：按组内最新扫描时间倒序（无序列号的卡排最后），同时间按物料编码升序 */
@@ -428,9 +431,9 @@ var KeyComponentChange = {
 
   getCollectedSequenceList: function (materialIds) {
     return KeyComponentChange.state.serialList.filter(function (serial) {
-      return materialIds.indexOf(serial.materialID) !== -1 && serial.materialSeq !== null && serial.materialSeq !== undefined;
+      return materialIds.indexOf(serial.materialID) !== -1 && serial.materialSeq !== null && serial.materialSeq !== undefined && String(serial.materialSeq) !== "";
     }).map(function (serial) {
-      return Number(serial.materialSeq);
+      return String(serial.materialSeq);
     });
   },
 
@@ -453,8 +456,9 @@ var KeyComponentChange = {
   },
 
   /**
-   * 关重件序号判定：单条配置直接取配置序号；永磁体同步电机两条配置且序号恰为 1、2 且未满量时
-   * 自动分配尚未采集的那个；序号不明确或已满量（更换）时弹窗人工选择前/后电机。
+   * 关重件序号判定：序号为字符串（"1" 前电机 / "2" 后电机）。单条配置直接取配置序号；
+   * 永磁体同步电机两条配置且序号恰为 1、2 且未满量时自动分配尚未采集的那个；
+   * 序号不明确或已满量（更换）时弹窗人工选择前/后电机。
    */
   resolveMaterialSequence: function (matchedComponents, allowCollectedSequence, chosenCallback) {
     if (matchedComponents.length === 1) {
@@ -463,11 +467,13 @@ var KeyComponentChange = {
     }
     var materialIds = matchedComponents.map(function (component) { return component.materialID; });
     var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
-    var configuredSequenceList = matchedComponents.map(function (component) { return Number(component.materialSeq); });
+    var configuredSequenceList = matchedComponents.map(function (component) { return String(component.materialSeq); });
     var isClearMotorPair = matchedComponents.length === 2 &&
-      configuredSequenceList.indexOf(1) !== -1 && configuredSequenceList.indexOf(2) !== -1;
+      configuredSequenceList.indexOf("1") !== -1 && configuredSequenceList.indexOf("2") !== -1;
     if (isClearMotorPair && !allowCollectedSequence) {
-      var freeSequence = [1, 2].filter(function (sequence) { return collectedSequenceList.indexOf(sequence) === -1; })[0];
+      var freeSequence = KeyComponentChange.getMotorSequenceList().filter(function (sequence) {
+        return collectedSequenceList.indexOf(sequence) === -1;
+      })[0];
       if (freeSequence === undefined) {
         KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
         return;
@@ -478,9 +484,14 @@ var KeyComponentChange = {
     KeyComponentChange.showMotorPicker(collectedSequenceList, allowCollectedSequence, chosenCallback);
   },
 
+  /** 电机位置序号（字符串，与接口一致） */
+  getMotorSequenceList: function () {
+    return ["1", "2"];
+  },
+
   /** allowCollectedSequence：已采集的位置也可选（满量后走更换流程，替换该位置的旧件） */
   showMotorPicker: function (collectedSequenceList, allowCollectedSequence, onPick) {
-    var availableSequenceList = [1, 2].filter(function (sequence) {
+    var availableSequenceList = KeyComponentChange.getMotorSequenceList().filter(function (sequence) {
       return allowCollectedSequence || collectedSequenceList.indexOf(sequence) === -1;
     });
     if (!availableSequenceList.length) {
@@ -488,7 +499,7 @@ var KeyComponentChange = {
       return;
     }
     var $list = $(".motor-picker-list").empty();
-    [1, 2].forEach(function (sequence) {
+    KeyComponentChange.getMotorSequenceList().forEach(function (sequence) {
       var isDisabled = !allowCollectedSequence && collectedSequenceList.indexOf(sequence) !== -1;
       var $option = KeyComponentChange.cloneTemplate("template-motor-option");
       $option.find(".motor-option-label").text(KeyComponentChange.getMotorPositionLabel(sequence));
@@ -538,11 +549,12 @@ var KeyComponentChange = {
   buildPendingScan: function (parsedQrCode, materialSequence) {
     var inputSource = KeyComponentChange.state.inputSource;
     var component = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo)[0] || {};
+    var isSequenceEmpty = materialSequence === null || materialSequence === undefined || materialSequence === "";
     return {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
       materialDesc: component.materialDesc || "",
-      materialSeq: materialSequence,
+      materialSeq: isSequenceEmpty ? null : String(materialSequence),
       materialSerialNo: parsedQrCode.materialSerialNo,
       materialQty: parsedQrCode.materialQty,
       uomCode: component.uomCode || "",
