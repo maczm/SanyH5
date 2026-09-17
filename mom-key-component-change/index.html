@@ -60,11 +60,11 @@
           </div>
           <div class="check-form-row">
             <span class="check-form-label">需采集数量</span>
-            <span class="info-tag collect-qty-tag"></span>
+            <span class="info-tag collect-quantity-tag"></span>
           </div>
-          <div class="check-form-row remove-qty-row hidden">
+          <div class="check-form-row remove-quantity-row hidden">
             <span class="check-form-label">需解绑数量</span>
-            <span class="info-tag remove-qty-tag"></span>
+            <span class="info-tag remove-quantity-tag"></span>
             <button type="button" class="btn-unbind hidden">解绑</button>
           </div>
         </div>
@@ -126,25 +126,25 @@
       <!-- ==================== 循环结构模板 ==================== -->
       <template class="template-key-component-card">
         <div class="key-component-card">
-          <div class="kc-card-header">
-            <div class="kc-title-line">
-              <span class="kc-material-no"></span>
-              <span class="kc-material-desc"></span>
-              <span class="kc-material-type"></span>
+          <div class="key-component-card-header">
+            <div class="key-component-title">
+              <span class="key-component-material-no"></span>
+              <span class="key-component-material-desc"></span>
+              <span class="key-component-material-type"></span>
             </div>
-            <span class="kc-qty"></span>
+            <span class="key-component-quantity"></span>
           </div>
-          <div class="kc-serial-list"></div>
+          <div class="key-component-serial-list"></div>
         </div>
       </template>
       <template class="template-serial-row">
         <div class="serial-row">
-          <div class="sr-left">
-            <span class="sr-serial-no"></span>
-            <span class="sr-motor-position"></span>
+          <div class="serial-main">
+            <span class="serial-no"></span>
+            <span class="motor-position"></span>
           </div>
-          <div class="sr-right">
-            <span class="sr-scan-time"></span>
+          <div class="serial-side">
+            <span class="scan-time"></span>
             <button type="button" class="icon-btn btn-delete-serial" aria-label="删除序列号">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 12a1 1 0 001 1h8a1 1 0 001-1l1-12M10 11v6M14 11v6"/></svg>
             </button>
@@ -153,44 +153,44 @@
       </template>
       <template class="template-remove-record-card">
         <div class="remove-record-card">
-          <div class="rr-card-header">
-            <span class="rr-order-no"></span>
+          <div class="remove-record-card-header">
+            <span class="remove-record-order-no"></span>
             <button type="button" class="btn-remove-row">移除</button>
           </div>
-          <div class="rr-field-grid">
-            <div class="rr-field">
-              <span class="rr-label">物料编码</span>
-              <span class="rr-value rr-material-no"></span>
+          <div class="remove-record-field-grid">
+            <div class="remove-record-field">
+              <span class="remove-record-label">物料编码</span>
+              <span class="remove-record-value remove-record-material-no"></span>
             </div>
-            <div class="rr-field">
-              <span class="rr-label">物料描述</span>
-              <span class="rr-value rr-material-desc"></span>
+            <div class="remove-record-field">
+              <span class="remove-record-label">物料描述</span>
+              <span class="remove-record-value remove-record-material-desc"></span>
             </div>
-            <div class="rr-field">
-              <span class="rr-label">旧序列号</span>
-              <span class="rr-value rr-old-serial"></span>
+            <div class="remove-record-field">
+              <span class="remove-record-label">旧序列号</span>
+              <span class="remove-record-value remove-record-old-serial"></span>
             </div>
-            <div class="rr-field">
-              <span class="rr-label">录入时间</span>
-              <span class="rr-value rr-scan-time"></span>
+            <div class="remove-record-field">
+              <span class="remove-record-label">录入时间</span>
+              <span class="remove-record-value remove-record-scan-time"></span>
             </div>
           </div>
         </div>
       </template>
       <template class="template-change-record-card">
         <div class="change-record-card">
-          <div class="chg-card-header">
-            <span class="chg-order-no"></span>
+          <div class="change-record-card-header">
+            <span class="change-record-order-no"></span>
             <button type="button" class="btn-change-row">更换</button>
           </div>
-          <div class="chg-field-grid">
-            <div class="chg-field">
-              <span class="chg-label">旧序列号</span>
-              <span class="chg-value chg-old-serial"></span>
+          <div class="change-record-field-grid">
+            <div class="change-record-field">
+              <span class="change-record-label">旧序列号</span>
+              <span class="change-record-value change-record-old-serial"></span>
             </div>
-            <div class="chg-field">
-              <span class="chg-label">录入时间</span>
-              <span class="chg-value chg-scan-time"></span>
+            <div class="change-record-field">
+              <span class="change-record-label">录入时间</span>
+              <span class="change-record-value change-record-scan-time"></span>
             </div>
           </div>
         </div>

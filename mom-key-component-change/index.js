@@ -110,9 +110,9 @@ var KeyComponentChange = {
     return orderTypeLabel ? wipOrderNo + "（" + orderTypeLabel + "）" : String(wipOrderNo);
   },
 
-  getMotorPositionLabel: function (materialSeq) {
-    if (String(materialSeq) === "1") return "前电机";
-    if (String(materialSeq) === "2") return "后电机";
+  getMotorPositionLabel: function (materialSequence) {
+    if (String(materialSequence) === "1") return "前电机";
+    if (String(materialSequence) === "2") return "后电机";
     return "";
   },
 
@@ -373,24 +373,24 @@ var KeyComponentChange = {
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    $(".collect-qty-tag").text(state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList));
-    $(".remove-qty-tag").text(state.removeQty + "/" + state.needRemoveQty);
-    $(".remove-qty-row").toggleClass("hidden", !isChangeOrder);
+    $(".collect-quantity-tag").text(state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList));
+    $(".remove-quantity-tag").text(state.removeQty + "/" + state.needRemoveQty);
+    $(".remove-quantity-row").toggleClass("hidden", !isChangeOrder);
 
     groups.forEach(function (group) {
       var $card = KeyComponentChange.cloneTemplate("template-key-component-card");
-      $card.find(".kc-material-no").text(group.materialNo);
-      $card.find(".kc-material-desc").text(group.materialDesc);
-      $card.find(".kc-material-type").text(group.materialType).toggleClass("hidden", !group.materialType);
-      $card.find(".kc-qty").text(group.serialList.length + "/" + group.materialQty);
+      $card.find(".key-component-material-no").text(group.materialNo);
+      $card.find(".key-component-material-desc").text(group.materialDesc);
+      $card.find(".key-component-material-type").text(group.materialType).toggleClass("hidden", !group.materialType);
+      $card.find(".key-component-quantity").text(group.serialList.length + "/" + group.materialQty);
       group.serialList.forEach(function (serial) {
         var $row = KeyComponentChange.cloneTemplate("template-serial-row");
         var motorPositionLabel = KeyComponentChange.getMotorPositionLabel(serial.materialSeq);
-        $row.find(".sr-serial-no").text(serial.serialNo);
-        $row.find(".sr-motor-position").text(motorPositionLabel).toggleClass("hidden", !motorPositionLabel);
-        $row.find(".sr-scan-time").text(KeyComponentChange.normalizeTime(serial.scanTime));
+        $row.find(".serial-no").text(serial.serialNo);
+        $row.find(".motor-position").text(motorPositionLabel).toggleClass("hidden", !motorPositionLabel);
+        $row.find(".scan-time").text(KeyComponentChange.normalizeTime(serial.scanTime));
         $row.data("serial-no", serial.serialNo);
-        $card.find(".kc-serial-list").append($row);
+        $card.find(".key-component-serial-list").append($row);
       });
       $(".key-component-list").append($card);
     });
@@ -426,7 +426,7 @@ var KeyComponentChange = {
     });
   },
 
-  getCollectedSeqList: function (materialIds) {
+  getCollectedSequenceList: function (materialIds) {
     return KeyComponentChange.state.serialList.filter(function (serial) {
       return materialIds.indexOf(serial.materialID) !== -1 && serial.materialSeq !== null && serial.materialSeq !== undefined;
     }).map(function (serial) {
@@ -438,7 +438,7 @@ var KeyComponentChange = {
    * 关重件序号判定：单条配置直接取配置序号；永磁体同步电机两条配置且序号恰为 1、2 时
    * 自动分配尚未采集的那个；序号不明确时弹窗人工选择前/后电机。
    */
-  resolveMaterialSeq: function (materialNo, chosenCallback) {
+  resolveMaterialSequence: function (materialNo, chosenCallback) {
     var matchedComponents = KeyComponentChange.findMatchedComponents(materialNo);
     if (!matchedComponents.length) {
       KeyComponentChange.showToast("提示", materialNo + " 不是本订单关重件", "error");
@@ -449,35 +449,35 @@ var KeyComponentChange = {
       return;
     }
     var materialIds = matchedComponents.map(function (component) { return component.materialID; });
-    var collectedSeqList = KeyComponentChange.getCollectedSeqList(materialIds);
-    var configuredSeqList = matchedComponents.map(function (component) { return Number(component.materialSeq); });
+    var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
+    var configuredSequenceList = matchedComponents.map(function (component) { return Number(component.materialSeq); });
     var isClearMotorPair = matchedComponents.length === 2 &&
-      configuredSeqList.indexOf(1) !== -1 && configuredSeqList.indexOf(2) !== -1;
+      configuredSequenceList.indexOf(1) !== -1 && configuredSequenceList.indexOf(2) !== -1;
     if (isClearMotorPair) {
-      var freeSeq = [1, 2].filter(function (seq) { return collectedSeqList.indexOf(seq) === -1; })[0];
-      if (!freeSeq) {
+      var freeSequence = [1, 2].filter(function (sequence) { return collectedSequenceList.indexOf(sequence) === -1; })[0];
+      if (!freeSequence) {
         KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
         return;
       }
-      chosenCallback(freeSeq);
+      chosenCallback(freeSequence);
       return;
     }
-    KeyComponentChange.showMotorPicker(collectedSeqList, chosenCallback);
+    KeyComponentChange.showMotorPicker(collectedSequenceList, chosenCallback);
   },
 
-  showMotorPicker: function (collectedSeqList, onPick) {
-    var availableSeqList = [1, 2].filter(function (seq) { return collectedSeqList.indexOf(seq) === -1; });
-    if (!availableSeqList.length) {
+  showMotorPicker: function (collectedSequenceList, onPick) {
+    var availableSequenceList = [1, 2].filter(function (sequence) { return collectedSequenceList.indexOf(sequence) === -1; });
+    if (!availableSequenceList.length) {
       KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
       return;
     }
     var $list = $(".motor-picker-list").empty();
-    [1, 2].forEach(function (seq) {
-      var isCollected = collectedSeqList.indexOf(seq) !== -1;
+    [1, 2].forEach(function (sequence) {
+      var isCollected = collectedSequenceList.indexOf(sequence) !== -1;
       var $option = KeyComponentChange.cloneTemplate("template-motor-option");
-      $option.find(".motor-option-label").text(KeyComponentChange.getMotorPositionLabel(seq));
+      $option.find(".motor-option-label").text(KeyComponentChange.getMotorPositionLabel(sequence));
       $option.toggleClass("disabled", isCollected);
-      $option.data("material-seq", seq);
+      $option.data("material-sequence", sequence);
       $list.append($option);
     });
     $(".template-motor-picker").data("on-pick", onPick).removeClass("hidden");
@@ -499,12 +499,12 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", "二维码格式不正确（物料编码|供应商|序列号:数量）", "error");
       return;
     }
-    KeyComponentChange.resolveMaterialSeq(parsedQrCode.materialNo, function (materialSeq) {
-      KeyComponentChange.checkAndSave(parsedQrCode, materialSeq);
+    KeyComponentChange.resolveMaterialSequence(parsedQrCode.materialNo, function (materialSequence) {
+      KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
     });
   },
 
-  checkAndSave: function (parsedQrCode, materialSeq) {
+  checkAndSave: function (parsedQrCode, materialSequence) {
     var state = KeyComponentChange.state;
     var component = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo)[0] || {};
     var isCollected = state.serialList.some(function (serial) {
@@ -518,7 +518,7 @@ var KeyComponentChange = {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
       materialDesc: component.materialDesc || "",
-      materialSeq: materialSeq,
+      materialSeq: materialSequence,
       materialSerialNo: parsedQrCode.materialSerialNo,
       materialQty: parsedQrCode.materialQty,
       uomCode: component.uomCode || "",
@@ -619,9 +619,9 @@ var KeyComponentChange = {
     $(".input-material-qr").val("");
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").removeClass("hidden");
-    $(".collect-qty-tag").text("");
-    $(".remove-qty-tag").text("");
-    $(".remove-qty-row").addClass("hidden");
+    $(".collect-quantity-tag").text("");
+    $(".remove-quantity-tag").text("");
+    $(".remove-quantity-row").addClass("hidden");
     KeyComponentChange.switchView("key-component-check-view");
     KeyComponentChange.applyButtonSwitch();
     setTimeout(function () {
@@ -664,11 +664,11 @@ var KeyComponentChange = {
     $(".empty-remove-record").toggleClass("hidden", recordList.length > 0);
     recordList.forEach(function (record) {
       var $card = KeyComponentChange.cloneTemplate("template-remove-record-card");
-      $card.find(".rr-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
-      $card.find(".rr-material-no").text(record.materialNo || "");
-      $card.find(".rr-material-desc").text(record.materialDesc || "");
-      $card.find(".rr-old-serial").text(record.materialSerialNo || "");
-      $card.find(".rr-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
+      $card.find(".remove-record-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
+      $card.find(".remove-record-material-no").text(record.materialNo || "");
+      $card.find(".remove-record-material-desc").text(record.materialDesc || "");
+      $card.find(".remove-record-old-serial").text(record.materialSerialNo || "");
+      $card.find(".remove-record-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
       $card.data("record", record);
       $(".remove-record-list").append($card);
     });
@@ -741,9 +741,9 @@ var KeyComponentChange = {
     $(".empty-change-record").toggleClass("hidden", recordList.length > 0);
     recordList.forEach(function (record) {
       var $card = KeyComponentChange.cloneTemplate("template-change-record-card");
-      $card.find(".chg-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
-      $card.find(".chg-old-serial").text(record.materialSerialNo || "");
-      $card.find(".chg-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
+      $card.find(".change-record-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
+      $card.find(".change-record-old-serial").text(record.materialSerialNo || "");
+      $card.find(".change-record-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
       $card.data("record", record);
       $(".change-record-list").append($card);
     });
@@ -915,9 +915,9 @@ var KeyComponentChange = {
     $(".motor-picker-list").on("click", ".motor-option", function () {
       if ($(this).hasClass("disabled")) return;
       var onPick = $(".template-motor-picker").data("on-pick");
-      var materialSeq = $(this).data("material-seq");
+      var materialSequence = $(this).data("material-sequence");
       $(".template-motor-picker").addClass("hidden").removeData("on-pick");
-      if (typeof onPick === "function") onPick(materialSeq);
+      if (typeof onPick === "function") onPick(materialSequence);
     });
     $(".template-motor-picker").on("click", function (e) {
       if (e.target === this || $(e.target).hasClass("picker-btn")) {

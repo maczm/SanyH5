@@ -209,7 +209,7 @@ body {
 }
 
 /* 需解绑数量行：解绑按钮右对齐 */
-.mom-key-component-change .remove-qty-row .btn-unbind {
+.mom-key-component-change .remove-quantity-row .btn-unbind {
   margin-left: auto;
   flex-shrink: 0;
   padding: 8px 18px;
@@ -222,7 +222,7 @@ body {
   cursor: pointer;
   transition: background 0.15s;
 }
-.mom-key-component-change .remove-qty-row .btn-unbind:active {
+.mom-key-component-change .remove-quantity-row .btn-unbind:active {
   background: var(--primary-dark);
 }
 
@@ -248,12 +248,12 @@ body {
 .mom-key-component-change .key-component-card:last-child {
   margin-bottom: 0;
 }
-.mom-key-component-change .kc-card-header {
+.mom-key-component-change .key-component-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.mom-key-component-change .kc-title-line {
+.mom-key-component-change .key-component-title {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -261,7 +261,7 @@ body {
   gap: 6px;
   overflow: hidden;
 }
-.mom-key-component-change .kc-material-no {
+.mom-key-component-change .key-component-material-no {
   font-size: 14px;
   font-weight: 600;
   color: var(--primary);
@@ -270,7 +270,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mom-key-component-change .kc-material-desc {
+.mom-key-component-change .key-component-material-desc {
   font-size: 13px;
   color: var(--text-primary);
   min-width: 0;
@@ -278,7 +278,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mom-key-component-change .kc-material-type {
+.mom-key-component-change .key-component-material-type {
   flex-shrink: 0;
   font-size: 11px;
   color: var(--text-secondary);
@@ -287,7 +287,7 @@ body {
   padding: 2px 6px;
   white-space: nowrap;
 }
-.mom-key-component-change .kc-qty {
+.mom-key-component-change .key-component-quantity {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 700;
@@ -306,21 +306,21 @@ body {
   margin-top: 8px;
   font-size: 13px;
 }
-.mom-key-component-change .serial-row .sr-left {
+.mom-key-component-change .serial-row .serial-main {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
-.mom-key-component-change .serial-row .sr-serial-no {
+.mom-key-component-change .serial-row .serial-no {
   font-weight: 600;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mom-key-component-change .serial-row .sr-motor-position {
+.mom-key-component-change .serial-row .motor-position {
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
@@ -329,13 +329,13 @@ body {
   border-radius: 6px;
   padding: 2px 6px;
 }
-.mom-key-component-change .serial-row .sr-right {
+.mom-key-component-change .serial-row .serial-side {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.mom-key-component-change .serial-row .sr-scan-time {
+.mom-key-component-change .serial-row .scan-time {
   font-size: 12px;
   opacity: 0.75;
   white-space: nowrap;
@@ -367,14 +367,14 @@ body {
 .mom-key-component-change .change-record-card:last-child {
   margin-bottom: 0;
 }
-.mom-key-component-change .rr-card-header,
-.mom-key-component-change .chg-card-header {
+.mom-key-component-change .remove-record-card-header,
+.mom-key-component-change .change-record-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.mom-key-component-change .rr-order-no,
-.mom-key-component-change .chg-order-no {
+.mom-key-component-change .remove-record-order-no,
+.mom-key-component-change .change-record-order-no {
   flex: 1;
   min-width: 0;
   font-size: 14px;
@@ -407,27 +407,27 @@ body {
   color: #fff;
 }
 
-.mom-key-component-change .rr-field-grid,
-.mom-key-component-change .chg-field-grid {
+.mom-key-component-change .remove-record-field-grid,
+.mom-key-component-change .change-record-field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px 10px;
   margin-top: 8px;
 }
-.mom-key-component-change .rr-field,
-.mom-key-component-change .chg-field {
+.mom-key-component-change .remove-record-field,
+.mom-key-component-change .change-record-field {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
-.mom-key-component-change .rr-label,
-.mom-key-component-change .chg-label {
+.mom-key-component-change .remove-record-label,
+.mom-key-component-change .change-record-label {
   font-size: 11px;
   color: var(--text-muted);
 }
-.mom-key-component-change .rr-value,
-.mom-key-component-change .chg-value {
+.mom-key-component-change .remove-record-value,
+.mom-key-component-change .change-record-value {
   font-size: 13px;
   color: var(--text-primary);
   min-width: 0;
@@ -812,7 +812,7 @@ body {
     font-size: 12px;
     padding: 3px 8px;
   }
-  .mom-key-component-change .remove-qty-row .btn-unbind {
+  .mom-key-component-change .remove-quantity-row .btn-unbind {
     padding: 6px 14px;
     font-size: 13px;
   }
@@ -834,14 +834,14 @@ body {
     padding: 7px 0;
     margin-top: 7px;
   }
-  .mom-key-component-change .serial-row .sr-left {
+  .mom-key-component-change .serial-row .serial-main {
     flex: 1 0 auto;
     min-width: 0;
   }
-  .mom-key-component-change .serial-row .sr-right {
+  .mom-key-component-change .serial-row .serial-side {
     gap: 4px;
   }
-  .mom-key-component-change .serial-row .sr-scan-time {
+  .mom-key-component-change .serial-row .scan-time {
     font-size: 11px;
   }
 

@@ -73,8 +73,8 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   const orderRequest = await lastRequest("GetWipOrderNoInfo");
   check("纯数字判定为 wipOrderNo", orderRequest && orderRequest.wipOrderNo === PRODUCTION_ORDER && orderRequest.vin === "");
   check("查询成功自动调 KC2", (await requestCount("GetKeyComponentInfo")) >= 3);
-  check("需采集数量 2/5", (await page.locator(".collect-qty-tag").textContent()) === "2/5");
-  check("生产订单隐藏需解绑数量行", !(await page.locator(".remove-qty-row").isVisible()));
+  check("需采集数量 2/5", (await page.locator(".collect-quantity-tag").textContent()) === "2/5");
+  check("生产订单隐藏需解绑数量行", !(await page.locator(".remove-quantity-row").isVisible()));
   check("查询后聚焦二维码(抑制键盘)", await page.evaluate(() => document.activeElement.classList.contains("input-material-qr")));
 
   await queryOrder("999999999999");
@@ -87,16 +87,16 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("卡片 3 张", (await page.locator(".key-component-card").count()) === 3);
   {
     const first = page.locator(".key-component-card").first();
-    check("首卡=最新扫描物料", (await first.locator(".kc-material-no").textContent()) === "MAT-MOTOR-001");
-    check("首卡物料描述与类型", (await first.locator(".kc-material-desc").textContent()) === "永磁同步电机" && (await first.locator(".kc-material-type").textContent()) === "永磁体同步电机");
-    check("同物料两张配置合并为一张卡(1/2)", (await first.locator(".kc-qty").textContent()) === "1/2" && (await first.locator(".serial-row").count()) === 1);
-    check("卡内首行序列号与扫描时间", (await first.locator(".sr-serial-no").textContent()) === "SN-MOTOR-A1" && (await first.locator(".sr-scan-time").textContent()) === "2026-08-24 09:10:00");
-    check("序号 1 显示前电机", (await first.locator(".sr-motor-position").textContent()) === "前电机");
+    check("首卡=最新扫描物料", (await first.locator(".key-component-material-no").textContent()) === "MAT-MOTOR-001");
+    check("首卡物料描述与类型", (await first.locator(".key-component-material-desc").textContent()) === "永磁同步电机" && (await first.locator(".key-component-material-type").textContent()) === "永磁体同步电机");
+    check("同物料两张配置合并为一张卡(1/2)", (await first.locator(".key-component-quantity").textContent()) === "1/2" && (await first.locator(".serial-row").count()) === 1);
+    check("卡内首行序列号与扫描时间", (await first.locator(".serial-no").textContent()) === "SN-MOTOR-A1" && (await first.locator(".scan-time").textContent()) === "2026-08-24 09:10:00");
+    check("序号 1 显示前电机", (await first.locator(".motor-position").textContent()) === "前电机");
     const second = page.locator(".key-component-card").nth(1);
-    check("次卡按扫描时间排序", (await second.locator(".kc-material-no").textContent()) === "MAT-AXLE-002");
-    check("序号 null 不显示前后电机", await second.locator(".sr-motor-position").isHidden());
+    check("次卡按扫描时间排序", (await second.locator(".key-component-material-no").textContent()) === "MAT-AXLE-002");
+    check("序号 null 不显示前后电机", await second.locator(".motor-position").isHidden());
     const third = page.locator(".key-component-card").nth(2);
-    check("未采集卡排最后且 0/2", (await third.locator(".kc-material-no").textContent()) === "MAT-BOX-003" && (await third.locator(".kc-qty").textContent()) === "0/2" && (await third.locator(".serial-row").count()) === 0);
+    check("未采集卡排最后且 0/2", (await third.locator(".key-component-material-no").textContent()) === "MAT-BOX-003" && (await third.locator(".key-component-quantity").textContent()) === "0/2" && (await third.locator(".serial-row").count()) === 0);
   }
 
   // ============ 4. 二维码校验拦截（均不调用 KC3） ============
@@ -118,7 +118,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     check("自动分配后电机(序号2，不弹窗)", saved.length === 1 && saved[0].reported.materialSeq === 2 && !(await page.locator(".template-motor-picker").isVisible()));
     check("KC3 入参完整", saved[0].reported.wipOrderNo === PRODUCTION_ORDER && saved[0].reported.productNo === "MAT-HOST-001" && saved[0].reported.materialSerialNo === "SN-MOTOR-A2" && saved[0].reported.materialQty === 1 && saved[0].reported.partner === "供应商A" && saved[0].reported.inputType === "手输" && saved[0].reported.inputCode === 13);
   }
-  check("保存后刷新数量 3/5", (await page.locator(".collect-qty-tag").textContent()) === "3/5");
+  check("保存后刷新数量 3/5", (await page.locator(".collect-quantity-tag").textContent()) === "3/5");
   check("保存后清空且重聚焦可编辑", await page.evaluate(() => {
     const input = document.querySelector(".input-material-qr");
     return input.value === "" && document.activeElement === input && !input.readOnly;
@@ -144,7 +144,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   // ============ 6. 改制订单：需解绑数量行 + 序号不明确弹窗（含取消） ============
   await queryOrder(CHANGE_ORDER);
   check("改制订单类型标注", (await page.locator(".order-no-tag").textContent()) === CHANGE_ORDER + "（改制订单）");
-  check("改制订单显示需解绑数量 0/2", (await page.locator(".remove-qty-row").isVisible()) && (await page.locator(".remove-qty-tag").textContent()) === "0/2");
+  check("改制订单显示需解绑数量 0/2", (await page.locator(".remove-quantity-row").isVisible()) && (await page.locator(".remove-quantity-tag").textContent()) === "0/2");
   check("需解绑总数>已解绑 显示解绑按钮", await page.locator(".btn-unbind").isVisible());
 
   await scanMaterial("MAT-MOTOR-011|供应商C|SN-MOTOR-C1:1");
@@ -178,10 +178,10 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("待移除明细 2 条", (await page.locator(".remove-record-card").count()) === 2);
   check("明细卡片字段", await page.evaluate(() => {
     const card = document.querySelector(".remove-record-card");
-    return card.querySelector(".rr-order-no").textContent === "184000000001（生产订单）" &&
-      card.querySelector(".rr-material-no").textContent === "MAT-MOTOR-001" &&
-      card.querySelector(".rr-old-serial").textContent === "SN-MOTOR-OLD-1" &&
-      card.querySelector(".rr-scan-time").textContent === "2026-08-20 08:30:00";
+    return card.querySelector(".remove-record-order-no").textContent === "184000000001（生产订单）" &&
+      card.querySelector(".remove-record-material-no").textContent === "MAT-MOTOR-001" &&
+      card.querySelector(".remove-record-old-serial").textContent === "SN-MOTOR-OLD-1" &&
+      card.querySelector(".remove-record-scan-time").textContent === "2026-08-20 08:30:00";
   }));
   check("移除按钮权限可禁用(克隆行)", await page.evaluate(() => {
     KeyComponentChange.BUTTON_SWITCH.removeRecord.permitted = false;
@@ -212,7 +212,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(1400);
   check("返回视图1", await page.locator(".key-component-check-view").isVisible());
   check("返回后刷新 KC2", (await requestCount("GetKeyComponentInfo")) === kc2BeforeBack + 1);
-  check("已解绑数量更新 1/2", (await page.locator(".remove-qty-tag").textContent()) === "1/2");
+  check("已解绑数量更新 1/2", (await page.locator(".remove-quantity-tag").textContent()) === "1/2");
 
   // ============ 8. 视图3：isChange=1 进入更换页 → Remove + Save ============
   await scanMaterial("MAT-BOX-012|供应商D|CHG-SN-1:1");
@@ -221,9 +221,9 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("待更换明细 2 条", (await page.locator(".change-record-card").count()) === 2);
   check("待更换明细字段", await page.evaluate((changeOrder) => {
     const card = document.querySelector(".change-record-card");
-    return card.querySelector(".chg-order-no").textContent === changeOrder + "（改制订单）" &&
-      card.querySelector(".chg-old-serial").textContent === "SN-OLD-CHG-1" &&
-      card.querySelector(".chg-scan-time").textContent === "2026-08-22 10:00:00";
+    return card.querySelector(".change-record-order-no").textContent === changeOrder + "（改制订单）" &&
+      card.querySelector(".change-record-old-serial").textContent === "SN-OLD-CHG-1" &&
+      card.querySelector(".change-record-scan-time").textContent === "2026-08-22 10:00:00";
   }, CHANGE_ORDER));
 
   await page.click(".btn-change-row >> nth=0");
@@ -275,7 +275,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
 
   // ============ 10. 关重件序列号删除（视图1 行内删除图标） ============
   await queryOrder(PRODUCTION_ORDER);
-  const firstSerialNo = await page.locator(".serial-row").first().locator(".sr-serial-no").textContent();
+  const firstSerialNo = await page.locator(".serial-row").first().locator(".serial-no").textContent();
   const removeCountBeforeDelete = await requestCount("Remove");
   await page.click(".btn-delete-serial >> nth=0");
   await page.waitForTimeout(300);
@@ -284,13 +284,13 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(1400);
   const deleteRequest = await lastRequest("Remove");
   check("删除入参 = 订单序列号 + 关重件序列号", (await requestCount("Remove")) === removeCountBeforeDelete + 1 && deleteRequest.wipOrderNo === PRODUCTION_ORDER && deleteRequest.wipOrderType === 1 && deleteRequest.serialNo === "SN-HOST-0001" && deleteRequest.materialSerialNo === firstSerialNo);
-  check("删除后刷新数量 2/5", (await page.locator(".collect-qty-tag").textContent()) === "2/5");
+  check("删除后刷新数量 2/5", (await page.locator(".collect-quantity-tag").textContent()) === "2/5");
 
   // ============ 11. 需解绑数量达标（移除页移除 + 更换流程移除）后解绑按钮消失 ============
   await queryOrder(CHANGE_ORDER);
-  check("已解绑数量不超过需解绑总数 2/2", (await page.locator(".remove-qty-tag").textContent()) === "2/2");
+  check("已解绑数量不超过需解绑总数 2/2", (await page.locator(".remove-quantity-tag").textContent()) === "2/2");
   check("达标后隐藏解绑按钮", !(await page.locator(".btn-unbind").isVisible()));
-  check("改制订单需解绑数量行仍显示", await page.locator(".remove-qty-row").isVisible());
+  check("改制订单需解绑数量行仍显示", await page.locator(".remove-quantity-row").isVisible());
   check("达标后仍可从移除页刷新", await page.evaluate(() => {
     KeyComponentChange.enterRemoveView();
     return true;
@@ -350,7 +350,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-complete");
   await page.waitForTimeout(400);
   check("完成清空订单与列表", (await page.locator(".order-no-tag").textContent()) === "" && (await page.locator(".key-component-card").count()) === 0 && (await page.locator(".empty-key-component").isVisible()));
-  check("完成隐藏需解绑数量行", !(await page.locator(".remove-qty-row").isVisible()));
+  check("完成隐藏需解绑数量行", !(await page.locator(".remove-quantity-row").isVisible()));
   check("完成聚焦订单输入", await page.evaluate(() => document.activeElement.classList.contains("input-order-key")));
 
   // ============ 14. 小屏布局（320×480 / 360×640，三视图各断言） ============
@@ -367,8 +367,8 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
         cardOverflow: card.scrollWidth - card.clientWidth,
         rowOverflow: row.scrollWidth - row.clientWidth,
         listHeight: Math.round(rect(".key-component-list").height),
-        serialNoWidth: Math.round(rect(".sr-serial-no").width),
-        timeRight: Math.round(rect(".sr-scan-time").right),
+        serialNoWidth: Math.round(rect(".serial-no").width),
+        timeRight: Math.round(rect(".scan-time").right),
         viewportWidth: window.innerWidth,
         buttonVisible: rect(".btn-complete").bottom <= window.innerHeight,
       };
