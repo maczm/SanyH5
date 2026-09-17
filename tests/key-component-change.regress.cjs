@@ -242,8 +242,9 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("更换成功回到视图1", await page.locator(".key-component-check-view").isVisible());
   check("更换后清空二维码输入", (await page.evaluate(() => document.querySelector(".input-material-qr").value)) === "");
 
-  // ============ 9. 更换页 Save 失败重试：不重复移除 ============
-  await scanMaterial("MAT-BOX-012|供应商D|CHG-SN-2:1");
+  // ============ 9. 更换页 Save 失败重试：不重复移除（改用仍有采集余量的关重件） ============
+  await queryOrder(PRODUCTION_ORDER);
+  await scanMaterial("MAT-BOX-003|供应商E|CHG-SN-2:1");
   check("再次进入更换页", await page.locator(".key-component-change-view").isVisible());
   await page.evaluate(() => {
     window.__failSaveOnce = true;
@@ -276,6 +277,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   // ============ 10. 关重件序列号删除（视图1 行内删除图标） ============
   await queryOrder(PRODUCTION_ORDER);
   const firstSerialNo = await page.locator(".serial-row").first().locator(".serial-no").textContent();
+  const collectedBeforeDelete = Number((await page.locator(".collect-quantity-tag").textContent()).split("/")[0]);
   const removeCountBeforeDelete = await requestCount("Remove");
   await page.click(".btn-delete-serial >> nth=0");
   await page.waitForTimeout(300);
@@ -284,7 +286,8 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.waitForTimeout(1400);
   const deleteRequest = await lastRequest("Remove");
   check("删除入参 = 订单序列号 + 关重件序列号", (await requestCount("Remove")) === removeCountBeforeDelete + 1 && deleteRequest.wipOrderNo === PRODUCTION_ORDER && deleteRequest.wipOrderType === 1 && deleteRequest.serialNo === "SN-HOST-0001" && deleteRequest.materialSerialNo === firstSerialNo);
-  check("删除后刷新数量 2/5", (await page.locator(".collect-quantity-tag").textContent()) === "2/5");
+  const collectedAfterDelete = Number((await page.locator(".collect-quantity-tag").textContent()).split("/")[0]);
+  check("删除后已采集数量减 1", collectedAfterDelete === collectedBeforeDelete - 1, `${collectedBeforeDelete}->${collectedAfterDelete}`);
 
   // ============ 11. 需解绑数量达标（移除页移除 + 更换流程移除）后解绑按钮消失 ============
   await queryOrder(CHANGE_ORDER);
@@ -300,7 +303,38 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-back-remove");
   await page.waitForTimeout(1400);
 
-  // ============ 12. 按钮开关：显示开关与权限开关各自独立 ============
+  // ============ 12. 关重件扫描数量不得超过需扫描总数 ============
+  await queryOrder(PRODUCTION_ORDER);
+  const cardQuantity = (materialNo) => page.evaluate((target) => {
+    const card = Array.from(document.querySelectorAll(".key-component-card")).find((item) => item.querySelector(".key-component-material-no").textContent === target);
+    return card.querySelector(".key-component-quantity").textContent;
+  }, materialNo);
+  const savedCount = () => page.evaluate(() => (window.__keyComponentMockSaved || []).length);
+  check("满量物料：电机 2/2、驱动桥 1/1、变速箱 0/2", (await cardQuantity("MAT-MOTOR-001")) === "2/2" && (await cardQuantity("MAT-AXLE-002")) === "1/1" && (await cardQuantity("MAT-BOX-003")) === "0/2");
+  {
+    const savedBeforeOverScan = await savedCount();
+    await scanMaterial("MAT-MOTOR-001|供应商A|SN-MOTOR-A4:1");
+    check("永磁体同步电机满量拦截", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("已采集完成") !== -1 && (await savedCount()) === savedBeforeOverScan);
+    await closeToast();
+    await scanMaterial("MAT-AXLE-002|供应商A|SN-AXLE-A2:1");
+    check("单件关重件满量拦截", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("已采集完成") !== -1 && (await savedCount()) === savedBeforeOverScan);
+    await closeToast();
+  }
+  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-1:1");
+  check("多件关重件第 1 颗可采(1/2)", (await cardQuantity("MAT-BOX-003")) === "1/2");
+  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-2:1");
+  check("多件关重件第 2 颗可采(2/2)", (await cardQuantity("MAT-BOX-003")) === "2/2");
+  {
+    const savedBeforeThirdScan = await savedCount();
+    await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-3:1");
+    const overScanMessage = await page.locator(".template-toast:not(.hidden) .toast-content").textContent();
+    check("多件关重件第 3 颗被拦截", overScanMessage.indexOf("已采集完成（已扫描 2/需扫描 2）") !== -1 && (await savedCount()) === savedBeforeThirdScan);
+    await closeToast();
+  }
+  check("拦截后数量不变且不误伤其他物料", (await cardQuantity("MAT-BOX-003")) === "2/2" && (await cardQuantity("MAT-MOTOR-001")) === "2/2" && (await cardQuantity("MAT-AXLE-002")) === "1/1");
+  check("全部采集完成 5/5", (await page.locator(".collect-quantity-tag").textContent()) === "5/5");
+
+  // ============ 13. 按钮开关：显示开关与权限开关各自独立 ============
   const buttonState = (selector) => page.evaluate((sel) => {
     const button = document.querySelector(sel);
     return { hidden: button.classList.contains("hidden"), disabled: button.disabled };
@@ -346,14 +380,14 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     KeyComponentChange.applyButtonSwitch();
   });
 
-  // ============ 13. 「完成」重置回初始态 ============
+  // ============ 14. 「完成」重置回初始态 ============
   await page.click(".btn-complete");
   await page.waitForTimeout(400);
   check("完成清空订单与列表", (await page.locator(".order-no-tag").textContent()) === "" && (await page.locator(".key-component-card").count()) === 0 && (await page.locator(".empty-key-component").isVisible()));
   check("完成隐藏需解绑数量行", !(await page.locator(".remove-quantity-row").isVisible()));
   check("完成聚焦订单输入", await page.evaluate(() => document.activeElement.classList.contains("input-order-key")));
 
-  // ============ 14. 小屏布局（320×480 / 360×640，三视图各断言） ============
+  // ============ 15. 小屏布局（320×480 / 360×640，三视图各断言） ============
   await queryOrder(PRODUCTION_ORDER);
   for (const [width, height] of [[320, 480], [360, 640]]) {
     await page.setViewportSize({ width, height });
@@ -416,7 +450,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
 
-  // ============ 15. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
+  // ============ 16. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
   await page.evaluate(() => {
     document.querySelector(".mom-key-component-change").remove();
     window.__probe = { payload: null, renderError: null, initError: null };

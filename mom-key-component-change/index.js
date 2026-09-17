@@ -434,16 +434,29 @@ var KeyComponentChange = {
     });
   },
 
+  /** 同一物料编码的已扫描/需扫描数量（配置可能多条，如永磁体同步电机） */
+  getMaterialQuantityState: function (matchedComponents) {
+    var materialIds = matchedComponents.map(function (component) { return component.materialID; });
+    var collectedQuantity = KeyComponentChange.state.serialList.filter(function (serial) {
+      return materialIds.indexOf(serial.materialID) !== -1;
+    }).length;
+    return {
+      collectedQuantity: collectedQuantity,
+      requiredQuantity: KeyComponentChange.sumMaterialQty(matchedComponents),
+    };
+  },
+
+  isSerialCollected: function (materialSerialNo) {
+    return KeyComponentChange.state.serialList.some(function (serial) {
+      return serial.serialNo === materialSerialNo;
+    });
+  },
+
   /**
    * 关重件序号判定：单条配置直接取配置序号；永磁体同步电机两条配置且序号恰为 1、2 时
    * 自动分配尚未采集的那个；序号不明确时弹窗人工选择前/后电机。
    */
-  resolveMaterialSequence: function (materialNo, chosenCallback) {
-    var matchedComponents = KeyComponentChange.findMatchedComponents(materialNo);
-    if (!matchedComponents.length) {
-      KeyComponentChange.showToast("提示", materialNo + " 不是本订单关重件", "error");
-      return;
-    }
+  resolveMaterialSequence: function (matchedComponents, chosenCallback) {
     if (matchedComponents.length === 1) {
       chosenCallback(matchedComponents[0].materialSeq);
       return;
@@ -499,7 +512,25 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", "二维码格式不正确（物料编码|供应商|序列号:数量）", "error");
       return;
     }
-    KeyComponentChange.resolveMaterialSequence(parsedQrCode.materialNo, function (materialSequence) {
+    var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
+    if (!matchedComponents.length) {
+      KeyComponentChange.showToast("提示", parsedQrCode.materialNo + " 不是本订单关重件", "error");
+      return;
+    }
+    if (KeyComponentChange.isSerialCollected(parsedQrCode.materialSerialNo)) {
+      KeyComponentChange.showToast("提示", "该序列号已采集", "error");
+      return;
+    }
+    var quantityState = KeyComponentChange.getMaterialQuantityState(matchedComponents);
+    if (quantityState.collectedQuantity >= quantityState.requiredQuantity) {
+      KeyComponentChange.showToast(
+        "提示",
+        "该关重件已采集完成（已扫描 " + quantityState.collectedQuantity + "/需扫描 " + quantityState.requiredQuantity + "）",
+        "error",
+      );
+      return;
+    }
+    KeyComponentChange.resolveMaterialSequence(matchedComponents, function (materialSequence) {
       KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
     });
   },
@@ -507,13 +538,6 @@ var KeyComponentChange = {
   checkAndSave: function (parsedQrCode, materialSequence) {
     var state = KeyComponentChange.state;
     var component = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo)[0] || {};
-    var isCollected = state.serialList.some(function (serial) {
-      return serial.serialNo === parsedQrCode.materialSerialNo;
-    });
-    if (isCollected) {
-      KeyComponentChange.showToast("提示", "该序列号已采集", "error");
-      return;
-    }
     state.pendingScan = {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
