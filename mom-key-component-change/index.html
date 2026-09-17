@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>关重件更换</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="app-container mom-key-component-change">
+      <!-- ==================== 页面头部 ==================== -->
+      <div class="page-header">
+        <span class="header-title">关重件更换</span>
+        <span class="header-time"></span>
+      </div>
+
+      <!-- ==================== 视图1：关重件更换主页 ==================== -->
+      <div class="key-component-check-view">
+        <div class="check-form-area">
+          <div class="check-form-row">
+            <span class="check-form-label">订单号/VIN码</span>
+            <div class="input-row">
+              <input
+                class="search-input input-order-key"
+                type="text"
+                placeholder="请输入或扫码订单号/VIN"
+                autocomplete="off"
+              />
+              <button type="button" class="icon-btn btn-search btn-search-order" aria-label="搜索订单">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+              </button>
+              <button type="button" class="icon-btn btn-scan btn-scan-order" aria-label="扫码订单">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">订单号</span>
+            <span class="info-tag order-no-tag"></span>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">物料二维码</span>
+            <div class="input-row">
+              <input
+                class="search-input input-material-qr"
+                type="text"
+                placeholder="扫码或输入：物料编码|供应商|序列号:数量"
+                autocomplete="off"
+              />
+              <button type="button" class="icon-btn btn-search btn-search-material" aria-label="搜索物料">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+              </button>
+              <button type="button" class="icon-btn btn-scan btn-scan-material" aria-label="扫码物料">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">需采集数量</span>
+            <span class="info-tag collect-qty-tag"></span>
+          </div>
+          <div class="check-form-row remove-qty-row hidden">
+            <span class="check-form-label">需解绑数量</span>
+            <span class="info-tag remove-qty-tag"></span>
+            <button type="button" class="btn-unbind hidden">解绑</button>
+          </div>
+        </div>
+
+        <div class="key-component-list">
+          <div class="empty-state hidden empty-key-component">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p>暂无关重件数据</p>
+          </div>
+        </div>
+
+        <div class="bottom-action-area">
+          <button type="button" class="btn-complete">完成</button>
+        </div>
+      </div>
+
+      <!-- ==================== 视图2：关重件移除页（仅改制订单） ==================== -->
+      <div class="key-component-remove-view hidden">
+        <div class="check-form-area">
+          <div class="check-form-row">
+            <span class="check-form-label">改制订单号</span>
+            <span class="info-tag remove-order-no-tag"></span>
+          </div>
+        </div>
+        <div class="remove-record-list">
+          <div class="empty-state hidden empty-remove-record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p>暂无需移除的关重件</p>
+          </div>
+        </div>
+        <div class="bottom-action-area">
+          <button type="button" class="btn-back-remove">返回</button>
+        </div>
+      </div>
+
+      <!-- ==================== 视图3：关重件更换页 ==================== -->
+      <div class="key-component-change-view hidden">
+        <div class="check-form-area">
+          <div class="check-form-row stacked-row">
+            <span class="check-form-label">订单号-物料编码-物料描述</span>
+            <span class="info-tag change-material-tag"></span>
+          </div>
+          <div class="check-form-row stacked-row">
+            <span class="check-form-label">新序列号</span>
+            <span class="info-tag new-serial-tag"></span>
+          </div>
+        </div>
+        <div class="change-record-list">
+          <div class="empty-state hidden empty-change-record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p>暂无可更换的关重件</p>
+          </div>
+        </div>
+        <div class="bottom-action-area">
+          <button type="button" class="btn-back-change">返回</button>
+        </div>
+      </div>
+
+      <!-- ==================== 循环结构模板 ==================== -->
+      <template class="template-key-component-card">
+        <div class="key-component-card">
+          <div class="kc-card-header">
+            <div class="kc-title-line">
+              <span class="kc-material-no"></span>
+              <span class="kc-material-desc"></span>
+              <span class="kc-material-type"></span>
+            </div>
+            <span class="kc-qty"></span>
+          </div>
+          <div class="kc-serial-list"></div>
+        </div>
+      </template>
+      <template class="template-serial-row">
+        <div class="serial-row">
+          <div class="sr-left">
+            <span class="sr-serial-no"></span>
+            <span class="sr-motor-position"></span>
+          </div>
+          <div class="sr-right">
+            <span class="sr-scan-time"></span>
+            <button type="button" class="icon-btn btn-delete-serial" aria-label="删除序列号">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 12a1 1 0 001 1h8a1 1 0 001-1l1-12M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+      </template>
+      <template class="template-remove-record-card">
+        <div class="remove-record-card">
+          <div class="rr-card-header">
+            <span class="rr-order-no"></span>
+            <button type="button" class="btn-remove-row">移除</button>
+          </div>
+          <div class="rr-field-grid">
+            <div class="rr-field">
+              <span class="rr-label">物料编码</span>
+              <span class="rr-value rr-material-no"></span>
+            </div>
+            <div class="rr-field">
+              <span class="rr-label">物料描述</span>
+              <span class="rr-value rr-material-desc"></span>
+            </div>
+            <div class="rr-field">
+              <span class="rr-label">旧序列号</span>
+              <span class="rr-value rr-old-serial"></span>
+            </div>
+            <div class="rr-field">
+              <span class="rr-label">录入时间</span>
+              <span class="rr-value rr-scan-time"></span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template class="template-change-record-card">
+        <div class="change-record-card">
+          <div class="chg-card-header">
+            <span class="chg-order-no"></span>
+            <button type="button" class="btn-change-row">更换</button>
+          </div>
+          <div class="chg-field-grid">
+            <div class="chg-field">
+              <span class="chg-label">旧序列号</span>
+              <span class="chg-value chg-old-serial"></span>
+            </div>
+            <div class="chg-field">
+              <span class="chg-label">录入时间</span>
+              <span class="chg-value chg-scan-time"></span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template class="template-motor-option">
+        <div class="motor-option">
+          <span class="motor-option-label"></span>
+        </div>
+      </template>
+
+      <!-- ==================== 弹窗骨架（hidden 预埋，JS 只显隐/填值） ==================== -->
+      <!-- 加载中 -->
+      <div class="loading-mask hidden template-loading">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">加载中...</div>
+        </div>
+      </div>
+      <!-- Toast（非阻断，3s 自动消失） -->
+      <div class="toast-mask hidden template-toast">
+        <div class="toast-box">
+          <div class="toast-icon-area">
+            <div class="toast-icon-error hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="toast-icon-success hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+          </div>
+          <div class="toast-title"></div>
+          <div class="toast-content hidden"></div>
+          <button type="button" class="toast-btn">确定</button>
+        </div>
+      </div>
+      <!-- 二次确认 -->
+      <div class="confirm-mask hidden template-confirm">
+        <div class="confirm-box">
+          <div class="confirm-title">提示</div>
+          <div class="confirm-content"></div>
+          <div class="confirm-btns">
+            <button type="button" class="confirm-btn-cancel">取消</button>
+            <button type="button" class="confirm-btn-ok">确定</button>
+          </div>
+        </div>
+      </div>
+      <!-- 前电机/后电机选择 -->
+      <div class="motor-picker-mask hidden template-motor-picker">
+        <div class="motor-picker-box">
+          <div class="picker-title">请选择关重件位置</div>
+          <div class="motor-picker-list"></div>
+          <button type="button" class="picker-btn">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../jquery.min.js"></script>
+    <script src="mock.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

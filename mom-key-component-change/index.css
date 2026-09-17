@@ -1,0 +1,885 @@
+.mom-key-component-change {
+  --primary: #1976d2;
+  --primary-dark: #1565c0;
+  --primary-light: #42a5f5;
+  --primary-bg: #e3f2fd;
+  --gradient-primary: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #1e88e5 100%);
+  --border-color: #e8eaed;
+  --bg-input: #f8f9fa;
+  --bg-btn-secondary: #f1f3f4;
+  --text-muted: #9aa0a6;
+  --text-secondary: #5f6368;
+  --text-primary: #202124;
+  --error: #ea4335;
+  --success: #34a853;
+  --card-radius: 14px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f0f2f5;
+}
+
+.mom-key-component-change,
+.mom-key-component-change * {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mom-key-component-change ::-webkit-scrollbar {
+  display: none;
+}
+
+.mom-key-component-change {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f0f2f5;
+  color: var(--text-primary);
+}
+
+.mom-key-component-change.app-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.mom-key-component-change .hidden {
+  display: none !important;
+}
+
+/* ==================== 页面头部 ==================== */
+.mom-key-component-change .page-header {
+  background: var(--gradient-primary);
+  color: #fff;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
+}
+.mom-key-component-change .page-header .header-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.mom-key-component-change .page-header .header-time {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-left: auto;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+/* ==================== 视图容器 ==================== */
+.mom-key-component-change .key-component-check-view,
+.mom-key-component-change .key-component-remove-view,
+.mom-key-component-change .key-component-change-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================== 输入行（输入框 + 搜索/扫码按钮） ==================== */
+.mom-key-component-change .input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.mom-key-component-change .search-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mom-key-component-change .search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+  background: #fff;
+}
+.mom-key-component-change .search-input::placeholder {
+  color: #c4c7cc;
+}
+
+.mom-key-component-change .icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 10px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mom-key-component-change .icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+.mom-key-component-change .btn-scan {
+  background: var(--bg-btn-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+.mom-key-component-change .btn-scan:active {
+  background: #e0e0e0 !important;
+}
+.mom-key-component-change .btn-search {
+  background: var(--primary-bg) !important;
+  color: var(--primary) !important;
+}
+.mom-key-component-change .btn-search:active {
+  background: #bbdefb !important;
+}
+
+/* 权限关闭：置灰禁用（保留占位，布局不跳动） */
+.mom-key-component-change button:disabled,
+.mom-key-component-change button.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ==================== 表单区 ==================== */
+.mom-key-component-change .check-form-area {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+.mom-key-component-change .check-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 3px 0;
+}
+.mom-key-component-change .check-form-label {
+  flex-shrink: 0;
+  width: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+.mom-key-component-change .info-tag {
+  background: var(--primary-bg);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 长标签行（视图3 头部）改为上下排布，避免标签列挤压值 */
+.mom-key-component-change .check-form-row.stacked-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.mom-key-component-change .stacked-row .check-form-label {
+  width: auto;
+  font-size: 12px;
+}
+.mom-key-component-change .stacked-row .info-tag {
+  max-width: 100%;
+}
+
+/* 需解绑数量行：解绑按钮右对齐 */
+.mom-key-component-change .remove-qty-row .btn-unbind {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mom-key-component-change .remove-qty-row .btn-unbind:active {
+  background: var(--primary-dark);
+}
+
+/* ==================== 关重件卡片列表 ==================== */
+.mom-key-component-change .key-component-list,
+.mom-key-component-change .remove-record-list,
+.mom-key-component-change .change-record-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mom-key-component-change .key-component-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--primary);
+}
+.mom-key-component-change .key-component-card:last-child {
+  margin-bottom: 0;
+}
+.mom-key-component-change .kc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mom-key-component-change .kc-title-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+}
+.mom-key-component-change .kc-material-no {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mom-key-component-change .kc-material-desc {
+  font-size: 13px;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mom-key-component-change .kc-material-type {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-btn-secondary);
+  border-radius: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.mom-key-component-change .kc-qty {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: var(--primary-bg);
+  border-radius: 10px;
+  padding: 3px 9px;
+}
+
+.mom-key-component-change .serial-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px dashed var(--border-color);
+  margin-top: 8px;
+  font-size: 13px;
+}
+.mom-key-component-change .serial-row .sr-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.mom-key-component-change .serial-row .sr-serial-no {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mom-key-component-change .serial-row .sr-motor-position {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  background: var(--primary-bg);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.mom-key-component-change .serial-row .sr-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mom-key-component-change .serial-row .sr-scan-time {
+  font-size: 12px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.mom-key-component-change .serial-row .btn-delete-serial {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: #fce8e6 !important;
+  color: var(--error) !important;
+}
+.mom-key-component-change .serial-row .btn-delete-serial svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ==================== 视图2/3 明细卡片 ==================== */
+.mom-key-component-change .remove-record-card,
+.mom-key-component-change .change-record-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--primary);
+}
+.mom-key-component-change .remove-record-card:last-child,
+.mom-key-component-change .change-record-card:last-child {
+  margin-bottom: 0;
+}
+.mom-key-component-change .rr-card-header,
+.mom-key-component-change .chg-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mom-key-component-change .rr-order-no,
+.mom-key-component-change .chg-order-no {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mom-key-component-change .btn-remove-row,
+.mom-key-component-change .btn-change-row {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mom-key-component-change .btn-remove-row:active,
+.mom-key-component-change .btn-change-row:active {
+  background: var(--primary-bg);
+}
+.mom-key-component-change .btn-change-row {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.mom-key-component-change .rr-field-grid,
+.mom-key-component-change .chg-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-top: 8px;
+}
+.mom-key-component-change .rr-field,
+.mom-key-component-change .chg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.mom-key-component-change .rr-label,
+.mom-key-component-change .chg-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.mom-key-component-change .rr-value,
+.mom-key-component-change .chg-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 底部按钮区 ==================== */
+.mom-key-component-change .bottom-action-area {
+  flex-shrink: 0;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  gap: 10px;
+}
+.mom-key-component-change .btn-complete {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--gradient-primary);
+  color: #fff;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px rgba(21, 101, 192, 0.35);
+  transition: box-shadow 0.2s, opacity 0.15s;
+}
+.mom-key-component-change .btn-complete:active {
+  opacity: 0.92;
+  box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+}
+.mom-key-component-change .btn-back-remove,
+.mom-key-component-change .btn-back-change {
+  flex: 1;
+  padding: 14px;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+.mom-key-component-change .btn-back-remove:active,
+.mom-key-component-change .btn-back-change:active {
+  background: var(--primary-bg);
+}
+
+/* ==================== 空状态 ==================== */
+.mom-key-component-change .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.mom-key-component-change .empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+.mom-key-component-change .empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ==================== 加载动画 ==================== */
+.mom-key-component-change .loading-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.mom-key-component-change .loading-box {
+  background: #fff;
+  border-radius: 18px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.25s ease;
+}
+.mom-key-component-change .loading-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e8eaed;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.mom-key-component-change .loading-text {
+  margin-top: 18px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ==================== Toast（非阻断，3s 自动消失） ==================== */
+.mom-key-component-change .toast-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.mom-key-component-change .toast-box {
+  background: #fff;
+  border-radius: 20px;
+  width: 85%;
+  max-width: 340px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mom-key-component-change .toast-icon-area {
+  padding: 26px 16px 14px;
+  text-align: center;
+}
+.mom-key-component-change .toast-icon-success {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #e6f4ea;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mom-key-component-change .toast-icon-success svg {
+  width: 34px;
+  height: 34px;
+  color: var(--success);
+}
+.mom-key-component-change .toast-icon-error {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #fce8e6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mom-key-component-change .toast-icon-error svg {
+  width: 34px;
+  height: 34px;
+  color: var(--error);
+}
+.mom-key-component-change .toast-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  text-align: center;
+}
+.mom-key-component-change .toast-content {
+  padding: 0 20px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  word-break: break-all;
+}
+.mom-key-component-change .toast-btn {
+  margin: 2px 16px 16px;
+  padding: 13px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  width: calc(100% - 32px);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mom-key-component-change .toast-btn:active {
+  background: var(--primary-dark);
+}
+
+/* ==================== 二次确认弹窗 ==================== */
+.mom-key-component-change .confirm-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.mom-key-component-change .confirm-box {
+  background: #fff;
+  border-radius: 18px;
+  width: 85%;
+  max-width: 340px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mom-key-component-change .confirm-title {
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  padding: 22px 16px 8px;
+}
+.mom-key-component-change .confirm-content {
+  padding: 0 20px 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  word-break: break-all;
+}
+.mom-key-component-change .confirm-btns {
+  display: flex;
+  border-top: 1px solid #eee;
+}
+.mom-key-component-change .confirm-btn-cancel,
+.mom-key-component-change .confirm-btn-ok {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mom-key-component-change .confirm-btn-cancel {
+  color: var(--text-secondary);
+  border-right: 1px solid #eee;
+}
+.mom-key-component-change .confirm-btn-ok {
+  color: var(--primary);
+}
+.mom-key-component-change .confirm-btn-cancel:active,
+.mom-key-component-change .confirm-btn-ok:active {
+  background: var(--bg-btn-secondary);
+}
+
+/* ==================== 前电机/后电机选择弹窗 ==================== */
+.mom-key-component-change .motor-picker-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.mom-key-component-change .motor-picker-box {
+  background: #fff;
+  border-radius: 18px;
+  width: 85%;
+  max-width: 340px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mom-key-component-change .picker-title {
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  padding: 22px 16px 12px;
+}
+.mom-key-component-change .motor-picker-list {
+  padding: 0 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mom-key-component-change .motor-option {
+  padding: 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mom-key-component-change .motor-option:active {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+}
+.mom-key-component-change .motor-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.mom-key-component-change .picker-btn {
+  margin: 6px 16px 16px;
+  padding: 13px;
+  background: var(--bg-btn-secondary);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  width: calc(100% - 32px);
+  cursor: pointer;
+}
+
+/* ==================== 小屏（工业 PDA）紧凑排布 ==================== */
+@media (max-width: 420px), (max-height: 600px) {
+  .mom-key-component-change .page-header {
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .mom-key-component-change .page-header .header-title {
+    font-size: 14px;
+  }
+  .mom-key-component-change .page-header .header-time {
+    font-size: 11px;
+  }
+
+  .mom-key-component-change .check-form-area {
+    padding: 6px 10px;
+  }
+  .mom-key-component-change .check-form-row {
+    gap: 8px;
+    min-height: 26px;
+    padding: 2px 0;
+  }
+  .mom-key-component-change .check-form-label {
+    width: 72px;
+    font-size: 12px;
+  }
+  .mom-key-component-change .input-row {
+    gap: 6px;
+  }
+  .mom-key-component-change .search-input {
+    height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+  .mom-key-component-change .icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+  .mom-key-component-change .icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .mom-key-component-change .info-tag {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+  .mom-key-component-change .remove-qty-row .btn-unbind {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .mom-key-component-change .key-component-list,
+  .mom-key-component-change .remove-record-list,
+  .mom-key-component-change .change-record-list {
+    padding: 8px 10px;
+  }
+  .mom-key-component-change .key-component-card,
+  .mom-key-component-change .remove-record-card,
+  .mom-key-component-change .change-record-card {
+    padding: 9px 10px;
+  }
+  /* 序列号行两行：序列号 + 删除图标 / 电机位置 + 扫描时间 */
+  .mom-key-component-change .serial-row {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 7px 0;
+    margin-top: 7px;
+  }
+  .mom-key-component-change .serial-row .sr-left {
+    flex: 1 0 auto;
+    min-width: 0;
+  }
+  .mom-key-component-change .serial-row .sr-right {
+    gap: 4px;
+  }
+  .mom-key-component-change .serial-row .sr-scan-time {
+    font-size: 11px;
+  }
+
+  .mom-key-component-change .bottom-action-area {
+    gap: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  .mom-key-component-change .btn-complete,
+  .mom-key-component-change .btn-back-remove,
+  .mom-key-component-change .btn-back-change {
+    padding: 12px;
+    font-size: 15px;
+  }
+}
+
+/* 超矮屏（≤520px）：表单区可滚动、列表区保底高度 */
+@media (max-height: 520px) {
+  .mom-key-component-change .check-form-area {
+    flex-shrink: 1;
+    overflow-y: auto;
+  }
+  .mom-key-component-change .key-component-list,
+  .mom-key-component-change .remove-record-list,
+  .mom-key-component-change .change-record-list {
+    min-height: 120px;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
