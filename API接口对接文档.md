@@ -376,7 +376,7 @@ window.assemblyMaterialCheck_saveCheckResult({
 ### 业务约定
 
 - **物料二维码格式**：`物料编码|供应商|序列号:数量`；三段均不得为空，数量必须是大于 0 的数字，否则页面直接拦截、不调用 API-KC3
-- **采集数量上限**：同一关重件物料编码的已扫描数量达到需扫描总数（该物料 `materialQty` 求和）后，页面拦截新的扫描并提示「该关重件已采集完成（已扫描 x/需扫描 y）」，不调用 API-KC3
+- **采集数量上限（满量即更换）**：同一关重件物料编码的已扫描数量达到需扫描总数（该物料 `materialQty` 求和）后，本次扫描不调用 API-KC3，页面直接进入「关重件更换页」：带该关重件物料编码查询更换清单（API-KC6），由操作员选定被替换旧件后 API-KC4 移除、API-KC7 保存新件，数量始终保持不超过需扫描总数
 - **订单号 / VIN 共用一个输入框**：输入值 `^[0-9]+$` → 填 `wipOrderNo`；17 位非纯数字 → 填 `vin`；其余非纯数字 → 兜底填 `wipOrderNo`
 - **关重件序号**：`keyComponentList` 的 `materialSeq` 是**配置序号**，`snList` 的 `materialSeq` 是**采集序号**（1=前电机，2=后电机，null=页面不显示类型描述）。永磁体同步电机的两条配置 `materialID` 相同、无法用物料区分前后：仅当两条配置序号恰为 1 和 2 时，页面自动分配给该物料尚未采集的那个序号；序号不明确时弹窗由操作员选择前电机(1)/后电机(2)
 - **订单类型标注**：`wipOrderType` 1=生产订单、2=改制订单；页面所有展示订单号的位置都带该标注
@@ -519,7 +519,7 @@ window.KeyComponentChange_Remove(
 window.KeyComponentChange_GetRemoveKeyComponentInfo(
   { taskType: "GetRemoveKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
 window.KeyComponentChange_GetChangeKeyComponentInfo(
-  { taskType: "GetChangeKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
+  { taskType: "GetChangeKeyComponentInfo", reported: { wipOrderNo, wipOrderType, materialNo } }, callback)
 ```
 
 **入参** `reported`
@@ -528,6 +528,7 @@ window.KeyComponentChange_GetChangeKeyComponentInfo(
 |---|---|---|---|
 | `wipOrderNo` | string | 是 | 改制订单号（API-KC1 返回） |
 | `wipOrderType` | number | 是 | 订单类型（改制订单为 2） |
+| `materialNo` | string | 仅 API-KC6 | 关重件物料编码（本次扫描的新件物料编码，KC6 按该物料过滤更换清单） |
 
 **出参** `data`：**明细数组**（两条接口结构一致）
 
