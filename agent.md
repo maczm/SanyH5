@@ -7,7 +7,7 @@
 
 ## 1. 项目概览
 
-SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 本地化，根目录 `jquery.min.js` 各页 `../jquery.min.js` 引用），无构建链、无 package.json、无 CI。
+SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 本地化，根目录 `jquery.min.js` 各页 `../jquery.min.js` 引用），无构建链、无 package.json、无 CI。
 
 | 子项目 | 目录 | 架构 | API 数 |
 |---|---|---|---|
@@ -16,6 +16,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
 | 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
 | 装配物料检查 | mom-assembly-material-check/ | 骨架 + template + `AssemblyMaterialCheck` 命名空间（双视图：工位选择/物料检查） | 4（window.assemblyMaterialCheck_*） |
+| 关重件更换 | mom-key-component-change/ | 骨架 + template + `KeyComponentChange` 命名空间（三视图：更换/移除/更换确认） | 7（window.KeyComponentChange_*） |
 
 所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
@@ -85,6 +86,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 
 - 4 个子项目：改造完成、已知 bug 全部修复、回归脚本落盘 ✅
 - 新建子项目 mom-assembly-material-check：装配物料检查（工位选择 + 物料检查双视图），已交付 ✅
+- 新建子项目 mom-key-component-change：关重件更换（更换主页 + 移除页 + 更换页三视图），已交付 ✅
 - 一致性证书 tab 显示矛盾（mom-cert）：**待业务确认**（确认后由 index.js 侧处理）
 
 ## 8. 编码准则
@@ -172,6 +174,17 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - 唯一例外：mom-cert 第三方 HTML（只读、含大量第三方 id），其 index.js 只能按第三方 id 定位；此例外不扩散到自研页面
 - 排查线索：元素点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用了 id
 
+## 8.11 输入框按钮与按钮开关（用户确认的交互标准）
+
+1. **每个输入框必须成对提供「搜索按钮」与「扫码按钮」**（class 成对命名 `btn-search-*` / `btn-scan-*`）：搜索按钮走手动输入后的查询，扫码按钮走 `OpenCamera`；业务动作只由 回车 / 按钮 / 扫码 触发（§8.4 禁失焦触发）
+2. **每个按钮独立配置「显示开关」与「权限开关」**，集中在页面命名空间的一个 `BUTTON_SWITCH` 常量对象里（禁止散落在各处 if 中）：
+   - `visible: false` → 给按钮加 `.hidden`（不显示）
+   - `permitted: false` → 给按钮加 `disabled`（**置灰禁用、保留占位**，布局不跳动）
+   - 开关对象按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back`），一个按钮一项，互相独立
+3. **开关按「class → 按钮」映射表统一应用**：常量 `BUTTON_SELECTOR`（开关项 → 按钮 class 选择器）+ 统一函数 `applyButtonSwitch()`（初始化与每次渲染后各调一次）；**循环结构克隆出来的行内按钮必须在渲染后重放一次**，否则克隆元素拿不到初始作用域上的开关状态
+4. **业务条件与开关叠加取交集**：如解绑按钮 = `wipOrderType === 2 && needRemoveQty > removeQty && BUTTON_SWITCH.unbind.visible`，由专门的更新函数（如 `updateUnbindButton()`）在开关应用末尾统一计算，不允许两处各写一半
+5. 本条对**新建/改造页面**生效；既有页面在后续改造时同步，不做一次性批量改造
+
 ## 9. 新页面/改造页面标准流程（样板：mom-nameplate-photo-upload）
 
 1. **骨架先行**：先写 index.html 完整骨架——固定结构直写、多态结构 `.hidden` 块预埋、循环结构 `<template>` 预埋（单根结构）、弹窗骨架常驻 hidden
@@ -196,6 +209,7 @@ SanyH5：5 个独立子项目（MOM 页面），互不影响、独立部署、�
 - [ ] 折叠/弹窗交互符合 §8.5（与样板页一致）
 - [ ] Portal 表单回车拦截符合 §8.9（定义空实现 `function Portal_OnDocumentKeyDown() {}`，不调用）
 - [ ] 符合 §8.10（页面零 id，class 标识 + 事件委托，cloneTemplate 用 querySelector）
+- [ ] 按钮开关符合 §8.11（每个输入框搜索 + 扫码按钮、每按钮独立显示/权限开关、克隆行渲染后重放）
 - [ ] 接口变更同步 API接口对接文档.md（先改文档后改代码）
 - [ ] 提交符合 §5（含验证摘要），工作区干净
 

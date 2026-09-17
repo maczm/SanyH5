@@ -37,6 +37,13 @@ callback({ code: number, msg: string, data?: any })
 | mom-assembly-material-check | `assemblyMaterialCheck_getWipOrderNoInfo` | function | 查询订单/主机/BOM 信息（API-AM2） |
 | mom-assembly-material-check | `assemblyMaterialCheck_getMaterialInfo` | function | 查询物料信息（API-AM3） |
 | mom-assembly-material-check | `assemblyMaterialCheck_saveCheckResult` | function | 保存单条检查结果（API-AM4） |
+| mom-key-component-change | `KeyComponentChange_GetWipOrderNoInfo` | function | 查询订单信息（API-KC1） |
+| mom-key-component-change | `KeyComponentChange_GetKeyComponentInfo` | function | 查询关重件配置与已采集序列号（API-KC2） |
+| mom-key-component-change | `KeyComponentChange_CheckAndSave` | function | 校验并保存扫描关重件（API-KC3） |
+| mom-key-component-change | `KeyComponentChange_Remove` | function | 移除关重件（API-KC4） |
+| mom-key-component-change | `KeyComponentChange_GetRemoveKeyComponentInfo` | function | 移除页待移除明细（API-KC5） |
+| mom-key-component-change | `KeyComponentChange_GetChangeKeyComponentInfo` | function | 更换页待更换明细（API-KC6） |
+| mom-key-component-change | `KeyComponentChange_Save` | function | 带 `oldGenealogyID` 保存新关重件（API-KC7） |
 
 ### 1.4 公共能力
 
@@ -355,5 +362,194 @@ window.assemblyMaterialCheck_saveCheckResult({
 | `qrCode` | string | 是 | 物料二维码原文（`物料编码\|供应商\|序列号:数量`） |
 | `material` | string | 是 | 物料编码（二维码第一段） |
 | `checkResult` | string | 是 | `"pass"`（在 BOM 内）/ `"fail"`（不在 BOM 内） |
+
+**出参**：仅 `code`、`msg`，`data` 为 `null`。
+
+---
+
+## 五、mom-key-component-change（关重件更换）
+
+> 单页三视图：视图1「关重件更换（主页）」+ 视图2「关重件移除页（仅改制订单）」+ 视图3「关重件更换页（`isChange = 1` 时进入）」。
+> 代码以 html/js/css 三段粘贴进 Portal 表单页，回车提交由 Portal 内置 `Portal_OnDocumentKeyDown` 拦截（页面定义空实现即可，见 agent.md §8.9）。
+> **本页全部接口入参统一为 `{ taskType: "<英文任务名>", reported: { ... } }`**（下文表格只列 `reported` 内字段）。
+
+### 业务约定
+
+- **物料二维码格式**：`物料编码|供应商|序列号:数量`；三段均不得为空，数量必须是大于 0 的数字，否则页面直接拦截、不调用 API-KC3
+- **订单号 / VIN 共用一个输入框**：输入值 `^[0-9]+$` → 填 `wipOrderNo`；17 位非纯数字 → 填 `vin`；其余非纯数字 → 兜底填 `wipOrderNo`
+- **关重件序号**：`keyComponentList` 的 `materialSeq` 是**配置序号**，`snList` 的 `materialSeq` 是**采集序号**（1=前电机，2=后电机，null=页面不显示类型描述）。永磁体同步电机的两条配置 `materialID` 相同、无法用物料区分前后：仅当两条配置序号恰为 1 和 2 时，页面自动分配给该物料尚未采集的那个序号；序号不明确时弹窗由操作员选择前电机(1)/后电机(2)
+- **订单类型标注**：`wipOrderType` 1=生产订单、2=改制订单；页面所有展示订单号的位置都带该标注
+- **需解绑数量 / 解绑按钮**：仅改制订单（`wipOrderType = 2`）显示该行；`needRemoveQty > removeQty` 时才显示解绑按钮（进入视图2）
+- **更换分支**：API-KC3 返回 `isChange = 1` → 本次不保存，页面进入视图3 由操作员指定被替换的旧件，移除成功后用 API-KC7 保存；`isChange` 为其它值 → 后台已直接保存，页面重新拉取 API-KC2 刷新
+- **按钮开关**：本页每个按钮（搜索/扫码/解绑/完成/删除/移除/更换/返回）都有独立的显示开关与权限开关，配置见页面 `BUTTON_SWITCH`（agent.md §8.11）；权限关闭时按钮置灰禁用
+
+### API-KC1：查询订单信息
+
+```js
+window.KeyComponentChange_GetWipOrderNoInfo(
+  { taskType: "GetWipOrderNoInfo", reported: { wipOrderNo, vin } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 与 `vin` 二选一 | 订单号（输入值为纯数字时填写） |
+| `vin` | string | 与 `wipOrderNo` 二选一 | VIN（输入值为 17 位非纯数字时填写） |
+
+**出参** `data`
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `wipOrderNo` | string | 订单号 |
+| `wipOrderType` | number | 订单类型：1=生产订单，2=改制订单 |
+| `productID` | number | 订单物料 ID |
+| `productNo` | string | 订单物料编码 |
+| `productDesc` | string | 订单物料描述 |
+| `serialNo` | string | 订单序列号 |
+
+### API-KC2：查询关重件信息
+
+```js
+window.KeyComponentChange_GetKeyComponentInfo(
+  { taskType: "GetKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号（API-KC1 返回） |
+| `wipOrderType` | number | 是 | 订单类型（API-KC1 返回） |
+
+**出参** `data`
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `removeQty` | number | 已解绑数量 |
+| `needRemoveQty` | number | 需解绑总数 |
+| `keyComponentList` | array | 关重件配置清单 |
+| `snList` | array | 已采集序列号清单（**与 `keyComponentList` 同级，不嵌套在关重件条目内**） |
+
+**keyComponentList 每项**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `materialID` | number | 关重件物料 ID（`snList` 按此字段归属） |
+| `materialNo` | string | 关重件物料编码（页面按此字段合并卡片） |
+| `materialDesc` | string | 关重件物料描述 |
+| `materialQty` | number | 关重件物料数量（该物料需采集总数） |
+| `uomCode` | string | 单位 |
+| `materialType` | string | 关重件类型（`永磁体同步电机` 走前后电机规则） |
+| `materialSeq` | number | 关重件序号（配置值：1=前电机，2=后电机，null=不显示类型描述） |
+
+**snList 每项**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `serialNo` | string | 关重件序列号 |
+| `materialID` | number | 关重件物料 ID（归属到同 ID 的配置条目） |
+| `materialSeq` | number | 关重件序号（采集值：1=前电机，2=后电机，null=不显示类型描述） |
+| `scanTime` | string | 扫描时间 |
+
+> 页面统计：已采集数量 = `snList.length`，需采集总数 = Σ`materialQty`；卡片右侧「已扫描/需扫描」= 该物料已采集条数 / 该物料 Σ`materialQty`。
+
+### API-KC3：校验并保存扫描关重件
+
+```js
+window.KeyComponentChange_CheckAndSave(
+  { taskType: "CheckAndSave", reported: { wipOrderNo, wipOrderType, productID, productNo, productDesc,
+    serialNo, materialID, materialNo, materialDesc, materialSeq, materialSerialNo, materialQty,
+    uomCode, partner, inputType, inputCode } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号（API-KC1 返回） |
+| `wipOrderType` | number | 是 | 订单类型（API-KC1 返回） |
+| `productID` | number | 是 | 订单物料 ID（API-KC1 返回） |
+| `productNo` | string | 是 | 订单物料编码（API-KC1 返回） |
+| `productDesc` | string | 是 | 订单物料描述（API-KC1 返回） |
+| `serialNo` | string | 是 | 订单序列号（API-KC1 返回） |
+| `materialID` | number | 是 | 关重件物料 ID（API-KC2 配置条目） |
+| `materialNo` | string | 是 | 关重件物料编码（二维码第一段） |
+| `materialDesc` | string | 是 | 关重件物料描述（API-KC2 配置条目） |
+| `materialSeq` | number | 是 | 关重件序号（1=前电机，2=后电机，null=不显示类型描述） |
+| `materialSerialNo` | string | 是 | 关重件序列号（二维码第三段） |
+| `materialQty` | number | 是 | 关重件数量（二维码第三段） |
+| `uomCode` | string | 是 | 单位（API-KC2 配置条目） |
+| `partner` | string | 是 | 供应商（二维码第二段） |
+| `inputType` | string | 是 | 输入方式：`"扫码"`（摄像头扫码按钮）/ `"手输"`（键盘键入，含扫码枪键入） |
+| `inputCode` | number | 是 | 输入键位：回车 `13`，鼠标左键点击 `1` |
+
+**出参** `data`
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `isChange` | string | `"1"` = 需走更换流程（页面跳视图3，本次不保存）；其它值 = 后台已保存 |
+
+### API-KC4：移除关重件
+
+```js
+window.KeyComponentChange_Remove(
+  { taskType: "Remove", reported: { wipOrderNo, wipOrderType, serialNo, materialSerialNo } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号 |
+| `wipOrderType` | number | 是 | 订单类型 |
+| `serialNo` | string | 是 | 订单序列号（API-KC1/KC2 所在订单） |
+| `materialSerialNo` | string | 是 | 被移除的关重件序列号 |
+
+**出参** `data`
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `oldGenealogyID` | string | 被删除数据的 ID（视图3 保存新件时通过 API-KC7 回传） |
+
+### API-KC5 / API-KC6：查询待移除 / 待更换明细
+
+```js
+window.KeyComponentChange_GetRemoveKeyComponentInfo(
+  { taskType: "GetRemoveKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
+window.KeyComponentChange_GetChangeKeyComponentInfo(
+  { taskType: "GetChangeKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 改制订单号（API-KC1 返回） |
+| `wipOrderType` | number | 是 | 订单类型（改制订单为 2） |
+
+**出参** `data`：**明细数组**（两条接口结构一致）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `wipOrderNo` | string | 生产/改制订单号（页面带订单类型标注展示） |
+| `wipOrderType` | number | 订单类型 |
+| `serialNo` | string | 订单序列号 |
+| `materialSerialNo` | string | 关重件旧序列号 |
+| `materialNo` | string | 物料编码 |
+| `scanTime` | string | 录入时间 |
+
+### API-KC7：保存新关重件（带被替换旧件 ID）
+
+```js
+window.KeyComponentChange_Save(
+  { taskType: "Save", reported: { ...同 API-KC3 全部字段, oldGenealogyID } }, callback)
+```
+
+**入参** `reported`：API-KC3 全部字段 + 下表字段。
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `oldGenealogyID` | string | 是 | 被替换旧件的 ID（API-KC4 返回） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。

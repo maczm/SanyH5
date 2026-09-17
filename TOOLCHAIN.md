@@ -10,7 +10,7 @@
 
 - OS：WSL2 Ubuntu 26.04；Node v24.19.0（nvm 管理）；npm 源 npmmirror
 - git：仓库 `/home/wangzm/projects/SanyH5`，身份 wangzm <1466418631@qq.com>
-- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；5 个独立子项目
+- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；6 个独立子项目
 - WSL IP 会变：`hostname -I | awk '{print $1}'`（Windows 侧访问 WSL 服务用）
 
 ## 环节 → 工具 映射
@@ -38,20 +38,21 @@
 ```bash
 cd /home/wangzm/projects/SanyH5
 
-# 1. ESLint 全量（5 页 JS + mock.js）
+# 1. ESLint 全量（6 页 JS + mock.js）
 eslint mom-cert/index.js mom-packing/Index.js \
   mom-nameplate-photo-upload/index.js mom-nameplate-check-result/index.js \
-  mom-assembly-material-check/index.js \
-  mom-packing/mock.js mom-nameplate-photo-upload/mock.js mom-assembly-material-check/mock.js
+  mom-assembly-material-check/index.js mom-key-component-change/index.js \
+  mom-packing/mock.js mom-nameplate-photo-upload/mock.js mom-assembly-material-check/mock.js \
+  mom-key-component-change/mock.js
 
-# 2. tidy 全量（5 个 HTML）
+# 2. tidy 全量（6 个 HTML）
 for f in mom-cert/index.html mom-packing/index.html \
          mom-nameplate-photo-upload/index.html mom-nameplate-check-result/index.html \
-         mom-assembly-material-check/index.html; do
+         mom-assembly-material-check/index.html mom-key-component-change/index.html; do
   tidy -q -e --show-warnings no "$f"
 done
 
-# 3. 回归全量（4 个页面脚本）
+# 3. 回归全量（6 个页面脚本）
 for script in tests/*.regress.cjs; do
   NODE_PATH=$(npm root -g) node "$script"
 done
