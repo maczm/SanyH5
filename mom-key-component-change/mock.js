@@ -218,6 +218,23 @@ if (typeof window.KeyComponentChange_Save != "function") {
     setTimeout(function () {
       var orderData = findMockOrderData(reported);
       if (orderData) {
+        var materialIds = [];
+        var requiredQuantity = 0;
+        orderData.keyComponentList.forEach(function (component) {
+          if (component.materialNo === reported.materialNo) {
+            materialIds.push(component.materialID);
+            requiredQuantity += Number(component.materialQty) || 0;
+          }
+        });
+        var collectedSerialList = orderData.snList.filter(function (serial) {
+          return materialIds.indexOf(serial.materialID) !== -1;
+        });
+        // 更换：已满量时置换最旧的同物料序列号，数量始终不超过需扫描总数
+        if (collectedSerialList.length >= requiredQuantity) {
+          orderData.snList = orderData.snList.filter(function (serial) {
+            return serial.serialNo !== collectedSerialList[0].serialNo;
+          });
+        }
         orderData.snList.push({
           serialNo: reported.materialSerialNo,
           materialID: reported.materialID,

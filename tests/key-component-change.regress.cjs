@@ -303,36 +303,59 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.click(".btn-back-remove");
   await page.waitForTimeout(1400);
 
-  // ============ 12. 关重件扫描数量不得超过需扫描总数 ============
+  // ============ 12. 满量扫描：不保存，直接进入更换页（更换清单按关重件物料编码过滤） ============
   await queryOrder(PRODUCTION_ORDER);
   const cardQuantity = (materialNo) => page.evaluate((target) => {
     const card = Array.from(document.querySelectorAll(".key-component-card")).find((item) => item.querySelector(".key-component-material-no").textContent === target);
     return card.querySelector(".key-component-quantity").textContent;
   }, materialNo);
-  const savedCount = () => page.evaluate(() => (window.__keyComponentMockSaved || []).length);
   check("满量物料：电机 2/2、驱动桥 1/1、变速箱 0/2", (await cardQuantity("MAT-MOTOR-001")) === "2/2" && (await cardQuantity("MAT-AXLE-002")) === "1/1" && (await cardQuantity("MAT-BOX-003")) === "0/2");
+
   {
-    const savedBeforeOverScan = await savedCount();
-    await scanMaterial("MAT-MOTOR-001|供应商A|SN-MOTOR-A4:1");
-    check("永磁体同步电机满量拦截", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("已采集完成") !== -1 && (await savedCount()) === savedBeforeOverScan);
-    await closeToast();
+    const checkAndSaveBefore = await requestCount("CheckAndSave");
     await scanMaterial("MAT-AXLE-002|供应商A|SN-AXLE-A2:1");
-    check("单件关重件满量拦截", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("已采集完成") !== -1 && (await savedCount()) === savedBeforeOverScan);
-    await closeToast();
+    check("满量扫描不调用 CheckAndSave", (await requestCount("CheckAndSave")) === checkAndSaveBefore);
+    check("满量扫描直接进入更换页", await page.locator(".key-component-change-view").isVisible());
+    check("更换页带出物料编码与新序列号", (await page.locator(".change-material-tag").textContent()).indexOf("MAT-AXLE-002") !== -1 && (await page.locator(".new-serial-tag").textContent()) === "SN-AXLE-A2");
+    check("更换清单入参带关重件物料编码", (await lastRequest("GetChangeKeyComponentInfo")).materialNo === "MAT-AXLE-002");
+    await page.click(".btn-change-row >> nth=0");
+    await page.waitForTimeout(300);
+    await page.click(".confirm-btn-ok");
+    await page.waitForTimeout(1800);
+    check("更换后回到视图1", await page.locator(".key-component-check-view").isVisible());
+    check("换件后驱动桥数量不超需扫描总数(1/1)", (await cardQuantity("MAT-AXLE-002")) === "1/1");
   }
-  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-1:1");
-  check("多件关重件第 1 颗可采(1/2)", (await cardQuantity("MAT-BOX-003")) === "1/2");
-  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-2:1");
-  check("多件关重件第 2 颗可采(2/2)", (await cardQuantity("MAT-BOX-003")) === "2/2");
+
+  await scanMaterial("MAT-MOTOR-001|供应商A|SN-MOTOR-A4:1");
+  check("满量电机弹出位置选择", await page.locator(".template-motor-picker").isVisible());
+  check("更换时已采集位置可选", await page.evaluate(() => Array.from(document.querySelectorAll(".motor-option")).every((option) => !option.classList.contains("disabled"))));
+  await page.click(".motor-option >> nth=0");
+  await page.waitForTimeout(1400);
+  check("选择位置后进入更换页", (await page.locator(".key-component-change-view").isVisible()) && (await lastRequest("GetChangeKeyComponentInfo")).materialNo === "MAT-MOTOR-001");
+  await page.click(".btn-change-row >> nth=0");
+  await page.waitForTimeout(300);
+  await page.click(".confirm-btn-ok");
+  await page.waitForTimeout(1800);
   {
-    const savedBeforeThirdScan = await savedCount();
-    await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-3:1");
-    const overScanMessage = await page.locator(".template-toast:not(.hidden) .toast-content").textContent();
-    check("多件关重件第 3 颗被拦截", overScanMessage.indexOf("已采集完成（已扫描 2/需扫描 2）") !== -1 && (await savedCount()) === savedBeforeThirdScan);
-    await closeToast();
+    const saveItems = (await savedList()).filter((item) => item.taskType === "Save");
+    const lastSave = saveItems[saveItems.length - 1];
+    check("更换保存携带所选前电机序号与旧件 ID", lastSave.reported.materialSerialNo === "SN-MOTOR-A4" && lastSave.reported.materialSeq === 1 && !!lastSave.reported.oldGenealogyID);
   }
-  check("拦截后数量不变且不误伤其他物料", (await cardQuantity("MAT-BOX-003")) === "2/2" && (await cardQuantity("MAT-MOTOR-001")) === "2/2" && (await cardQuantity("MAT-AXLE-002")) === "1/1");
-  check("全部采集完成 5/5", (await page.locator(".collect-quantity-tag").textContent()) === "5/5");
+  check("换件后电机数量不超需扫描总数(2/2)", (await cardQuantity("MAT-MOTOR-001")) === "2/2");
+
+  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-1:1");
+  check("多件关重件第 1 颗入库(1/2)", (await cardQuantity("MAT-BOX-003")) === "1/2");
+  await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-2:1");
+  check("多件关重件第 2 颗入库(2/2)", (await cardQuantity("MAT-BOX-003")) === "2/2");
+  {
+    const checkAndSaveBefore = await requestCount("CheckAndSave");
+    await scanMaterial("MAT-BOX-003|供应商A|SN-BOX-3:1");
+    check("满量后第 3 颗不保存直接进更换页", (await requestCount("CheckAndSave")) === checkAndSaveBefore && (await page.locator(".key-component-change-view").isVisible()) && (await page.locator(".new-serial-tag").textContent()) === "SN-BOX-3");
+    await page.click(".btn-back-change");
+    await page.waitForTimeout(1400);
+  }
+  check("返回视图1且数量不变 2/2", (await cardQuantity("MAT-BOX-003")) === "2/2");
+  check("总采集数量不超过需采集总数 5/5", (await page.locator(".collect-quantity-tag").textContent()) === "5/5");
 
   // ============ 13. 按钮开关：显示开关与权限开关各自独立 ============
   const buttonState = (selector) => page.evaluate((sel) => {

@@ -453,10 +453,10 @@ var KeyComponentChange = {
   },
 
   /**
-   * 关重件序号判定：单条配置直接取配置序号；永磁体同步电机两条配置且序号恰为 1、2 时
-   * 自动分配尚未采集的那个；序号不明确时弹窗人工选择前/后电机。
+   * 关重件序号判定：单条配置直接取配置序号；永磁体同步电机两条配置且序号恰为 1、2 且未满量时
+   * 自动分配尚未采集的那个；序号不明确或已满量（更换）时弹窗人工选择前/后电机。
    */
-  resolveMaterialSequence: function (matchedComponents, chosenCallback) {
+  resolveMaterialSequence: function (matchedComponents, allowCollectedSequence, chosenCallback) {
     if (matchedComponents.length === 1) {
       chosenCallback(matchedComponents[0].materialSeq);
       return;
@@ -466,30 +466,33 @@ var KeyComponentChange = {
     var configuredSequenceList = matchedComponents.map(function (component) { return Number(component.materialSeq); });
     var isClearMotorPair = matchedComponents.length === 2 &&
       configuredSequenceList.indexOf(1) !== -1 && configuredSequenceList.indexOf(2) !== -1;
-    if (isClearMotorPair) {
+    if (isClearMotorPair && !allowCollectedSequence) {
       var freeSequence = [1, 2].filter(function (sequence) { return collectedSequenceList.indexOf(sequence) === -1; })[0];
-      if (!freeSequence) {
+      if (freeSequence === undefined) {
         KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
         return;
       }
       chosenCallback(freeSequence);
       return;
     }
-    KeyComponentChange.showMotorPicker(collectedSequenceList, chosenCallback);
+    KeyComponentChange.showMotorPicker(collectedSequenceList, allowCollectedSequence, chosenCallback);
   },
 
-  showMotorPicker: function (collectedSequenceList, onPick) {
-    var availableSequenceList = [1, 2].filter(function (sequence) { return collectedSequenceList.indexOf(sequence) === -1; });
+  /** allowCollectedSequence：已采集的位置也可选（满量后走更换流程，替换该位置的旧件） */
+  showMotorPicker: function (collectedSequenceList, allowCollectedSequence, onPick) {
+    var availableSequenceList = [1, 2].filter(function (sequence) {
+      return allowCollectedSequence || collectedSequenceList.indexOf(sequence) === -1;
+    });
     if (!availableSequenceList.length) {
       KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
       return;
     }
     var $list = $(".motor-picker-list").empty();
     [1, 2].forEach(function (sequence) {
-      var isCollected = collectedSequenceList.indexOf(sequence) !== -1;
+      var isDisabled = !allowCollectedSequence && collectedSequenceList.indexOf(sequence) !== -1;
       var $option = KeyComponentChange.cloneTemplate("template-motor-option");
       $option.find(".motor-option-label").text(KeyComponentChange.getMotorPositionLabel(sequence));
-      $option.toggleClass("disabled", isCollected);
+      $option.toggleClass("disabled", isDisabled);
       $option.data("material-sequence", sequence);
       $list.append($option);
     });
@@ -522,23 +525,20 @@ var KeyComponentChange = {
       return;
     }
     var quantityState = KeyComponentChange.getMaterialQuantityState(matchedComponents);
-    if (quantityState.collectedQuantity >= quantityState.requiredQuantity) {
-      KeyComponentChange.showToast(
-        "提示",
-        "该关重件已采集完成（已扫描 " + quantityState.collectedQuantity + "/需扫描 " + quantityState.requiredQuantity + "）",
-        "error",
-      );
-      return;
-    }
-    KeyComponentChange.resolveMaterialSequence(matchedComponents, function (materialSequence) {
+    var isMaterialFull = quantityState.collectedQuantity >= quantityState.requiredQuantity;
+    KeyComponentChange.resolveMaterialSequence(matchedComponents, isMaterialFull, function (materialSequence) {
+      if (isMaterialFull) {
+        KeyComponentChange.startMaterialChange(parsedQrCode, materialSequence);
+        return;
+      }
       KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
     });
   },
 
-  checkAndSave: function (parsedQrCode, materialSequence) {
-    var state = KeyComponentChange.state;
+  buildPendingScan: function (parsedQrCode, materialSequence) {
+    var inputSource = KeyComponentChange.state.inputSource;
     var component = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo)[0] || {};
-    state.pendingScan = {
+    return {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
       materialDesc: component.materialDesc || "",
@@ -547,10 +547,20 @@ var KeyComponentChange = {
       materialQty: parsedQrCode.materialQty,
       uomCode: component.uomCode || "",
       partner: parsedQrCode.partner,
-      inputType: state.inputSource.inputType,
-      inputCode: state.inputSource.inputCode,
+      inputType: inputSource.inputType,
+      inputCode: inputSource.inputCode,
     };
+  },
+
+  checkAndSave: function (parsedQrCode, materialSequence) {
+    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(parsedQrCode, materialSequence);
     KeyComponentChange.submitCheckAndSave();
+  },
+
+  /** 该关重件已采集满：本次扫描不再直接入库，直接进入更换页由操作员指定被替换的旧件 */
+  startMaterialChange: function (parsedQrCode, materialSequence) {
+    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(parsedQrCode, materialSequence);
+    KeyComponentChange.enterChangeView();
   },
 
   /** CheckAndSave / Save 共用报文字段（订单物料 + 本次扫描的关重件） */
@@ -740,14 +750,16 @@ var KeyComponentChange = {
   },
 
   loadChangeRecordList: function () {
-    var orderInfo = KeyComponentChange.state.orderInfo;
-    if (!orderInfo) return;
+    var state = KeyComponentChange.state;
+    var orderInfo = state.orderInfo;
+    if (!orderInfo || !state.pendingScan) return;
     KeyComponentChange.showLoading("加载更换明细中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetChangeKeyComponentInfo,
       [KeyComponentChange.buildTaskRequest("GetChangeKeyComponentInfo", {
         wipOrderNo: orderInfo.wipOrderNo,
         wipOrderType: orderInfo.wipOrderType,
+        materialNo: state.pendingScan.materialNo,
       })],
       function (res) {
         KeyComponentChange.hideLoading();
