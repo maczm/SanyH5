@@ -52,14 +52,14 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 1. **改前**：`git status` 工作区干净（可回滚基线）+ `git log --oneline` 确认位置
 2. **影响面分析**：改公共函数/组件前，先 `rg` 找全部引用，列影响面
 3. **编码**：按 §8 编码准则（架构/命名/UI/平台约束）
-4. **验证**：先按 §4.3 用 git 圈定受影响子项目，再按 §4.1 分级执行（eslint → 回归脚本 → 冒烟），命令见 §11、§14.2
+4. **验证**：先按 §4.3 用 git 圈定受影响子项目，再按 §4.1 分级执行（eslint → 回归脚本 → 冒烟），命令见 §11、§14.2（单子项目命令见 §14.3）
 5. **自查留痕**：`git diff` 复查改动；commit body 写验证摘要（见 §5）
 6. **提交**：一次提交一件事，格式见 §5
 7. **失败回滚**：验证不通过立即修复；无法快速修复则 `git reset`/`checkout` 回滚到基线，不带着半成品继续
 
 ### 4.3 回归范围按改动圈定（**逐子项目验证；禁止全量体检**）
 
-**每次改动先用 git 查清动了哪些子项目，只跑这些子项目的回归脚本**；本仓库**不存在「全量体检」**——不跑 `tests/run-all.regress.cjs`，也不做全页面巡检；部署同样是**一个子项目一个子项目地做**（§14.4）。
+**每次改动先用 git 查清动了哪些子项目，只跑这些子项目的回归脚本**；本仓库**不存在「全量体检」**——不做全页面巡检、不跑跨项目执行器；部署同样是**一个子项目一个子项目地做**（§14.3）。
 
 ```bash
 # 改了哪些文件 → 映射到子项目目录名（跑之前先看这一行输出）
@@ -69,13 +69,13 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 | 改动范围 | 回归范围 | 示例 |
 |---|---|---|
-| 单个 `mom-xxx/` 下的 index.js/index.css/index.html/mock.js | 只跑 `tests/` 下该项目的脚本（见 §11 表格） | 改 `mom-packing/Index.js` → 只跑 `packing.regress.cjs` |
-| 多个 `mom-xxx/` 或无 `mom-` 前缀的公共文件（eslint.config、tests/run-all、jquery.min.js） | 波及的全部子项目 | 改 `jquery.min.js` → 6 页全跑 |
-| 只有 `AGENT.md` / `docs/` / `.prettier*` / `.gitignore` | **不跑回归**（可做 §14.3 环境自检） | 本次文档去冗余 |
+| 单个 `mom-xxx/` 下的 index.js/index.css/index.html/mock.js | 只跑 `tests/` 下该项目的脚本（见 §11 覆盖点） | 改 `mom-packing/Index.js` → 只跑 `packing.regress.cjs` |
+| 多个 `mom-xxx/` 或无 `mom-` 前缀的公共文件（eslint.config、jquery.min.js） | 波及的全部子项目 | 改 `jquery.min.js` → 6 页全跑 |
+| 只有 `AGENT.md` / `docs/` / `.prettier*` / `.gitignore` | **不跑回归**（可做 §14.3 环境快速自检） | 本次文档去冗余 |
 
 - 判定依据是**实际改动的文件**，不是"提交信息"或"感觉可能影响"；拿不准就先跑 `git diff --stat`
 - 上一条命令输出为空（只有文档/配置改动）即无需回归；不要因为「提交前」或「要部署」就把范围升级为全部页面
-- 脚本与子项目的对应关系以 §11 表格为准；新增页面必须同时登记脚本（§9 第 7 条）
+- 脚本与子项目的对应关系以 §11 必测点为准；新增页面按 §9 第 7 条临时补脚本
 
 ## 5. 提交规范
 
@@ -87,7 +87,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 - 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-packing-v0.1.0`），带 `-a` 附注说明；子项目名 = 页面目录名，版本号 SemVer 递增
 - 前置：**该标签对应子项目**验证全绿（eslint 0/0 + 该页回归 OK，§4.1/§4.3）；不要求其他子项目，不跑全量
-- 部署与 tag 都按子项目独立进行：一次只处理一个页面目录（命令见 §14.4）
+- 部署与 tag 都按子项目独立进行：一次只处理一个页面目录（命令见 §14.3）
 - 时机：可交付/可部署/里程碑节点（日常提交不打 tag）
 - 现有：photo-upload v0.1.0~0.3.0 / mom-cert v0.1.0 / mom-packing v0.1.0 / check-result v0.1.0
 
@@ -205,7 +205,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 4. **事件**：一次性委托绑定；弹窗回调挂 `.data()`；实例状态（预览缩放）每次打开 `off()+on()`
 5. **样式归 CSS**：内联 style 仅限动态值（如进度条宽度）；初始隐藏用 `.hidden`
 6. **Mock**：独立 `mock.js`（§8.8，生产不部署），业务 JS 零 Mock 代码
-7. **回归脚本**：编写 `tests/<子项目>.regress.cjs` 并加入 §11 表格
+7. **回归脚本**：按 §11 规则临时写 `tests/<子项目>.regress.cjs` 并覆盖该页必测点；**tests/ 不入库，验证完删除**
 
 ## 10. Definition of Done（改动完成标准）
 
@@ -214,13 +214,18 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 - [ ] 验证按 §4.3 圈定范围、按 §4.1 分级执行且全绿：eslint **0 error 0 warning**、受影响子项目回归脚本全绿 + 0 JS 错误、结构变更已同步回归脚本
 - [ ] 业务规则符合 §8.1~§8.11（按改动涉及的条目）：命名 §8.6、注释 §8.7、Mock §8.8、骨架与交互 §8.3/§8.5/§9、回车拦截 §8.9、零 id §8.10、按钮开关 §8.11
 - [ ] 接口变更同步 `docs/<中文模块名>INF.md`（先改文档后改代码，§12.6），且未向其写入任何约束（§2 第 5 条）
-- [ ] 提交符合 §5（含实际跑了哪些脚本的验证摘要），工作区干净
+- [ ] 提交符合 §5（含实际跑了哪些脚本的验证摘要），工作区干净且 **`tests/` 已清理**（§11）
 
-## 11. 页面回归必测清单与运行口径（tests/ 脚本）
+## 11. 页面回归：临时脚本与必测点（tests/ 不纳入 git）
 
-运行范围先按 §4.3 用 git 圈定：**只跑改动涉及子项目的脚本**；不要跑 `tests/run-all.regress.cjs`（本仓库不允许全量体检，见 §4.3、§14.4）。
+**`tests/` 不做版本管理**（`.gitignore` 已排除）：脚本是**用后即弃的验证工具**，**用完就删**，下次要用时按本节覆盖点**重写**。因此：
 
-| 子项目 | 脚本 | 覆盖点 |
+- **需要时重写**：只写本次改动涉及子项目的脚本（§4.3）；不预先保有全部页面的脚本，也不写跨项目执行器
+- **每次使用后清理**：验证完成（并记入 commit body 的验证摘要）后即 `rm -rf tests/`；**不允许把 tests/ 留在工作区**，更不允许提交（含 `git add -f` 强加）
+- 重写时复用既有模式：Playwright 无头 + `NODE_PATH=$(npm root -g)` + `waitIdle()` 状态等待 + `window.__mockDelayMilliseconds` 调低 Mock 延迟（模板可从 git 历史 `5b8da6d` 取回，**仅作参考，不恢复入库**）
+- 运行前置：nginx 8080 在跑（§14.2）；命令 `cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`
+
+| 子项目 | 建议脚本名 | 重写时必须覆盖的必测点 |
 |---|---|---|
 | mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(saveType)/提交(saveType)/折叠/空态/清空 |
 | mom-packing | `tests/packing.regress.cjs` | 加载/单号搜索/物料搜索/选中面板/上传/数量校验/提交重置/步骤回退 |
@@ -229,13 +234,11 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 | mom-assembly-material-check | `tests/assembly-material-check.regress.cjs` | 工位加载与实时筛选/方向键选择/双视图切换/订单查询/BOM 校验(pass-fail)/连续扫码/失焦触发/检查完成重置/返回 |
 | mom-key-component-change | `tests/key-component-change.regress.cjs` | 加载/按钮开关(显示+权限, 含克隆行重放)/订单查询(回车+搜索, 订单号与VIN判定)/数量标签/卡片合并与排序/二维码校验/前后电机(自动分配+弹窗+取消)/校验并保存两分支/移除页/更换页(移除+保存+失败重试)/行删除/解绑按钮业务条件/完成重置/小屏布局/容器缺失/提交防重/换单清态(含关重件信息加载失败不跨单)/更换串位拦截与待保存标记/半完成返回确认/位置用尽降级人工选择/同码多配置 materialID 归属/慢响应丢弃(过期响应守卫)/接口缺失守卫/序号人工选择(前-后互斥+取消+覆盖自动分配+行显隐)/待更换明细按位置过滤/序号按钮开关 |
 
-单页运行（前置：nginx 8080 在跑，见 §14.2）：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（按 §4.3 只跑受影响的那几个）。
-
 | 时机 | 命令 | 耗时（实测） |
 |---|---|---|
 | 迭代中（改完一个点） | `eslint <改的文件>` + 该子项目脚本 | lint 2s；单页脚本 5~85s（key-component-change 最慢） |
 | 提交前 | 同左，**不因提交动作升级为全量** | 同上 |
-| 部署前（单个子项目） | 该页 eslint + 该页脚本 + 该页 tidy，命令见 §14.4 | lint 2s + 脚本 5~85s |
+| 部署前（单个子项目） | 该页 eslint + 该页脚本 + 该页 tidy，命令见 §14.3 | lint 2s + 脚本 5~85s |
 | 只为看通过数 | 跑一次 `tee` 到文件再统计，**不要为了 `grep -c ✅` 重跑整套** | — |
 
 其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；eslint + tidy 合并成一条命令只跑一次；单页回归可用 `window.__mockDelayMilliseconds` 调低 Mock 延迟（见各页 `mock.js`）。
@@ -351,7 +354,7 @@ callback({ code: number, msg: string, data?: any })
 | JS 静态检查 | ESLint 10.9.1 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；标准：**0 error 0 warning** |
 | 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 `*.html`、`*.md`——**markdown 禁止 `--write`**：会重排表格、改写强调标记、折行内联 JS，破坏本文档手工排版） |
 | HTML 结构体检 | tidy 5.8.0 | `tidy -q -e --show-warnings no --duplicate-ids <html文件>`；**判断依据是 stderr 为空**（干净文件也可能返回退出码 1，**不要用退出码判断**）；`--duplicate-ids` 是开关，**不能再跟 `yes`**（会报 `"yes" is not a file`） |
-| 页面回归 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<子项目>.regress.cjs`（脚本清单见 §11） |
+| 页面回归 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<子项目>.regress.cjs`（脚本临时重写、用后删除，见 §11） |
 | 冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（临时验证用） |
 | 接口联调 | curl + jq 1.8.1 | `curl <url> \| jq` |
 | 抓包 | mitmproxy 8.1.1 | `mitmproxy`（代理指向 WSL IP） |
@@ -368,7 +371,7 @@ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/SanyH5/mom-packing/
 
 ### 14.4 部署与验证：一次只做一个子项目（**禁止全量体检**）
 
-每个 `mom-*` 子项目独立验证、独立 tag、独立部署（§5.1），因此**逐个子项目做，不合并、不巡检全仓**；`tests/run-all.regress.cjs` 不使用（§4.3）。
+每个 `mom-*` 子项目独立验证、独立 tag、独立部署（§5.1），因此**逐个子项目做，不合并、不巡检全仓**；不写跨项目执行器（§4.3），回归脚本临时重写、用后删除（§11）。
 
 **单子项目部署前检查单**（以 `mom-packing` 为例，替换目录名即可）：
 
@@ -381,7 +384,7 @@ eslint mom-packing/Index.js mom-packing/mock.js
 # 2. 只检查本页 HTML 结构（勿批量改 HTML，见 §2 第 4 条）
 tidy -q -e --show-warnings no --duplicate-ids yes mom-packing/index.html
 
-# 3. 只跑本页回归脚本（约 5~85s，脚本对应关系见 §11 表格）
+# 3. 只跑本页回归脚本（临时的，用后删除；必测点见 §11）
 NODE_PATH=$(npm root -g) node tests/packing.regress.cjs
 ```
 
@@ -391,7 +394,7 @@ NODE_PATH=$(npm root -g) node tests/packing.regress.cjs
 - 一次改动若同时落在多个子项目，就按 §4.3 圈出的范围**逐个**跑各自脚本，仍不合并成全量
 - 权限相关（工作区外写、全局安装等）见 §3，不要绕过
 
-### 14.5 环境坑（调用工具时注意）
+### 14.4 环境坑（调用工具时注意）
 
 1. bash 命令在沙箱中运行：**工作区外只读**（`~/.npm`、`/usr` 等）；全局安装工具需用户在终端执行
 2. 命令内 `&` 起的后台进程会随命令结束被回收；常驻服务用 DSH 后台任务

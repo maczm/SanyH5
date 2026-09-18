@@ -9,6 +9,9 @@ tmp.*
 tmp/
 *.log
 
+# 回归脚本：临时验证工具，用后即删、需要时按 AGENT.md §11 重写，不纳入版本管理
+tests/
+
 # 构建产物（当前无构建链，预留）
 node_modules/
 dist/
