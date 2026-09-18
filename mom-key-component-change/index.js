@@ -19,8 +19,6 @@ var KeyComponentChange = {
     scanOrder: { visible: true, permitted: true },
     searchMaterial: { visible: true, permitted: true },
     scanMaterial: { visible: true, permitted: true },
-    frontMotorSequence: { visible: true, permitted: true },
-    rearMotorSequence: { visible: true, permitted: true },
     unbind: { visible: true, permitted: true },
     complete: { visible: true, permitted: true },
     deleteSerial: { visible: true, permitted: true },
@@ -34,8 +32,6 @@ var KeyComponentChange = {
     scanOrder: ".btn-scan-order",
     searchMaterial: ".btn-search-material",
     scanMaterial: ".btn-scan-material",
-    frontMotorSequence: ".btn-sequence-front",
-    rearMotorSequence: ".btn-sequence-rear",
     unbind: ".btn-unbind",
     complete: ".btn-complete",
     deleteSerial: ".btn-delete-serial",
@@ -51,7 +47,6 @@ var KeyComponentChange = {
     removeQty: 0,
     needRemoveQty: 0,
     inputSource: { inputType: "手输", inputCode: 13 },
-    manualMaterialSeq: "",
     pendingScan: null,
     changedOldGenealogyId: null,
     changedOldSerialNo: null,
@@ -138,48 +133,11 @@ var KeyComponentChange = {
     return materialSequence === null || materialSequence === undefined ? "" : String(materialSequence);
   },
 
-  /** 前后位置序号：只有 "1"/"2" 表示前后电机位置，其它值（如 "3"）只是描述 */
-  isPositionSequence: function (materialSequence) {
-    var sequenceText = KeyComponentChange.normalizeMaterialSequence(materialSequence);
-    return sequenceText === "1" || sequenceText === "2";
-  },
-
   /** 永磁体同步电机：只有它需要前后位置，位置弹窗也只对它发生 */
   isMotorComponent: function (matchedComponents) {
     return matchedComponents.some(function (component) {
       return component.materialType === KeyComponentChange.MOTOR_MATERIAL_TYPE;
     });
-  },
-
-  /** 人工选的序号优先：该物料有前后位置且操作员已选时返回所选值，否则返回 null（走自动分配/弹窗） */
-  getManualMaterialSequence: function (matchedComponents) {
-    var manualMaterialSeq = KeyComponentChange.state.manualMaterialSeq;
-    if (!manualMaterialSeq) return null;
-    var hasPositionSequence = matchedComponents.some(function (component) {
-      return KeyComponentChange.isPositionSequence(component.materialSeq);
-    });
-    return hasPositionSequence ? manualMaterialSeq : null;
-  },
-
-  /** 序号选择行仅在当前订单存在前后位置关重件时显示 */
-  updateSequenceOptionRow: function () {
-    var state = KeyComponentChange.state;
-    var hasPositionSequence = !!state.orderInfo && state.keyComponentList.some(function (component) {
-      return KeyComponentChange.isPositionSequence(component.materialSeq);
-    });
-    $(".sequence-option-row").toggleClass("hidden", !hasPositionSequence);
-  },
-
-  /** 序号选择：互斥选中，再次点击已选项＝取消（回到空） */
-  selectMaterialSequence: function (materialSequence, isSelected) {
-    $(".sequence-option").removeClass("selected");
-    if (isSelected) {
-      KeyComponentChange.state.manualMaterialSeq = "";
-      return;
-    }
-    $(".btn-sequence-front").toggleClass("selected", materialSequence === "1");
-    $(".btn-sequence-rear").toggleClass("selected", materialSequence === "2");
-    KeyComponentChange.state.manualMaterialSeq = materialSequence;
   },
 
   // ============== 消息提示 ==============
@@ -488,7 +446,6 @@ var KeyComponentChange = {
     });
 
     KeyComponentChange.applyButtonSwitch();
-    KeyComponentChange.updateSequenceOptionRow();
   },
 
   // ============== 视图1：物料二维码采集 ==============
@@ -556,7 +513,6 @@ var KeyComponentChange = {
   resolveMaterialSequence: function (matchedComponents, allowCollectedSequence, chosenCallback) {
     var materialIds = matchedComponents.map(function (component) { return component.materialID; });
     var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
-    var manualMaterialSequence = KeyComponentChange.getManualMaterialSequence(matchedComponents);
     var isMotor = KeyComponentChange.isMotorComponent(matchedComponents);
     if (isMotor && allowCollectedSequence) {
       // 更换：永磁体同步电机必须弹窗，由操作员现场指定被替换的位置
@@ -564,6 +520,7 @@ var KeyComponentChange = {
       return;
     }
     if (matchedComponents.length <= 1) {
+      // 单条配置：序号明确
       chosenCallback(matchedComponents.length ? matchedComponents[0].materialSeq : null);
       return;
     }
@@ -574,13 +531,13 @@ var KeyComponentChange = {
       return collectedSequenceList.indexOf(sequence) === -1;
     });
     if (isClearMotorPair && freeSequenceList.length) {
-      // 配置明确：自动分配未采集位置（人工已选则听人工的）
-      chosenCallback(manualMaterialSequence !== null ? manualMaterialSequence : freeSequenceList[0]);
+      // 配置明确：自动分配未采集位置
+      chosenCallback(freeSequenceList[0]);
       return;
     }
     if (!isMotor) {
       // 其他关重件不弹窗
-      chosenCallback(manualMaterialSequence !== null ? manualMaterialSequence : matchedComponents[0].materialSeq);
+      chosenCallback(matchedComponents[0].materialSeq);
       return;
     }
     // 永磁体同步电机：配置不明确，或前后位置都已采集（无空位时允许选已采集位置，避免无路可走）
@@ -804,7 +761,6 @@ var KeyComponentChange = {
     state.changedOldGenealogyId = null;
     state.changedOldSerialNo = null;
     state.isSubmitting = false;
-    state.manualMaterialSeq = "";
     state.orderRequestSequence++;
     state.keyComponentRequestSequence++;
     $(".order-no-tag").text("");
@@ -818,10 +774,8 @@ var KeyComponentChange = {
     $(".collect-quantity-tag").text("");
     $(".remove-quantity-tag").text("");
     $(".remove-quantity-row").addClass("hidden");
-    $(".sequence-option").removeClass("selected");
     KeyComponentChange.switchView("key-component-check-view");
     KeyComponentChange.applyButtonSwitch();
-    KeyComponentChange.updateSequenceOptionRow();
     setTimeout(function () {
       $(".input-order-key").focus();
     }, 0);
@@ -1106,11 +1060,6 @@ var KeyComponentChange = {
         KeyComponentChange.setInputSource("扫码", 1);
         KeyComponentChange.handleMaterialCheck();
       });
-    });
-    $(".key-component-check-view").on("click", ".sequence-option", function () {
-      var $option = $(this);
-      var materialSequence = $option.hasClass("btn-sequence-front") ? "1" : "2";
-      KeyComponentChange.selectMaterialSequence(materialSequence, $option.hasClass("selected"));
     });
     $(".key-component-check-view").on("click", ".btn-delete-serial", function () {
       KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial-no"));

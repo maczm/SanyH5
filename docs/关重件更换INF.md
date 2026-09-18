@@ -145,7 +145,7 @@ window.KeyComponentChange_GetChangeKeyComponentInfo(
 | `wipOrderNo` | string | 是 | 改制订单号（查询订单信息 返回） |
 | `wipOrderType` | number | 是 | 订单类型（改制订单为 2） |
 | `materialNo` | string | 仅 查询待更换明细 | 关重件物料编码（查询待更换明细 按该物料过滤更换清单） |
-| `materialSeq` | string | 否 | 关重件序号（查询待更换明细 按位置过滤旧件）：`"1"`=只回前电机旧件 / `"2"`=只回后电机旧件 / `""`=不按位置过滤；由页面「关重件序号」人工选择带入 |
+| `materialSeq` | string | 否 | 关重件序号（查询待更换明细 按位置过滤旧件）：`"1"`=只回前电机旧件 / `"2"`=只回后电机旧件 / `""`=不按位置过滤；由位置弹窗人工选择或页面自动分配的结果带入 |
 
 **出参** `data`：明细数组（两条查询结构一致）
 
