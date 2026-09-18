@@ -45,29 +45,49 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 大 | 重构/新功能/多页改动 | 波及的**全部子项目**回归 + eslint 0/0 |
 | 横切 | 公共文件（eslint.config/工具/跨页同步组件） | **所有被波及子项目**全验证 |
 
-> 子项目互不影响：改动只在单页内时只验证该页，不跑其他页回归；结构变更（骨架/模板/class 变化）**必须同步更新对应回归脚本**再重跑。改动的完成标准见 §10。
+> 子项目互不影响：改动只在单页内时只验证该页，不跑其他页回归（选定口径见 §4.3）；结构变更（骨架/模板/class 变化）**必须同步更新对应回归脚本**再重跑。改动的完成标准见 §10。
 
 ### 4.2 步骤
 
 1. **改前**：`git status` 工作区干净（可回滚基线）+ `git log --oneline` 确认位置
 2. **影响面分析**：改公共函数/组件前，先 `rg` 找全部引用，列影响面
 3. **编码**：按 §8 编码准则（架构/命名/UI/平台约束）
-4. **验证**：按 4.1 分级执行（eslint → 回归脚本 → 冒烟），命令见 §11、§14.2
+4. **验证**：先按 §4.3 用 git 圈定受影响子项目，再按 §4.1 分级执行（eslint → 回归脚本 → 冒烟），命令见 §11、§14.2
 5. **自查留痕**：`git diff` 复查改动；commit body 写验证摘要（见 §5）
 6. **提交**：一次提交一件事，格式见 §5
 7. **失败回滚**：验证不通过立即修复；无法快速修复则 `git reset`/`checkout` 回滚到基线，不带着半成品继续
+
+### 4.3 回归范围按改动圈定（**禁止默认跑全量**）
+
+**每次改动先用 git 查清动了哪些子项目，只跑这些子项目的回归脚本**；全量回归只在发布/整体体检或横切改动时才跑（§14.4）。
+
+```bash
+# 改了哪些文件 → 映射到子项目目录名（跑之前先看这一行输出）
+git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -u
+# 已提交未发布时：git diff --name-only origin/master...HEAD | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -u
+```
+
+| 改动范围 | 回归范围 | 示例 |
+|---|---|---|
+| 单个 `mom-xxx/` 下的 index.js/index.css/index.html/mock.js | 只跑 `tests/` 下该项目的脚本（见 §11 表格） | 改 `mom-packing/Index.js` → 只跑 `packing.regress.cjs` |
+| 多个 `mom-xxx/` 或无 `mom-` 前缀的公共文件（eslint.config、tests/run-all、jquery.min.js） | 波及的全部子项目 | 改 `jquery.min.js` → 6 页全跑 |
+| 只有 `AGENT.md` / `docs/` / `.prettier*` / `.gitignore` | **不跑回归**（可做 §14.3 环境自检） | 本次文档去冗余 |
+
+- 判定依据是**实际改动的文件**，不是"提交信息"或"感觉可能影响"；拿不准就先跑 `git diff --stat`
+- 上一条命令输出为空（只有文档/配置改动）即无需回归；不要因为"提交前"就把范围升级为全量
+- 脚本与子项目的对应关系以 §11 表格为准；新增页面必须同时登记脚本（§9 第 7 条）
 
 ## 5. 提交规范
 
 - 格式：`<type>: <中文描述>`
 - type：`fix` 修 bug / `refactor` 重构 / `docs` 文档 / `chore` 配置工具 / `feat` 新功能
-- commit body 附验证摘要：`验证：eslint 0/0，tests/<脚本> REGRESSION OK（N 项）`
+- commit body 附验证摘要（写清实际跑了哪些，见 §4.3）：`验证：eslint 0/0，tests/<脚本> REGRESSION OK`；纯文档改动写 `文档改动，未跑回归`
 
 ### 5.1 发布 Tag 规范
 
 - 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-packing-v0.1.0`），带 `-a` 附注说明；子项目名 = 页面目录名，版本号 SemVer 递增
 - 前置：该子项目验证全绿（§4.1）；时机：可交付/可部署/里程碑节点（日常提交不打 tag）
-- 全量体检（§11）可选，用于整体确认/定期体检，不绑定 tag 流程
+- 全量体检（§14.4）用于发布前整体确认，不绑定 tag 流程；日常提交按 §4.3 只跑受影响子项目
 - 现有：photo-upload v0.1.0~0.3.0 / mom-cert v0.1.0 / mom-packing v0.1.0 / check-result v0.1.0
 
 ## 6. 文档地图
@@ -190,12 +210,14 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 
 每项改动（修 bug / 重构 / 新功能）完成前逐项自检：
 
-- [ ] 验证按 §4.1 执行且全绿：eslint **0 error 0 warning**、对应回归脚本全绿 + 0 JS 错误（横切改动：全部波及子项目）、结构变更已同步回归脚本
+- [ ] 验证按 §4.3 圈定范围、按 §4.1 分级执行且全绿：eslint **0 error 0 warning**、受影响子项目回归脚本全绿 + 0 JS 错误、结构变更已同步回归脚本
 - [ ] 业务规则符合 §8.1~§8.11（按改动涉及的条目）：命名 §8.6、注释 §8.7、Mock §8.8、骨架与交互 §8.3/§8.5/§9、回车拦截 §8.9、零 id §8.10、按钮开关 §8.11
 - [ ] 接口变更同步 `docs/<中文模块名>INF.md`（先改文档后改代码，§12.6），且未向其写入任何约束（§2 第 5 条）
-- [ ] 提交符合 §5（含验证摘要），工作区干净
+- [ ] 提交符合 §5（含实际跑了哪些脚本的验证摘要），工作区干净
 
-## 11. 页面回归必测清单（tests/ 脚本）
+## 11. 页面回归必测清单与运行口径（tests/ 脚本）
+
+运行范围先按 §4.3 用 git 圈定：**只跑改动涉及子项目的脚本**，不要默认跑全量；全量命令见 §14.4。
 
 | 子项目 | 脚本 | 覆盖点 |
 |---|---|---|
@@ -206,14 +228,13 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | mom-assembly-material-check | `tests/assembly-material-check.regress.cjs` | 工位加载与实时筛选/方向键选择/双视图切换/订单查询/BOM 校验(pass-fail)/连续扫码/失焦触发/检查完成重置/返回 |
 | mom-key-component-change | `tests/key-component-change.regress.cjs` | 加载/按钮开关(显示+权限, 含克隆行重放)/订单查询(回车+搜索, 订单号与VIN判定)/数量标签/卡片合并与排序/二维码校验/前后电机(自动分配+弹窗+取消)/校验并保存两分支/移除页/更换页(移除+保存+失败重试)/行删除/解绑按钮业务条件/完成重置/小屏布局/容器缺失/提交防重/换单清态(含关重件信息加载失败不跨单)/更换串位拦截与待保存标记/半完成返回确认/位置用尽降级人工选择/同码多配置 materialID 归属/慢响应丢弃(过期响应守卫)/接口缺失守卫/序号人工选择(前-后互斥+取消+覆盖自动分配+行显隐)/待更换明细按位置过滤/序号按钮开关 |
 
-运行（前置：nginx 8080 在跑，见 §14.2）：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`；全量回归命令见 §14.4。
-
-验证提速约定（迭代期 vs 提交前）：
+单页运行（前置：nginx 8080 在跑，见 §14.2）：`cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`（按 §4.3 只跑受影响的那几个）。
 
 | 时机 | 命令 | 耗时（实测） |
 |---|---|---|
-| 迭代中（改完一个点） | `eslint <改的文件>` + 受影响单页脚本，如 `NODE_PATH=$(npm root -g) node tests/key-component-change.regress.cjs` | lint 2s；单页脚本 5~85s（key-component-change 最慢） |
-| 提交前（一次） | 「全量体检」三步（§14.4） | ~90s（并行，瓶颈为 key-component-change） |
+| 迭代中（改完一个点） | `eslint <改的文件>` + 该子项目脚本 | lint 2s；单页脚本 5~85s（key-component-change 最慢） |
+| 提交前 | 同左，**不因提交动作升级为全量** | 同上 |
+| 全量（仅发布/整体体检/横切改动） | 「全量体检」三步（§14.4） | ~90s（并行） |
 | 只为看通过数 | 跑一次 `tee` 到文件再统计，**不要为了 `grep -c ✅` 重跑整套** | — |
 
 其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；6 个回归脚本走并行执行器；eslint/tidy 合并成一条命令只跑一次；单页回归可用 `window.__mockDelayMilliseconds` 调低 Mock 延迟（见各页 `mock.js`）。
@@ -327,7 +348,7 @@ callback({ code: number, msg: string, data?: any })
 | 版本管理 | git | 常规 git 命令；改完即提交 |
 | 本地预览 | nginx（已运行，端口 8080，root=projects） | `http://localhost:8080/SanyH5/<页面目录>/`（旧路径 `/wsl/projects/...` 已 301 兼容） |
 | JS 静态检查 | ESLint 10.9.1 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；标准：**0 error 0 warning** |
-| 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 *.html，勿对 HTML 用） |
+| 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 `*.html`、`*.md`——**markdown 禁止 `--write`**：会重排表格、改写强调标记、折行内联 JS，破坏本文档手工排版） |
 | HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids yes <html文件>` |
 | 页面回归 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<子项目>.regress.cjs`（脚本清单见 §11） |
 | 冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（临时验证用） |
@@ -344,9 +365,9 @@ eslint --version && playwright --version
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/SanyH5/mom-packing/index.html
 ```
 
-### 14.4 全量体检（可选：整体确认/定期体检；发布或整体确认前跑一遍，全绿即健康版本）
+### 14.4 全量体检（只用于发布/整体确认/横切改动；日常迭代按 §4.3 只跑受影响子项目）
 
-不绑定单页 tag 流程（§5.1）；ESLint 标准见 §4.1。
+全绿即健康版本；不绑定单页 tag 流程（§5.1）；ESLint 标准见 §4.1。**日常提交不要跑本节**——先用 §4.3 的 git 命令圈定范围，只跑对应脚本。
 
 ```bash
 cd /home/wangzm/projects/SanyH5

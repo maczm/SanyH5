@@ -1,6 +1,10 @@
 # HTML 一律不交给 prettier（含第三方只读的 mom-cert/index.html）
 *.html
 
+# markdown 一律不交给 prettier：会重排表格、改写强调标记（**x** → *_x_*）、
+# 折行内联 JS 示例，破坏 AGENT.md / docs 的手工排版
+*.md
+
 # 工具/编辑器产物
 .zcode/
 .idea/
