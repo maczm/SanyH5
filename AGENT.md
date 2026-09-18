@@ -170,7 +170,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 ### 8.8 Mock/演示数据隔离（不污染业务代码）
 
-- Mock 数据与 Mock API **必须放独立文件**（页面目录内 `mock.js`，开发期部署、生产不部署，见 §2 第 2 条）；**禁止在业务 JS（index.js）内联任何演示数据**（`MOCK_RESULT` 式常量、`__DEV__` 分支内嵌数据、mock 逻辑）
+- Mock 数据与 Mock API **必须放独立文件**（页面目录内 `mock.js`，开发期部署、生产不部署，见 §2 第 2 条）；`mock.js` 承载本页全部 Mock 数据与 API 兜底，**无需任何清理动作**；**禁止在业务 JS（index.js）内联任何演示数据**（`MOCK_RESULT` 式常量、`__DEV__` 分支内嵌数据、mock 逻辑）
 - 页面 index.html 用 `<script src="mock.js">` 引用（置于业务 JS 之前）；业务 JS 对未注入数据只做检测，无数据时展示空态/兜底，零 Mock 代码
 - 例外：mom-cert 因第三方 HTML 只读无法引用 mock.js（§2 第 1 条），暂维持 `__DEV__` 内联（待评估动态加载方案，此例外不扩散到其他页面）
 
@@ -215,26 +215,18 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 - [ ] 验证按 §4.3 圈定范围、按 §4.1 分级执行且全绿：eslint **0 error 0 warning**、受影响子项目回归脚本全绿 + 0 JS 错误、结构变更已同步回归脚本
 - [ ] 业务规则符合 §8.1~§8.11（按改动涉及的条目）：命名 §8.6、注释 §8.7、Mock §8.8、骨架与交互 §8.3/§8.5/§9、回车拦截 §8.9、零 id §8.10、按钮开关 §8.11
-- [ ] 接口变更同步 `docs/<中文模块名>INF.md`（先改文档后改代码，§12.6），且未向其写入任何约束（§2 第 5 条）
+- [ ] 接口变更同步 `docs/<中文模块名>INF.md`（先改文档后改代码，§12.5），且未向其写入任何约束（§2 第 5 条）
 - [ ] 提交符合 §5（含实际跑了哪些脚本的验证摘要），工作区干净且 **`tests/` 已清理**（§11）
 
-## 11. 页面回归：临时脚本与必测点（tests/ 不纳入 git）
+## 11. 页面回归：临时脚本（tests/ 不纳入 git）
 
-**`tests/` 不做版本管理**（`.gitignore` 已排除）：脚本是**用后即弃的验证工具**，**用完就删**，下次要用时按本节覆盖点**重写**。因此：
+**`tests/` 不做版本管理**（`.gitignore` 已排除）：脚本是**用后即弃的验证工具**，**用完就删**，下次要用时**重写**。因此：
 
-- **需要时重写**：只写本次改动涉及子项目的脚本（§4.3）；不预先保有全部页面的脚本，也不写跨项目执行器
+- **需要时重写**：只写本次改动涉及子项目的脚本（§4.3）；不预先保有全部页面的脚本，也不写跨项目执行器；**脚本命名 `tests/<子项目目录名>.regress.cjs`**
+- **必测点从代码与协议推导**：重写时按该页 `index.js` 的分支逻辑与 `docs/<中文模块名>INF.md` 的接口契约推导断言，**不在本文件维护必测点清单**（会随代码漂移）
 - **每次使用后清理**：验证完成（并记入 commit body 的验证摘要）后即 `rm -rf tests/`；**不允许把 tests/ 留在工作区**，更不允许提交（含 `git add -f` 强加）
-- 重写时复用既有模式：Playwright 无头 + `NODE_PATH=$(npm root -g)` + `waitIdle()` 状态等待 + `window.__mockDelayMilliseconds` 调低 Mock 延迟（模板可从 git 历史 `5b8da6d` 取回，**仅作参考，不恢复入库**）
+- 重写时复用既有模式：Playwright 无头 + `NODE_PATH=$(npm root -g)` + `waitIdle()` 状态等待（模板可从 git 历史 `5b8da6d` 取回，**仅作参考，不恢复入库**）
 - 运行前置：nginx 8080 在跑（§14.2）；命令 `cd /home/wangzm/projects/SanyH5 && NODE_PATH=$(npm root -g) node tests/<脚本>`
-
-| 子项目 | 建议脚本名 | 重写时必须覆盖的必测点 |
-|---|---|---|
-| mom-nameplate-photo-upload | `tests/nameplate-photo-upload.regress.cjs` | 加载/下拉筛选/查询/真实上传/删除/预览/模板多态/保存(saveType)/提交(saveType)/折叠/空态/清空 |
-| mom-packing | `tests/packing.regress.cjs` | 加载/单号搜索/物料搜索/选中面板/上传/数量校验/提交重置/步骤回退 |
-| mom-cert | `tests/mom-cert.regress.cjs` | dev 渲染/校验/触屏 tooltip/生产缺字段不崩/XSS 前置拦截 |
-| mom-nameplate-check-result | `tests/check-result.regress.cjs` | Mock 渲染/MATCH-MISMATCH 与单位/无数据空态/未知枚举显示原文/轮询自动刷新/未知任务状态 |
-| mom-assembly-material-check | `tests/assembly-material-check.regress.cjs` | 工位加载与实时筛选/方向键选择/双视图切换/订单查询/BOM 校验(pass-fail)/连续扫码/失焦触发/检查完成重置/返回 |
-| mom-key-component-change | `tests/key-component-change.regress.cjs` | 加载/按钮开关(显示+权限, 含克隆行重放)/订单查询(回车+搜索, 订单号与VIN判定)/数量标签/卡片合并与排序/二维码校验/前后电机(自动分配+弹窗+取消)/校验并保存两分支/移除页/更换页(移除+保存+失败重试)/行删除/解绑按钮业务条件/完成重置/小屏布局/容器缺失/提交防重/换单清态(含关重件信息加载失败不跨单)/更换串位拦截与待保存标记/半完成返回确认/位置用尽降级人工选择/同码多配置 materialID 归属/慢响应丢弃(过期响应守卫)/接口缺失守卫/序号人工选择(前-后互斥+取消+覆盖自动分配+行显隐)/待更换明细按位置过滤/序号按钮开关 |
 
 | 时机 | 命令 | 耗时（实测） |
 |---|---|---|
@@ -243,7 +235,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 | 部署前（单个子项目） | 该页 eslint + 该页脚本 + 该页 tidy，命令见 §14.3 | lint 2s + 脚本 5~85s |
 | 只为看通过数 | 跑一次 `tee` 到文件再统计，**不要为了 `grep -c ✅` 重跑整套** | — |
 
-其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；eslint + tidy 合并成一条命令只跑一次；页面回归可在页面脚本执行前注入 `window.__mockDelayMilliseconds` 调低 Mock 延迟（当前仅 mom-key-component-change 的 `mock.js` 实现，其他页重写脚本时按需补）。
+其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；eslint + tidy 合并成一条命令只跑一次。
 
 ---
 
@@ -265,15 +257,9 @@ callback({ code: number, msg: string, data?: any })
 - `msg`：失败时为错误描述，页面直接展示给用户
 - 所有 API 均为 callback 风格，无 Promise/返回值约定
 
-### 12.3 注入清单（每页 Portal window 属性）
+### 12.3 注入属性（Portal window）
 
-| 页面 | window 属性（类型） |
-|---|---|
-| mom-packing | 常量 `Operator`（string，当前操作员姓名/工号，Header 展示 + 提交回传）；函数 `searchByPackingList`（装箱单号搜索）、`searchByMaterialCode`（物料编码搜索）、`uploadPackingImage`（图片上传）、`submitPacking`（装箱提交） |
-| mom-nameplate-photo-upload | 常量 `Operator`（string，同上）；函数 `getStationList`（获取工位列表）、`getPhotoConfig`（照片类型配置 + 订单信息）、`uploadPhoto`（上传单张照片）、`submitPhotoRecord`（照片记录提交/保存，`saveType` 区分） |
-| mom-assembly-material-check | 函数 `assemblyMaterialCheck_getWorkStationList`（获取工位列表）、`assemblyMaterialCheck_getWipOrderNoInfo`（查询订单/主机/BOM 信息）、`assemblyMaterialCheck_getMaterialInfo`（查询物料信息）、`assemblyMaterialCheck_saveCheckResult`（保存单条检查结果） |
-| mom-key-component-change | 函数 `KeyComponentChange_GetWipOrderNoInfo`（查询订单信息）、`KeyComponentChange_GetKeyComponentInfo`（查询关重件配置与已采集序列号）、`KeyComponentChange_CheckAndSave`（校验并保存扫描件，返回 `isChange` 决定是否走换件）、`KeyComponentChange_Remove`（移除关重件，返回 `oldGenealogyID`）、`KeyComponentChange_GetRemoveKeyComponentInfo`（查询待移除明细）、`KeyComponentChange_GetChangeKeyComponentInfo`（查询待更换明细）、`KeyComponentChange_Save`（保存新关重件，带被替换旧件 ID） |
-| mom-cert / mom-nameplate-check-result | 无注入 API：分别读 `$Context.inputs` / `window.checkResultData` |
+常量 `Operator`（string，当前操作员姓名/工号，Header 展示 + 提交回传）；页面 API 函数（`window.<函数名>`，命名与当前页实现一致）；无注入 API 的页面各自读宿主注入的数据对象。**每页函数名与协议见该页 `INF.md`，本文件不维护逐页清单。**
 
 ### 12.4 公共能力
 
@@ -281,11 +267,7 @@ callback({ code: number, msg: string, data?: any })
 
 > 图片压缩参数与共享参数名的约束见 §8.2；业务行为（如二维码字段切分、模板自动选中）不属规范，本文件不写。
 
-### 12.5 Mock（本地开发）
-
-各页独立 `mock.js`（mom-packing / mom-nameplate-photo-upload / mom-assembly-material-check / mom-key-component-change）承载本页全部 Mock 数据与 API 兜底，**生产不部署该文件**，无需任何清理动作（规则见 §8.8）。
-
-### 12.6 文档权威与变更顺序
+### 12.5 文档权威与变更顺序
 
 接口协议以 `docs/<中文模块名>INF.md` 为准（如 `docs/关重件更换INF.md`）；页面代码与协议文档不一致时以协议文档为准。新增/调整接口的顺序：`<中文模块名>INF.md` 写协议 → 本文补约束/规则 → `mock.js` 加 Mock → 页面加调用 → 回归补断言。
 
@@ -301,7 +283,7 @@ callback({ code: number, msg: string, data?: any })
 
 - OS：WSL2 Ubuntu 26.04；Node v24.19.0（nvm 管理）；npm 源 npmmirror
 - git：仓库 `/home/wangzm/projects/SanyH5`，身份 wangzm <1466418631@qq.com>
-- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5；6 个独立子项目
+- 项目约束：无 package.json、无构建链、无 CI；纯静态 H5（子项目清单见 §1）
 - WSL IP 会变：`hostname -I | awk '{print $1}'`（Windows 侧访问 WSL 服务用）
 
 ### 14.2 环节 → 工具 映射
