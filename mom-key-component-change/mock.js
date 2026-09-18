@@ -17,8 +17,8 @@ var mockOrderDataMap = {
     removeQty: 0,
     needRemoveQty: 0,
     keyComponentList: [
-      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
-      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
+      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 2001, materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
       { materialID: 2002, materialNo: "MAT-AXLE-002", materialDesc: "驱动桥总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: null },
       { materialID: 2003, materialNo: "MAT-BOX-003", materialDesc: "变速箱总成", materialQty: 2, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
     ],
@@ -38,8 +38,8 @@ var mockOrderDataMap = {
     removeQty: 0,
     needRemoveQty: 2,
     keyComponentList: [
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
     ],
     snList: [
@@ -55,14 +55,14 @@ var mockVinIndexMap = {
 
 // -- 待移除明细（改制订单 → 生产订单） --
 var mockRemoveRecordList = [
-  { wipOrderNo: "184000000001", wipOrderType: 1, serialNo: "SN-HOST-0101", materialSerialNo: "SN-MOTOR-OLD-1", materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", scanTime: "2026-08-20 08:30:00" },
-  { wipOrderNo: "184000000002", wipOrderType: 1, serialNo: "SN-HOST-0102", materialSerialNo: "SN-MOTOR-OLD-2", materialNo: "MAT-MOTOR-001", materialDesc: "永磁同步电机", scanTime: "2026-08-21 09:15:00" },
+  { wipOrderNo: "184000000001", wipOrderType: 1, serialNo: "SN-HOST-0101", materialSerialNo: "SN-MOTOR-OLD-1", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", scanTime: "2026-08-20 08:30:00" },
+  { wipOrderNo: "184000000002", wipOrderType: 1, serialNo: "SN-HOST-0102", materialSerialNo: "SN-MOTOR-OLD-2", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", scanTime: "2026-08-21 09:15:00" },
 ];
 
 // -- 待更换明细（改制 + 生产订单） --
 var mockChangeRecordList = [
-  { wipOrderNo: "184000000013", wipOrderType: 2, serialNo: "SN-HOST-0002", materialSerialNo: "SN-OLD-CHG-1", materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", scanTime: "2026-08-22 10:00:00" },
-  { wipOrderNo: "184000000001", wipOrderType: 1, serialNo: "SN-HOST-0101", materialSerialNo: "SN-OLD-CHG-2", materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", scanTime: "2026-08-22 11:30:00" },
+  { wipOrderNo: "184000000013", wipOrderType: 2, serialNo: "SN-HOST-0002", materialSerialNo: "SN-OLD-CHG-1", materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", scanTime: "2026-08-22 10:00:00" },
+  { wipOrderNo: "184000000001", wipOrderType: 1, serialNo: "SN-HOST-0101", materialSerialNo: "SN-OLD-CHG-2", materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", scanTime: "2026-08-22 11:30:00" },
 ];
 
 // 待更换旧件的位置：仅 Mock 内部用于按 materialSeq 过滤（出参不含该字段，与协议一致）

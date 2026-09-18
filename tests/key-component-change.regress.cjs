@@ -103,7 +103,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   {
     const first = page.locator(".key-component-card").first();
     check("首卡=最新扫描物料", (await first.locator(".key-component-material-no").textContent()) === "MAT-MOTOR-001");
-    check("首卡物料描述与类型", (await first.locator(".key-component-material-desc").textContent()) === "永磁同步电机" && (await first.locator(".key-component-material-type").textContent()) === "永磁体同步电机");
+    check("首卡物料描述与类型", (await first.locator(".key-component-material-desc").textContent()) === "永磁体同步电机" && (await first.locator(".key-component-material-type").textContent()) === "永磁体同步电机");
     check("同物料两张配置合并为一张卡(1/2)", (await first.locator(".key-component-quantity").textContent()) === "1/2" && (await first.locator(".serial-row").count()) === 1);
     check("卡内首行序列号与扫描时间", (await first.locator(".serial-no").textContent()) === "SN-MOTOR-A1" && (await first.locator(".scan-time").textContent()) === "2026-08-24 09:10:00");
     check("序号 1 显示前电机", (await first.locator(".motor-position").textContent()) === "前电机");
@@ -649,8 +649,8 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
         wipOrderNo: "184000000099", wipOrderType: 1, productID: 9900, productNo: "MAT-HOST-099", productDesc: "测试底盘",
         serialNo: "SN-HOST-0099", removeQty: 0, needRemoveQty: 0,
         keyComponentList: [
-          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁同步电机", materialQty: 2, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
-          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
+          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁体同步电机", materialQty: 2, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
         ],
         snList: [],
       };
@@ -743,17 +743,19 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     await page.evaluate(() => { window.KeyComponentChange_GetWipOrderNoInfo = window.__originalOrderApi; });
   }
 
-  // ============ 17. 关重件序号人工选择 + 待更换明细按位置过滤 ============
+  // ============ 17. 序号人工选择 + 位置弹窗规则（仅永磁体同步电机）+ 待更换明细按位置过滤 ============
   {
     await page.evaluate(() => {
       window.mockOrderDataMap["184000000096"] = {
         wipOrderNo: "184000000096", wipOrderType: 1, productID: 9600, productNo: "MAT-HOST-096", productDesc: "序号测试底盘",
         serialNo: "SN-HOST-0096", removeQty: 0, needRemoveQty: 0,
         keyComponentList: [
-          { materialID: 9601, materialNo: "MAT-MOTOR-096", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
-          { materialID: 9601, materialNo: "MAT-MOTOR-096", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
+          { materialID: 9601, materialNo: "MAT-MOTOR-096", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+          { materialID: 9601, materialNo: "MAT-MOTOR-096", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
           { materialID: 9602, materialNo: "MAT-AXLE-096", materialDesc: "驱动桥总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: null },
           { materialID: 9603, materialNo: "MAT-BOX-096", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
+          { materialID: 9604, materialNo: "MAT-PAIR-096", materialDesc: "成对关重件", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "1" },
+          { materialID: 9604, materialNo: "MAT-PAIR-096", materialDesc: "成对关重件", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "1" },
         ],
         snList: [
           { serialNo: "SN-M096-F1", materialID: 9601, materialSeq: "1", scanTime: "2026-08-24 09:00:00" },
@@ -776,7 +778,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     let savedIndex = (await savedList()).length;
     await scanMaterial("MAT-MOTOR-096|供应商A|SN-M096-F2:1");
     check("采集时人工选前电机优先（不再自动分配后电机）", (await savedList())[savedIndex].reported.materialSeq === "1", JSON.stringify((await savedList())[savedIndex].reported.materialSeq));
-    check("人工选序号时不弹位置选择", !(await page.locator(".template-motor-picker:not(.hidden)").isVisible()));
+    check("采集序号明确时不弹位置选择", !(await page.locator(".template-motor-picker:not(.hidden)").isVisible()));
     check("前电机采满 2/2", (await cardQuantity("MAT-MOTOR-096")) === "2/2");
 
     await page.click(".btn-sequence-front");
@@ -791,29 +793,43 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     await scanMaterial("MAT-BOX-096|供应商A|SN-B096-1:1");
     check("配置里的非 1/2 序号原样上报", (await savedList())[savedIndex].reported.materialSeq === "3", JSON.stringify((await savedList())[savedIndex].reported.materialSeq));
 
-    // 满量更换：查询待更换明细带人工序号，并按位置过滤旧件
+    // 非电机件序号不明确（两条都是 "1"）：不弹窗，取首条配置序号
+    await page.click(".btn-sequence-rear");
+    savedIndex = (await savedList()).length;
+    await scanMaterial("MAT-PAIR-096|供应商A|SN-PAIR-096-A:1");
+    check("非电机件序号不明确也不弹窗", !(await page.locator(".template-motor-picker:not(.hidden)").isVisible()) &&
+      (await savedList())[savedIndex].reported.materialSeq === "1", JSON.stringify((await savedList())[savedIndex].reported.materialSeq));
+
+    // 更换 + 永磁体同步电机：即使已人工选序号，也必须弹窗现场确认；弹窗结果决定查询与上报
     const keyComponentRequestBeforeChange = await requestCount("GetChangeKeyComponentInfo");
     await page.click(".btn-sequence-front");
     await scanMaterial("MAT-MOTOR-096|供应商A|SN-M096-F9:1");
-    check("满量电机进入更换页", await page.locator(".key-component-change-view").isVisible());
-    check("查询待更换明细带人工序号 \"1\"", (await lastRequest("GetChangeKeyComponentInfo")).materialSeq === "1" &&
+    check("更换电机必须弹位置选择（人工已选也要弹）", await page.locator(".template-motor-picker:not(.hidden)").isVisible());
+    check("更换弹窗期间未进入更换页", !(await page.locator(".key-component-change-view").isVisible()));
+    check("更换时两个位置都可选", await page.evaluate(() => Array.from(document.querySelectorAll(".motor-option")).every((option) => !option.classList.contains("disabled"))));
+    await page.click(".motor-option >> nth=0");
+    await waitIdle();
+    check("选定位置后进入更换页", await page.locator(".key-component-change-view").isVisible());
+    check("查询待更换明细带所选序号 \"1\"", (await lastRequest("GetChangeKeyComponentInfo")).materialSeq === "1" &&
       (await requestCount("GetChangeKeyComponentInfo")) === keyComponentRequestBeforeChange + 1);
     check("待更换明细按位置过滤为 1 条", (await page.locator(".change-record-card").count()) === 1);
     await page.click(".btn-change-row >> nth=0");
     await page.waitForTimeout(250);
     await page.click(".confirm-btn-ok");
     await waitIdle();
-    check("更换上报人工序号 materialSeq=\"1\"", await page.evaluate(() => {
+    check("更换上报所选序号 materialSeq=\"1\"", await page.evaluate(() => {
       const saveItems = (window.__keyComponentMockSaved || []).filter((item) => item.taskType === "Save");
       const lastSave = saveItems[saveItems.length - 1];
       return lastSave.reported.materialSeq === "1" && lastSave.reported.materialSerialNo === "SN-M096-F9";
     }));
 
-    // 未选序号：无前后位置物料满量更换 → 入参为空且不过滤
+    // 更换 + 非电机件：不弹窗，入参为空且不按位置过滤
     await page.click(".btn-sequence-front");
     check("取消人工选择后为空", await page.evaluate(() => KeyComponentChange.state.manualMaterialSeq === ""));
     await scanMaterial("MAT-AXLE-096|供应商A|SN-A096-2:1");
-    check("未选序号时入参为 \"\" 且不按位置过滤", (await lastRequest("GetChangeKeyComponentInfo")).materialSeq === "" &&
+    check("非电机件更换不弹窗且入参为 \"\"", !(await page.locator(".template-motor-picker:not(.hidden)").isVisible()) &&
+      (await page.locator(".key-component-change-view").isVisible()) &&
+      (await lastRequest("GetChangeKeyComponentInfo")).materialSeq === "" &&
       (await page.locator(".change-record-card").count()) === 2);
     await page.click(".btn-back-change");
     await waitIdle();

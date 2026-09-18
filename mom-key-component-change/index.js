@@ -10,6 +10,9 @@ function Portal_OnDocumentKeyDown() {}
 var KeyComponentChange = {
   API_TIMEOUT: 10000,
 
+  // 只有该类型的关重件有前后位置（序号 "1"/"2"），前后位置弹窗也只对它发生
+  MOTOR_MATERIAL_TYPE: "永磁体同步电机",
+
   // 按钮开关：visible 是否显示（false 隐藏），permitted 是否有权限（false 置灰禁用）
   BUTTON_SWITCH: {
     searchOrder: { visible: true, permitted: true },
@@ -139,6 +142,13 @@ var KeyComponentChange = {
   isPositionSequence: function (materialSequence) {
     var sequenceText = KeyComponentChange.normalizeMaterialSequence(materialSequence);
     return sequenceText === "1" || sequenceText === "2";
+  },
+
+  /** 永磁体同步电机：只有它需要前后位置，位置弹窗也只对它发生 */
+  isMotorComponent: function (matchedComponents) {
+    return matchedComponents.some(function (component) {
+      return component.materialType === KeyComponentChange.MOTOR_MATERIAL_TYPE;
+    });
   },
 
   /** 人工选的序号优先：该物料有前后位置且操作员已选时返回所选值，否则返回 null（走自动分配/弹窗） */
@@ -538,33 +548,43 @@ var KeyComponentChange = {
   },
 
   /**
-   * 关重件序号判定：序号为字符串（"1" 前电机 / "2" 后电机）。单条配置直接取配置序号；
-   * 永磁体同步电机两条配置且序号恰为 1、2 且未满量时自动分配尚未采集的那个；
-   * 序号不明确或已满量（更换）时弹窗人工选择前/后电机。
+   * 关重件序号判定（"1" 前电机 / "2" 后电机）：
+   * - 弹窗只对永磁体同步电机发生：采集时序号配置不明确（或前后位置都已采集）才弹，更换时必须弹；
+   * - 其他关重件一律不弹窗：直接取配置序号（单条取该条，多条取首条）；
+   * - 采集且配置明确（两条恰好 "1"+"2"）时自动分配未采集位置，此时人工选的序号优先。
    */
   resolveMaterialSequence: function (matchedComponents, allowCollectedSequence, chosenCallback) {
-    if (matchedComponents.length === 1) {
-      chosenCallback(matchedComponents[0].materialSeq);
-      return;
-    }
     var materialIds = matchedComponents.map(function (component) { return component.materialID; });
     var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
+    var manualMaterialSequence = KeyComponentChange.getManualMaterialSequence(matchedComponents);
+    var isMotor = KeyComponentChange.isMotorComponent(matchedComponents);
+    if (isMotor && allowCollectedSequence) {
+      // 更换：永磁体同步电机必须弹窗，由操作员现场指定被替换的位置
+      KeyComponentChange.showMotorPicker(collectedSequenceList, true, chosenCallback);
+      return;
+    }
+    if (matchedComponents.length <= 1) {
+      chosenCallback(matchedComponents.length ? matchedComponents[0].materialSeq : null);
+      return;
+    }
     var configuredSequenceList = matchedComponents.map(function (component) { return String(component.materialSeq); });
     var isClearMotorPair = matchedComponents.length === 2 &&
       configuredSequenceList.indexOf("1") !== -1 && configuredSequenceList.indexOf("2") !== -1;
-    if (isClearMotorPair && !allowCollectedSequence) {
-      var freeSequence = KeyComponentChange.getMotorSequenceList().filter(function (sequence) {
-        return collectedSequenceList.indexOf(sequence) === -1;
-      })[0];
-      if (freeSequence === undefined) {
-        // 前后位置都已采集但数量未满（如配置数量 3）：自动分配无解，降级为人工选择，避免卡死
-        KeyComponentChange.showMotorPicker(collectedSequenceList, true, chosenCallback);
-        return;
-      }
-      chosenCallback(freeSequence);
+    var freeSequenceList = KeyComponentChange.getMotorSequenceList().filter(function (sequence) {
+      return collectedSequenceList.indexOf(sequence) === -1;
+    });
+    if (isClearMotorPair && freeSequenceList.length) {
+      // 配置明确：自动分配未采集位置（人工已选则听人工的）
+      chosenCallback(manualMaterialSequence !== null ? manualMaterialSequence : freeSequenceList[0]);
       return;
     }
-    KeyComponentChange.showMotorPicker(collectedSequenceList, allowCollectedSequence, chosenCallback);
+    if (!isMotor) {
+      // 其他关重件不弹窗
+      chosenCallback(manualMaterialSequence !== null ? manualMaterialSequence : matchedComponents[0].materialSeq);
+      return;
+    }
+    // 永磁体同步电机：配置不明确，或前后位置都已采集（无空位时允许选已采集位置，避免无路可走）
+    KeyComponentChange.showMotorPicker(collectedSequenceList, freeSequenceList.length === 0, chosenCallback);
   },
 
   /** 电机位置序号（字符串，与接口一致） */
@@ -631,12 +651,7 @@ var KeyComponentChange = {
       }
       KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
     };
-    // 人工选的序号优先（选了就不再自动分配/弹窗）；未选或该物料无前后位置序号时维持原逻辑
-    var manualMaterialSequence = KeyComponentChange.getManualMaterialSequence(matchedComponents);
-    if (manualMaterialSequence !== null) {
-      finishMaterialScan(manualMaterialSequence);
-      return;
-    }
+    // 序号优先级（人工选择 / 自动分配 / 弹窗）统一在 resolveMaterialSequence 内处理
     KeyComponentChange.resolveMaterialSequence(matchedComponents, isMaterialFull, finishMaterialScan);
   },
 
