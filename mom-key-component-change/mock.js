@@ -65,6 +65,12 @@ var mockChangeRecordList = [
   { wipOrderNo: "184000000001", wipOrderType: 1, serialNo: "SN-HOST-0101", materialSerialNo: "SN-OLD-CHG-2", materialNo: "MAT-MOTOR-011", materialDesc: "永磁同步电机", scanTime: "2026-08-22 11:30:00" },
 ];
 
+// 待更换旧件的位置：仅 Mock 内部用于按 materialSeq 过滤（出参不含该字段，与协议一致）
+var mockChangeRecordSequenceMap = {
+  "SN-OLD-CHG-1": "1",
+  "SN-OLD-CHG-2": "2",
+};
+
 function recordMockRequest(taskType, reported) {
   if (!window.__keyComponentMockRequests) window.__keyComponentMockRequests = [];
   window.__keyComponentMockRequests.push({ taskType: taskType, reported: reported });
@@ -209,13 +215,20 @@ if (typeof window.KeyComponentChange_GetRemoveKeyComponentInfo != "function") {
   };
 }
 
-// -- Mock API 6：待更换明细 --
+// -- Mock API 6：待更换明细（materialSeq 为 "1"/"2" 时按位置过滤，"" 不过滤） --
 if (typeof window.KeyComponentChange_GetChangeKeyComponentInfo != "function") {
   window.KeyComponentChange_GetChangeKeyComponentInfo = function (request, callback) {
     var reported = (request && request.reported) || {};
     recordMockRequest("GetChangeKeyComponentInfo", reported);
     setTimeout(function () {
-      callback({ code: 0, msg: "ok", data: mockChangeRecordList });
+      var materialSequence = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
+      var recordList = mockChangeRecordList;
+      if (materialSequence === "1" || materialSequence === "2") {
+        recordList = mockChangeRecordList.filter(function (record) {
+          return mockChangeRecordSequenceMap[record.materialSerialNo] === materialSequence;
+        });
+      }
+      callback({ code: 0, msg: "ok", data: recordList });
     }, MOCK_DELAY);
   };
 }

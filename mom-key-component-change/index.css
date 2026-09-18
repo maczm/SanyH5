@@ -227,6 +227,34 @@ body {
   background: var(--primary-dark);
 }
 
+/* 关重件序号人工选择（前电机/后电机互斥，再点一次取消） */
+.mom-key-component-change .sequence-option-list {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.mom-key-component-change .sequence-option {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-btn-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mom-key-component-change .sequence-option.selected {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.mom-key-component-change .sequence-option:active {
+  background: var(--primary-bg);
+  color: var(--primary-dark);
+}
+
 /* ==================== 关重件卡片列表 ==================== */
 .mom-key-component-change .key-component-list,
 .mom-key-component-change .remove-record-list,

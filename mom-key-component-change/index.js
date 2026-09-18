@@ -16,6 +16,8 @@ var KeyComponentChange = {
     scanOrder: { visible: true, permitted: true },
     searchMaterial: { visible: true, permitted: true },
     scanMaterial: { visible: true, permitted: true },
+    frontMotorSequence: { visible: true, permitted: true },
+    rearMotorSequence: { visible: true, permitted: true },
     unbind: { visible: true, permitted: true },
     complete: { visible: true, permitted: true },
     deleteSerial: { visible: true, permitted: true },
@@ -29,6 +31,8 @@ var KeyComponentChange = {
     scanOrder: ".btn-scan-order",
     searchMaterial: ".btn-search-material",
     scanMaterial: ".btn-scan-material",
+    frontMotorSequence: ".btn-sequence-front",
+    rearMotorSequence: ".btn-sequence-rear",
     unbind: ".btn-unbind",
     complete: ".btn-complete",
     deleteSerial: ".btn-delete-serial",
@@ -44,6 +48,7 @@ var KeyComponentChange = {
     removeQty: 0,
     needRemoveQty: 0,
     inputSource: { inputType: "手输", inputCode: 13 },
+    manualMaterialSeq: "",
     pendingScan: null,
     changedOldGenealogyId: null,
     changedOldSerialNo: null,
@@ -123,6 +128,48 @@ var KeyComponentChange = {
     if (String(materialSequence) === "1") return "前电机";
     if (String(materialSequence) === "2") return "后电机";
     return "";
+  },
+
+  /** 序号统一为字符串：null/undefined → ""（协议取值只有 "1"/"2"/""） */
+  normalizeMaterialSequence: function (materialSequence) {
+    return materialSequence === null || materialSequence === undefined ? "" : String(materialSequence);
+  },
+
+  /** 前后位置序号：只有 "1"/"2" 表示前后电机位置，其它值（如 "3"）只是描述 */
+  isPositionSequence: function (materialSequence) {
+    var sequenceText = KeyComponentChange.normalizeMaterialSequence(materialSequence);
+    return sequenceText === "1" || sequenceText === "2";
+  },
+
+  /** 人工选的序号优先：该物料有前后位置且操作员已选时返回所选值，否则返回 null（走自动分配/弹窗） */
+  getManualMaterialSequence: function (matchedComponents) {
+    var manualMaterialSeq = KeyComponentChange.state.manualMaterialSeq;
+    if (!manualMaterialSeq) return null;
+    var hasPositionSequence = matchedComponents.some(function (component) {
+      return KeyComponentChange.isPositionSequence(component.materialSeq);
+    });
+    return hasPositionSequence ? manualMaterialSeq : null;
+  },
+
+  /** 序号选择行仅在当前订单存在前后位置关重件时显示 */
+  updateSequenceOptionRow: function () {
+    var state = KeyComponentChange.state;
+    var hasPositionSequence = !!state.orderInfo && state.keyComponentList.some(function (component) {
+      return KeyComponentChange.isPositionSequence(component.materialSeq);
+    });
+    $(".sequence-option-row").toggleClass("hidden", !hasPositionSequence);
+  },
+
+  /** 序号选择：互斥选中，再次点击已选项＝取消（回到空） */
+  selectMaterialSequence: function (materialSequence, isSelected) {
+    $(".sequence-option").removeClass("selected");
+    if (isSelected) {
+      KeyComponentChange.state.manualMaterialSeq = "";
+      return;
+    }
+    $(".btn-sequence-front").toggleClass("selected", materialSequence === "1");
+    $(".btn-sequence-rear").toggleClass("selected", materialSequence === "2");
+    KeyComponentChange.state.manualMaterialSeq = materialSequence;
   },
 
   // ============== 消息提示 ==============
@@ -431,6 +478,7 @@ var KeyComponentChange = {
     });
 
     KeyComponentChange.applyButtonSwitch();
+    KeyComponentChange.updateSequenceOptionRow();
   },
 
   // ============== 视图1：物料二维码采集 ==============
@@ -576,13 +624,20 @@ var KeyComponentChange = {
     }
     var quantityState = KeyComponentChange.getMaterialQuantityState(matchedComponents);
     var isMaterialFull = quantityState.collectedQuantity >= quantityState.requiredQuantity;
-    KeyComponentChange.resolveMaterialSequence(matchedComponents, isMaterialFull, function (materialSequence) {
+    var finishMaterialScan = function (materialSequence) {
       if (isMaterialFull) {
         KeyComponentChange.startMaterialChange(parsedQrCode, materialSequence);
         return;
       }
       KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
-    });
+    };
+    // 人工选的序号优先（选了就不再自动分配/弹窗）；未选或该物料无前后位置序号时维持原逻辑
+    var manualMaterialSequence = KeyComponentChange.getManualMaterialSequence(matchedComponents);
+    if (manualMaterialSequence !== null) {
+      finishMaterialScan(manualMaterialSequence);
+      return;
+    }
+    KeyComponentChange.resolveMaterialSequence(matchedComponents, isMaterialFull, finishMaterialScan);
   },
 
   /** 按关重件序号取配置条目：同物料编码多条配置时，materialID/uomCode 必须与所选序号对应 */
@@ -599,12 +654,11 @@ var KeyComponentChange = {
     var inputSource = KeyComponentChange.state.inputSource;
     var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
     var component = KeyComponentChange.findComponentBySequence(matchedComponents, materialSequence) || matchedComponents[0] || {};
-    var isSequenceEmpty = materialSequence === null || materialSequence === undefined || materialSequence === "";
     return {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
       materialDesc: component.materialDesc || "",
-      materialSeq: isSequenceEmpty ? null : String(materialSequence),
+      materialSeq: KeyComponentChange.normalizeMaterialSequence(materialSequence),
       materialSerialNo: parsedQrCode.materialSerialNo,
       materialQty: parsedQrCode.materialQty,
       uomCode: component.uomCode || "",
@@ -735,6 +789,7 @@ var KeyComponentChange = {
     state.changedOldGenealogyId = null;
     state.changedOldSerialNo = null;
     state.isSubmitting = false;
+    state.manualMaterialSeq = "";
     state.orderRequestSequence++;
     state.keyComponentRequestSequence++;
     $(".order-no-tag").text("");
@@ -748,8 +803,10 @@ var KeyComponentChange = {
     $(".collect-quantity-tag").text("");
     $(".remove-quantity-tag").text("");
     $(".remove-quantity-row").addClass("hidden");
+    $(".sequence-option").removeClass("selected");
     KeyComponentChange.switchView("key-component-check-view");
     KeyComponentChange.applyButtonSwitch();
+    KeyComponentChange.updateSequenceOptionRow();
     setTimeout(function () {
       $(".input-order-key").focus();
     }, 0);
@@ -854,6 +911,7 @@ var KeyComponentChange = {
         wipOrderNo: orderInfo.wipOrderNo,
         wipOrderType: orderInfo.wipOrderType,
         materialNo: state.pendingScan.materialNo,
+        materialSeq: KeyComponentChange.normalizeMaterialSequence(state.pendingScan.materialSeq),
       })],
       function (res) {
         KeyComponentChange.hideLoading();
@@ -1033,6 +1091,11 @@ var KeyComponentChange = {
         KeyComponentChange.setInputSource("扫码", 1);
         KeyComponentChange.handleMaterialCheck();
       });
+    });
+    $(".key-component-check-view").on("click", ".sequence-option", function () {
+      var $option = $(this);
+      var materialSequence = $option.hasClass("btn-sequence-front") ? "1" : "2";
+      KeyComponentChange.selectMaterialSequence(materialSequence, $option.hasClass("selected"));
     });
     $(".key-component-check-view").on("click", ".btn-delete-serial", function () {
       KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial-no"));
