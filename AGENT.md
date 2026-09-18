@@ -43,7 +43,7 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 小 | 文案/样式微调、注释 | eslint 该文件 + 冒烟（0 JS 错误） |
 | 中 | 单页逻辑/结构改动 | 该子项目回归脚本全绿 + eslint 0/0 |
 | 大 | 重构/新功能/多页改动 | 波及的**全部子项目**回归 + eslint 0/0 |
-| 横切 | 公共文件（eslint.config/工具/跨页同步组件） | **所有被波及子项目**全验证 |
+| 横切 | 公共文件（eslint.config/工具/跨页同步组件） | 仅**受该文件波及**的子项目（见 §4.3 第 2 行，不跑未波及的页面） |
 
 > 子项目互不影响：改动只在单页内时只验证该页，不跑其他页回归（选定口径见 §4.3）；结构变更（骨架/模板/class 变化）**必须同步更新对应回归脚本**再重跑。改动的完成标准见 §10。
 
@@ -57,9 +57,9 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 6. **提交**：一次提交一件事，格式见 §5
 7. **失败回滚**：验证不通过立即修复；无法快速修复则 `git reset`/`checkout` 回滚到基线，不带着半成品继续
 
-### 4.3 回归范围按改动圈定（**禁止默认跑全量**）
+### 4.3 回归范围按改动圈定（**逐子项目验证；禁止全量体检**）
 
-**每次改动先用 git 查清动了哪些子项目，只跑这些子项目的回归脚本**；全量回归只在发布/整体体检或横切改动时才跑（§14.4）。
+**每次改动先用 git 查清动了哪些子项目，只跑这些子项目的回归脚本**；本仓库**不存在「全量体检」**——不跑 `tests/run-all.regress.cjs`，也不做全页面巡检；部署同样是**一个子项目一个子项目地做**（§14.4）。
 
 ```bash
 # 改了哪些文件 → 映射到子项目目录名（跑之前先看这一行输出）
@@ -74,7 +74,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 | 只有 `AGENT.md` / `docs/` / `.prettier*` / `.gitignore` | **不跑回归**（可做 §14.3 环境自检） | 本次文档去冗余 |
 
 - 判定依据是**实际改动的文件**，不是"提交信息"或"感觉可能影响"；拿不准就先跑 `git diff --stat`
-- 上一条命令输出为空（只有文档/配置改动）即无需回归；不要因为"提交前"就把范围升级为全量
+- 上一条命令输出为空（只有文档/配置改动）即无需回归；不要因为「提交前」或「要部署」就把范围升级为全部页面
 - 脚本与子项目的对应关系以 §11 表格为准；新增页面必须同时登记脚本（§9 第 7 条）
 
 ## 5. 提交规范
@@ -86,8 +86,9 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 ### 5.1 发布 Tag 规范
 
 - 格式：**`<子项目名>-v<主>.<次>.<补丁>`**（如 `mom-packing-v0.1.0`），带 `-a` 附注说明；子项目名 = 页面目录名，版本号 SemVer 递增
-- 前置：该子项目验证全绿（§4.1）；时机：可交付/可部署/里程碑节点（日常提交不打 tag）
-- 全量体检（§14.4）用于发布前整体确认，不绑定 tag 流程；日常提交按 §4.3 只跑受影响子项目
+- 前置：**该标签对应子项目**验证全绿（eslint 0/0 + 该页回归 OK，§4.1/§4.3）；不要求其他子项目，不跑全量
+- 部署与 tag 都按子项目独立进行：一次只处理一个页面目录（命令见 §14.4）
+- 时机：可交付/可部署/里程碑节点（日常提交不打 tag）
 - 现有：photo-upload v0.1.0~0.3.0 / mom-cert v0.1.0 / mom-packing v0.1.0 / check-result v0.1.0
 
 ## 6. 文档地图
@@ -217,7 +218,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 ## 11. 页面回归必测清单与运行口径（tests/ 脚本）
 
-运行范围先按 §4.3 用 git 圈定：**只跑改动涉及子项目的脚本**，不要默认跑全量；全量命令见 §14.4。
+运行范围先按 §4.3 用 git 圈定：**只跑改动涉及子项目的脚本**；不要跑 `tests/run-all.regress.cjs`（本仓库不允许全量体检，见 §4.3、§14.4）。
 
 | 子项目 | 脚本 | 覆盖点 |
 |---|---|---|
@@ -234,10 +235,10 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 |---|---|---|
 | 迭代中（改完一个点） | `eslint <改的文件>` + 该子项目脚本 | lint 2s；单页脚本 5~85s（key-component-change 最慢） |
 | 提交前 | 同左，**不因提交动作升级为全量** | 同上 |
-| 全量（仅发布/整体体检/横切改动） | 「全量体检」三步（§14.4） | ~90s（并行） |
+| 部署前（单个子项目） | 该页 eslint + 该页脚本 + 该页 tidy，命令见 §14.4 | lint 2s + 脚本 5~85s |
 | 只为看通过数 | 跑一次 `tee` 到文件再统计，**不要为了 `grep -c ✅` 重跑整套** | — |
 
-其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；6 个回归脚本走并行执行器；eslint/tidy 合并成一条命令只跑一次；单页回归可用 `window.__mockDelayMilliseconds` 调低 Mock 延迟（见各页 `mock.js`）。
+其他提速手段：断言等待用**状态等待**而非固定 sleep（样板：脚本里的 `waitIdle()` 等 loading 遮罩消失）；长命令丢后台任务（`run_in_background`），别在一条命令里重复跑同一套脚本；eslint + tidy 合并成一条命令只跑一次；单页回归可用 `window.__mockDelayMilliseconds` 调低 Mock 延迟（见各页 `mock.js`）。
 
 ---
 
@@ -349,7 +350,7 @@ callback({ code: number, msg: string, data?: any })
 | 本地预览 | nginx（已运行，端口 8080，root=projects） | `http://localhost:8080/SanyH5/<页面目录>/`（旧路径 `/wsl/projects/...` 已 301 兼容） |
 | JS 静态检查 | ESLint 10.9.1 | `eslint <文件>`；配置：项目根 `eslint.config.mjs`；标准：**0 error 0 warning** |
 | 代码格式化 | Prettier 3.9.6 | `prettier --check <文件>` / `--write`；配置：`.prettierrc.json`；忽略：`.prettierignore`（含 `*.html`、`*.md`——**markdown 禁止 `--write`**：会重排表格、改写强调标记、折行内联 JS，破坏本文档手工排版） |
-| HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids yes <html文件>` |
+| HTML 结构体检 | tidy 5.8.0 | `tidy -q -e --show-warnings no --duplicate-ids <html文件>`；**判断依据是 stderr 为空**（干净文件也可能返回退出码 1，**不要用退出码判断**）；`--duplicate-ids` 是开关，**不能再跟 `yes`**（会报 `"yes" is not a file`） |
 | 页面回归 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<子项目>.regress.cjs`（脚本清单见 §11） |
 | 冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node -e '<内联脚本>'`（临时验证用） |
 | 接口联调 | curl + jq 1.8.1 | `curl <url> \| jq` |
@@ -365,30 +366,30 @@ eslint --version && playwright --version
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/SanyH5/mom-packing/index.html
 ```
 
-### 14.4 全量体检（只用于发布/整体确认/横切改动；日常迭代按 §4.3 只跑受影响子项目）
+### 14.4 部署与验证：一次只做一个子项目（**禁止全量体检**）
 
-全绿即健康版本；不绑定单页 tag 流程（§5.1）；ESLint 标准见 §4.1。**日常提交不要跑本节**——先用 §4.3 的 git 命令圈定范围，只跑对应脚本。
+每个 `mom-*` 子项目独立验证、独立 tag、独立部署（§5.1），因此**逐个子项目做，不合并、不巡检全仓**；`tests/run-all.regress.cjs` 不使用（§4.3）。
+
+**单子项目部署前检查单**（以 `mom-packing` 为例，替换目录名即可）：
 
 ```bash
 cd /home/wangzm/projects/SanyH5
 
-# 1. ESLint 全量（6 页 JS + mock.js）
-eslint mom-cert/index.js mom-packing/Index.js \
-  mom-nameplate-photo-upload/index.js mom-nameplate-check-result/index.js \
-  mom-assembly-material-check/index.js mom-key-component-change/index.js \
-  mom-packing/mock.js mom-nameplate-photo-upload/mock.js mom-assembly-material-check/mock.js \
-  mom-key-component-change/mock.js
+# 1. 只检查本页 JS + mock.js（ESLint 标准 0 error 0 warning，见 §4.1）
+eslint mom-packing/Index.js mom-packing/mock.js
 
-# 2. tidy 全量（6 个 HTML）
-for f in mom-cert/index.html mom-packing/index.html \
-         mom-nameplate-photo-upload/index.html mom-nameplate-check-result/index.html \
-         mom-assembly-material-check/index.html mom-key-component-change/index.html; do
-  tidy -q -e --show-warnings no "$f"
-done
+# 2. 只检查本页 HTML 结构（勿批量改 HTML，见 §2 第 4 条）
+tidy -q -e --show-warnings no --duplicate-ids yes mom-packing/index.html
 
-# 3. 回归全量（6 个页面脚本，并行执行器，实测约 85~90s，瓶颈为 key-component-change）
-NODE_PATH=$(npm root -g) node tests/run-all.regress.cjs        # 可选并发数：… .cjs 4
+# 3. 只跑本页回归脚本（约 5~85s，脚本对应关系见 §11 表格）
+NODE_PATH=$(npm root -g) node tests/packing.regress.cjs
 ```
+
+三项全绿 → 该子项目打 tag（§5.1；格式 `mom-packing-vx.y.z` 或既有 `photo-upload-vx.y.z`）→ 部署该页。
+
+- 部署与验证的粒度都等于**一个页面目录**；其他子项目不需要跟着跑、跟着发
+- 一次改动若同时落在多个子项目，就按 §4.3 圈出的范围**逐个**跑各自脚本，仍不合并成全量
+- 权限相关（工作区外写、全局安装等）见 §3，不要绕过
 
 ### 14.5 环境坑（调用工具时注意）
 
@@ -400,3 +401,5 @@ NODE_PATH=$(npm root -g) node tests/run-all.regress.cjs        # 可选并发数
 6. Playwright 浏览器下载必须带镜像：`PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright`
 7. node 脚本 require 全局包需 `NODE_PATH=$(npm root -g)`
 8. **新建文件权限为 600**：write 工具创建的文件默认 `-rw-------`，nginx（www-data）读不了会 403；新建被 nginx 服务的文件后需 `chmod 644 <文件>`
+9. **tidy 退出码不可信**：无错误时也返回 1；判断依据是 stderr 是否为空（见 §14.2）；`--duplicate-ids` 后面不能跟 `yes`
+10. **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`，原因见 §14.2）
