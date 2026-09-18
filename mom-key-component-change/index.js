@@ -46,6 +46,10 @@ var KeyComponentChange = {
     inputSource: { inputType: "手输", inputCode: 13 },
     pendingScan: null,
     changedOldGenealogyId: null,
+    changedOldSerialNo: null,
+    isSubmitting: false,
+    orderRequestSequence: 0,
+    keyComponentRequestSequence: 0,
   },
 
   _loadingCount: 0,
@@ -63,7 +67,12 @@ var KeyComponentChange = {
 
   // ============== API 调用包装 ==============
   // 统一加超时兜底，防止 Portal 函数永不回调时页面卡死。
+  // 函数缺失（Portal 未注入或改名）时同步回错，避免异常打断调用方的 hideLoading 导致遮罩永久卡死。
   apiCall: function (fn, args, callback) {
+    if (typeof fn !== "function") {
+      callback({ code: -1, msg: "接口未就绪，请稍后重试" });
+      return;
+    }
     var done = false;
     var timer = setTimeout(function () {
       if (done) return;
@@ -164,7 +173,7 @@ var KeyComponentChange = {
     try {
       if (window.parent && typeof window.parent.OpenCamera === "function") {
         window.parent.OpenCamera(function (res) {
-          var value = res.data || res.value || (typeof res === "string" ? res : "");
+          var value = typeof res === "string" ? res : (res && (res.data || res.value)) || "";
           if (value) {
             $(inputSelector).val(value);
             callback();
@@ -252,18 +261,24 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", "请输入订单号或VIN", "error");
       return;
     }
+    KeyComponentChange.state.orderRequestSequence++;
+    var orderRequestSequence = KeyComponentChange.state.orderRequestSequence;
     KeyComponentChange.showLoading("查询订单中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetWipOrderNoInfo,
       [KeyComponentChange.buildTaskRequest("GetWipOrderNoInfo", KeyComponentChange.getOrderSearchPayload(searchKey))],
       function (res) {
         KeyComponentChange.hideLoading();
+        // 过期响应丢弃：连查两单时慢的旧响应不得覆盖新订单
+        if (orderRequestSequence !== KeyComponentChange.state.orderRequestSequence) return;
         if (res.code !== 0) {
           KeyComponentChange.showToast("查询失败", res.msg || "查询订单信息失败", "error");
           return;
         }
         var orderInfo = res.data || {};
         KeyComponentChange.state.orderInfo = orderInfo;
+        // 换单即清空上一单的关重件数据，避免 KC2 失败或仍在途时旧单数据残留在界面上（跨订单误提交）
+        KeyComponentChange.clearKeyComponentState();
         $(".order-no-tag").text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType));
         $(".input-material-qr").val("");
         KeyComponentChange.loadKeyComponentInfo(function () {
@@ -273,10 +288,23 @@ var KeyComponentChange = {
     );
   },
 
+  /** 清空当前订单的关重件数据并重绘列表（换单、关重件加载失败时调用） */
+  clearKeyComponentState: function () {
+    var state = KeyComponentChange.state;
+    state.keyComponentList = [];
+    state.serialList = [];
+    state.removeQty = 0;
+    state.needRemoveQty = 0;
+    KeyComponentChange.renderKeyComponentList();
+  },
+
   // ============== 视图1：关重件列表 ==============
   loadKeyComponentInfo: function (finishedCallback) {
-    var orderInfo = KeyComponentChange.state.orderInfo;
+    var state = KeyComponentChange.state;
+    var orderInfo = state.orderInfo;
     if (!orderInfo) return;
+    state.keyComponentRequestSequence++;
+    var keyComponentRequestSequence = state.keyComponentRequestSequence;
     KeyComponentChange.showLoading("加载关重件中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetKeyComponentInfo,
@@ -286,15 +314,18 @@ var KeyComponentChange = {
       })],
       function (res) {
         KeyComponentChange.hideLoading();
+        // 过期响应丢弃：移除旧件后与保存新件后的两次刷新会重叠，慢的旧响应会覆盖新数据
+        if (keyComponentRequestSequence !== state.keyComponentRequestSequence) return;
         if (res.code !== 0) {
+          KeyComponentChange.clearKeyComponentState();
           KeyComponentChange.showToast("加载失败", res.msg || "获取关重件信息失败", "error");
           return;
         }
         var data = res.data || {};
-        KeyComponentChange.state.keyComponentList = data.keyComponentList || [];
-        KeyComponentChange.state.serialList = data.snList || [];
-        KeyComponentChange.state.removeQty = data.removeQty || 0;
-        KeyComponentChange.state.needRemoveQty = data.needRemoveQty || 0;
+        state.keyComponentList = data.keyComponentList || [];
+        state.serialList = data.snList || [];
+        state.removeQty = data.removeQty || 0;
+        state.needRemoveQty = data.needRemoveQty || 0;
         KeyComponentChange.renderKeyComponentList();
         if (typeof finishedCallback === "function") finishedCallback();
       },
@@ -376,8 +407,9 @@ var KeyComponentChange = {
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    $(".collect-quantity-tag").text(state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList));
-    $(".remove-quantity-tag").text(state.removeQty + "/" + state.needRemoveQty);
+    // 未查询订单时不显示 0/0，避免误读为「该订单需采集 0 件」
+    $(".collect-quantity-tag").text(orderInfo ? state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList) : "");
+    $(".remove-quantity-tag").text(orderInfo ? state.removeQty + "/" + state.needRemoveQty : "");
     $(".remove-quantity-row").toggleClass("hidden", !isChangeOrder);
 
     groups.forEach(function (group) {
@@ -412,8 +444,10 @@ var KeyComponentChange = {
     if (serialSegments.length !== 2) return null;
     var materialSerialNo = serialSegments[0].trim();
     var quantityText = serialSegments[1].trim();
-    var materialQty = parseFloat(quantityText);
     if (!materialNo || !partner || !materialSerialNo || !quantityText) return null;
+    // 数量段必须是纯数字（parseFloat 会接受 "2x"/"1e3" 这类脏值，导致数量被静默改写）
+    if (!/^[0-9]+(\.[0-9]+)?$/.test(quantityText)) return null;
+    var materialQty = parseFloat(quantityText);
     if (isNaN(materialQty) || materialQty <= 0) return null;
     return {
       materialNo: materialNo,
@@ -475,7 +509,8 @@ var KeyComponentChange = {
         return collectedSequenceList.indexOf(sequence) === -1;
       })[0];
       if (freeSequence === undefined) {
-        KeyComponentChange.showToast("提示", "前/后电机均已采集", "error");
+        // 前后位置都已采集但数量未满（如配置数量 3）：自动分配无解，降级为人工选择，避免卡死
+        KeyComponentChange.showMotorPicker(collectedSequenceList, true, chosenCallback);
         return;
       }
       chosenCallback(freeSequence);
@@ -512,6 +547,10 @@ var KeyComponentChange = {
 
   handleMaterialCheck: function () {
     var state = KeyComponentChange.state;
+    if (state.isSubmitting) {
+      KeyComponentChange.showToast("提示", "正在提交，请稍候", "error");
+      return;
+    }
     if (!state.orderInfo) {
       KeyComponentChange.showToast("提示", "请先查询订单信息", "error");
       return;
@@ -546,9 +585,20 @@ var KeyComponentChange = {
     });
   },
 
+  /** 按关重件序号取配置条目：同物料编码多条配置时，materialID/uomCode 必须与所选序号对应 */
+  findComponentBySequence: function (matchedComponents, materialSequence) {
+    if (materialSequence === null || materialSequence === undefined || materialSequence === "") return null;
+    var sequenceText = String(materialSequence);
+    var matchedList = matchedComponents.filter(function (component) {
+      return component.materialSeq !== null && component.materialSeq !== undefined && String(component.materialSeq) === sequenceText;
+    });
+    return matchedList.length ? matchedList[0] : null;
+  },
+
   buildPendingScan: function (parsedQrCode, materialSequence) {
     var inputSource = KeyComponentChange.state.inputSource;
-    var component = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo)[0] || {};
+    var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
+    var component = KeyComponentChange.findComponentBySequence(matchedComponents, materialSequence) || matchedComponents[0] || {};
     var isSequenceEmpty = materialSequence === null || materialSequence === undefined || materialSequence === "";
     return {
       materialID: component.materialID,
@@ -571,6 +621,8 @@ var KeyComponentChange = {
 
   /** 该关重件已采集满：本次扫描不再直接入库，直接进入更换页由操作员指定被替换的旧件 */
   startMaterialChange: function (parsedQrCode, materialSequence) {
+    // 已在更换决策中（pendingScan 未清）时忽略重复触发，避免重复进入更换页拉两份清单
+    if (KeyComponentChange.state.pendingScan) return;
     KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(parsedQrCode, materialSequence);
     KeyComponentChange.enterChangeView();
   },
@@ -600,22 +652,27 @@ var KeyComponentChange = {
 
   submitCheckAndSave: function () {
     var state = KeyComponentChange.state;
+    if (state.isSubmitting) return;
+    state.isSubmitting = true;
     var reported = KeyComponentChange.buildCheckReported(state.pendingScan);
     KeyComponentChange.showLoading("提交中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_CheckAndSave,
       [KeyComponentChange.buildTaskRequest("CheckAndSave", reported)],
       function (res) {
+        state.isSubmitting = false;
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
+          state.pendingScan = null;
           KeyComponentChange.showToast("提交失败", res.msg || "保存关重件失败", "error");
           return;
         }
-        // isChange = 1：本次不保存，进入更换页由操作员指定被替换的旧件
+        // isChange = 1：本次不保存，保留 pendingScan 进入更换页由操作员指定被替换的旧件
         if (String((res.data || {}).isChange) === "1") {
           KeyComponentChange.enterChangeView();
           return;
         }
+        state.pendingScan = null;
         KeyComponentChange.showToast("提示", "采集成功", "success");
         KeyComponentChange.loadKeyComponentInfo(function () {
           KeyComponentChange.clearMaterialInput();
@@ -653,6 +710,22 @@ var KeyComponentChange = {
 
   completeCheck: function () {
     var state = KeyComponentChange.state;
+    if (!state.orderInfo) {
+      KeyComponentChange.resetCheckSession();
+      return;
+    }
+    var collectedQuantity = state.serialList.length;
+    var requiredQuantity = KeyComponentChange.sumMaterialQty(state.keyComponentList);
+    var message = collectedQuantity < requiredQuantity
+      ? "当前采集 " + collectedQuantity + "/" + requiredQuantity + "，尚未采集完成，确认结束本次会话？"
+      : "确认完成并清空当前会话？";
+    KeyComponentChange.showConfirmDialog(message, function () {
+      KeyComponentChange.resetCheckSession();
+    });
+  },
+
+  resetCheckSession: function () {
+    var state = KeyComponentChange.state;
     state.orderInfo = null;
     state.keyComponentList = [];
     state.serialList = [];
@@ -660,10 +733,17 @@ var KeyComponentChange = {
     state.needRemoveQty = 0;
     state.pendingScan = null;
     state.changedOldGenealogyId = null;
+    state.changedOldSerialNo = null;
+    state.isSubmitting = false;
+    state.orderRequestSequence++;
+    state.keyComponentRequestSequence++;
     $(".order-no-tag").text("");
     $(".input-order-key").val("");
     $(".input-material-qr").val("");
     $(".key-component-list .key-component-card").remove();
+    $(".remove-record-list .remove-record-card").remove();
+    $(".change-record-list .change-record-card").remove();
+    $(".empty-remove-record, .empty-change-record").addClass("hidden");
     $(".empty-key-component").removeClass("hidden");
     $(".collect-quantity-tag").text("");
     $(".remove-quantity-tag").text("");
@@ -800,17 +880,32 @@ var KeyComponentChange = {
     KeyComponentChange.applyButtonSwitch();
   },
 
+  /** 旧件已移除、新件待保存：标记该行并改为「重试保存」，避免清单看起来像还没动过 */
+  markChangeRecordPendingSave: function (materialSerialNo) {
+    $(".change-record-card").each(function () {
+      var $card = $(this);
+      if (($card.data("record") || {}).materialSerialNo !== materialSerialNo) return;
+      $card.addClass("change-record-card-pending-save");
+      $card.find(".btn-change-row").text("重试保存");
+    });
+  },
+
   changeRecord: function (record) {
     var state = KeyComponentChange.state;
     if (!record || !state.pendingScan) return;
+    // 上一次已移除成功但保存失败：只允许对同一条旧件重试保存；
+    // 改选别的旧件直接保存会把新件挂到上一条旧件的谱系上（被选旧件并未移除）
+    if (state.changedOldGenealogyId) {
+      if (state.changedOldSerialNo === record.materialSerialNo) {
+        KeyComponentChange.saveChangedKeyComponent();
+        return;
+      }
+      KeyComponentChange.showToast("提示", "旧件 " + (state.changedOldSerialNo || "") + " 已移除但新件未保存，请点「重试保存」", "error");
+      return;
+    }
     KeyComponentChange.showConfirmDialog(
       "确认将旧序列号 " + (record.materialSerialNo || "") + " 更换为 " + state.pendingScan.materialSerialNo + " ？",
       function () {
-        // 上一次已移除成功但保存失败：跳过移除，直接用已拿到的 oldGenealogyID 重试保存
-        if (state.changedOldGenealogyId) {
-          KeyComponentChange.saveChangedKeyComponent();
-          return;
-        }
         KeyComponentChange.showLoading("移除旧件中...");
         KeyComponentChange.apiCall(
           window.KeyComponentChange_Remove,
@@ -827,6 +922,8 @@ var KeyComponentChange = {
               return;
             }
             state.changedOldGenealogyId = (res.data || {}).oldGenealogyID;
+            state.changedOldSerialNo = record.materialSerialNo;
+            KeyComponentChange.markChangeRecordPendingSave(record.materialSerialNo);
             // 删除旧件后立即刷新订单数据（数量与卡片），保存新件后再刷新一次
             KeyComponentChange.loadKeyComponentInfo();
             KeyComponentChange.saveChangedKeyComponent();
@@ -838,7 +935,8 @@ var KeyComponentChange = {
 
   saveChangedKeyComponent: function () {
     var state = KeyComponentChange.state;
-    if (!state.pendingScan) return;
+    if (!state.pendingScan || state.isSubmitting) return;
+    state.isSubmitting = true;
     var reported = KeyComponentChange.buildCheckReported(state.pendingScan);
     reported.oldGenealogyID = state.changedOldGenealogyId;
     KeyComponentChange.showLoading("保存新件中...");
@@ -846,6 +944,7 @@ var KeyComponentChange = {
       window.KeyComponentChange_Save,
       [KeyComponentChange.buildTaskRequest("Save", reported)],
       function (res) {
+        state.isSubmitting = false;
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
           KeyComponentChange.showToast("保存失败", "移除成功，保存失败，请重试", "error");
@@ -853,6 +952,7 @@ var KeyComponentChange = {
         }
         state.pendingScan = null;
         state.changedOldGenealogyId = null;
+        state.changedOldSerialNo = null;
         KeyComponentChange.showToast("提示", "更换成功", "success");
         KeyComponentChange.switchView("key-component-check-view");
         KeyComponentChange.loadKeyComponentInfo(function () {
@@ -864,8 +964,25 @@ var KeyComponentChange = {
 
   backToCheckView: function () {
     var state = KeyComponentChange.state;
+    // 旧件已移除而新件未保存：返回会丢掉本次更换结果（旧件谱系已删），必须二次确认
+    if (state.changedOldGenealogyId) {
+      KeyComponentChange.showConfirmDialog(
+        "旧件 " + (state.changedOldSerialNo || "") + " 已移除，新件尚未保存，返回将丢失本次更换，是否继续？",
+        function () {
+          KeyComponentChange.leaveChangeState();
+        }
+      );
+      return;
+    }
+    KeyComponentChange.leaveChangeState();
+  },
+
+  leaveChangeState: function () {
+    var state = KeyComponentChange.state;
     state.pendingScan = null;
     state.changedOldGenealogyId = null;
+    state.changedOldSerialNo = null;
+    state.isSubmitting = false;
     KeyComponentChange.switchView("key-component-check-view");
     KeyComponentChange.loadKeyComponentInfo(function () {
       KeyComponentChange.clearMaterialInput();

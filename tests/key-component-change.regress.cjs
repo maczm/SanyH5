@@ -4,7 +4,9 @@
 // 等待策略：动作后等 loading 遮罩消失（waitIdle）而不是固定 sleep，单次全量约 45s
 // 覆盖：加载/按钮开关(显示+权限)/订单查询(回车+搜索、订单号与VIN判定)/数量标签/卡片合并与排序/
 //       二维码校验/前电机后电机(自动分配+弹窗+取消)/CheckAndSave 两分支/移除页/更换页(Remove+Save)/
-//       行删除/解绑按钮业务条件/小屏布局/容器缺失
+//       行删除/解绑按钮业务条件/小屏布局/容器缺失/
+//       修复项：提交防重/换单清态(含KC2失败)/更换串位拦截与重试保存/半完成返回确认/
+//       位置用尽降级人工选择/完成二次确认与未完成提示/同码多配置 materialID 归属/慢KC2响应丢弃/接口缺失守卫
 const { chromium } = require("playwright");
 
 const BASE = "http://127.0.0.1:8080/SanyH5/mom-key-component-change/index.html";
@@ -68,6 +70,7 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   check("页面加载", (await page.title()) === "关重件更换");
   check("默认视图1", (await page.locator(".key-component-check-view").isVisible()) && !(await page.locator(".key-component-remove-view").isVisible()) && !(await page.locator(".key-component-change-view").isVisible()));
   check("列表空态", await page.locator(".empty-key-component").isVisible());
+  check("未查订单不显示 0/0 数量标签", (await page.locator(".collect-quantity-tag").textContent()) === "" && (await page.locator(".remove-quantity-tag").textContent()) === "");
   check("默认聚焦订单输入", await page.evaluate(() => document.activeElement.classList.contains("input-order-key")));
   check("二维码输入默认可编辑(扫码枪可键入)", (await page.evaluate(() => document.querySelector(".input-material-qr").readOnly)) === false);
 
@@ -284,10 +287,12 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   const removeCountAfterFailure = await requestCount("Remove");
   check("Save 失败提示", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()) === "移除成功，保存失败，请重试");
   check("Save 失败停留更换页", await page.locator(".key-component-change-view").isVisible());
+  check("Save 失败后该行标记待保存可重试", await page.evaluate(() => {
+    const card = document.querySelector(".change-record-card");
+    return card.classList.contains("change-record-card-pending-save") && card.querySelector(".btn-change-row").textContent === "重试保存";
+  }));
   await closeToast();
-  await page.click(".btn-change-row >> nth=0");
-  await page.waitForTimeout(300);
-  await page.click(".confirm-btn-ok");
+  await page.click(".btn-change-row >> nth=0");   // 同一行即重试保存（不再弹二次确认）
   await waitIdle();
   check("重试不重复移除", (await requestCount("Remove")) === removeCountAfterFailure);
   check("重试保存成功回视图1", await page.locator(".key-component-check-view").isVisible());
@@ -437,11 +442,20 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
     KeyComponentChange.applyButtonSwitch();
   });
 
-  // ============ 14. 「完成」重置回初始态 ============
+  // ============ 14. 「完成」重置回初始态（二次确认 + 取消保留会话） ============
   await page.click(".btn-complete");
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(300);
+  check("完成二次确认", await page.locator(".template-confirm:not(.hidden)").isVisible());
+  await page.click(".confirm-btn-cancel");
+  await page.waitForTimeout(200);
+  check("取消完成保留会话", (await page.locator(".key-component-card").count()) > 0 && (await page.locator(".order-no-tag").textContent()) !== "");
+  await page.click(".btn-complete");
+  await page.waitForTimeout(300);
+  await page.click(".confirm-btn-ok");
+  await page.waitForTimeout(300);
   check("完成清空订单与列表", (await page.locator(".order-no-tag").textContent()) === "" && (await page.locator(".key-component-card").count()) === 0 && (await page.locator(".empty-key-component").isVisible()));
   check("完成隐藏需解绑数量行", !(await page.locator(".remove-quantity-row").isVisible()));
+  check("完成清空数量标签", (await page.locator(".collect-quantity-tag").textContent()) === "" && (await page.locator(".remove-quantity-tag").textContent()) === "");
   check("完成聚焦订单输入", await page.evaluate(() => document.activeElement.classList.contains("input-order-key")));
 
   // ============ 15. 小屏布局（320×480 / 360×640，三视图各断言） ============
@@ -507,7 +521,229 @@ const PRODUCTION_VIN = "LSVU2A0N260800001";
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
 
-  // ============ 16. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
+  // ============ 16. 修复项回归：防重提交 / 换单清态 / 更换串位 / 位置降级 / 请求竞态 / 接口守卫 ============
+
+  // -- 16.1 同一二维码连发两次回车只提交一次 --
+  {
+    await page.evaluate(() => {
+      window.mockOrderDataMap["184000000097"] = {
+        wipOrderNo: "184000000097", wipOrderType: 1, productID: 9700, productNo: "MAT-HOST-097", productDesc: "防重测试底盘",
+        serialNo: "SN-HOST-0097", removeQty: 0, needRemoveQty: 0,
+        keyComponentList: [
+          { materialID: 9701, materialNo: "MAT-DUP-097", materialDesc: "防重关重件", materialQty: 2, uomCode: "EA", materialType: "关重件", materialSeq: null },
+        ],
+        snList: [],
+      };
+    });
+    await queryOrder("184000000097");
+    const checkAndSaveBeforeDuplicate = await requestCount("CheckAndSave");
+    await page.evaluate(() => {
+      const input = document.querySelector(".input-material-qr");
+      input.value = "MAT-DUP-097|供应商A|SN-DUP-1:1";
+      const fireEnter = () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 13, bubbles: true }));
+      fireEnter();
+      fireEnter();
+    });
+    await waitIdle();
+    await page.waitForTimeout(300);
+    check("连发两次回车只提交一次 KC3", (await requestCount("CheckAndSave")) === checkAndSaveBeforeDuplicate + 1, `+${(await requestCount("CheckAndSave")) - checkAndSaveBeforeDuplicate}`);
+    const duplicateRowCount = await page.evaluate(() => Array.from(document.querySelectorAll(".serial-row .serial-no")).filter((node) => node.textContent === "SN-DUP-1").length);
+    check("同一序列号只入库一次", duplicateRowCount === 1, `出现 ${duplicateRowCount} 次`);
+    await closeToast();
+  }
+
+  // -- 16.2 换单时 KC2 失败：不得残留上一单的关重件数据 --
+  {
+    await queryOrder(PRODUCTION_ORDER);
+    await page.evaluate(() => {
+      const originalKc2 = window.KeyComponentChange_GetKeyComponentInfo;
+      window.KeyComponentChange_GetKeyComponentInfo = function (request, callback) {
+        window.KeyComponentChange_GetKeyComponentInfo = originalKc2;
+        window.__keyComponentMockRequests.push({ taskType: "GetKeyComponentInfo", reported: request.reported });
+        setTimeout(function () { callback({ code: 1, msg: "模拟加载失败" }); }, 20);
+      };
+    });
+    await queryOrder(CHANGE_ORDER);
+    check("换单 KC2 失败不残留上一单卡片", (await page.locator(".key-component-card").count()) === 0 && (await page.locator(".empty-key-component").isVisible()));
+    check("换单 KC2 失败 state 已清空", await page.evaluate(() => KeyComponentChange.state.keyComponentList.length === 0 && KeyComponentChange.state.serialList.length === 0 && KeyComponentChange.state.orderInfo.wipOrderNo === "184000000013"));
+    await closeToast();
+    const checkAndSaveBeforeCrossOrder = await requestCount("CheckAndSave");
+    await scanMaterial("MAT-BOX-003|供应商A|SN-CROSS-1:1");
+    check("上一单关重件不会被提交到当前订单", (await requestCount("CheckAndSave")) === checkAndSaveBeforeCrossOrder &&
+      (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("不是本订单关重件") !== -1);
+    await closeToast();
+    await queryOrder(PRODUCTION_ORDER);
+  }
+
+  // -- 16.3 Save 失败后改选别的旧件：拦截（不移除、不串位），同行点击为重试保存 --
+  {
+    await page.evaluate(() => {
+      window.__originalSave = window.KeyComponentChange_Save;
+      window.__failSaveOnce = true;
+      window.KeyComponentChange_Save = function (request, callback) {
+        if (window.__failSaveOnce) {
+          window.__failSaveOnce = false;
+          window.__keyComponentMockRequests.push({ taskType: "Save", reported: request.reported });
+          callback({ code: 1, msg: "保存失败" });
+          return;
+        }
+        window.__originalSave(request, callback);
+      };
+    });
+    await scanMaterial("MAT-BOX-003|供应商D|CHG-REGRESS-1:1");
+    check("进入更换页准备制造半完成状态", await page.locator(".key-component-change-view").isVisible());
+    await page.click(".btn-change-row >> nth=0");
+    await page.waitForTimeout(250);
+    await page.click(".confirm-btn-ok");
+    await waitIdle();
+    check("Save 失败后行标记待保存", await page.evaluate(() => {
+      const card = document.querySelector(".change-record-card");
+      return card.classList.contains("change-record-card-pending-save") && card.querySelector(".btn-change-row").textContent === "重试保存";
+    }));
+    await closeToast();
+    const removeCountBeforeSwitch = await requestCount("Remove");
+    const saveCountBeforeSwitch = (await savedList()).filter((item) => item.taskType === "Save").length;
+    await page.click(".btn-change-row >> nth=1");
+    await page.waitForTimeout(400);
+    check("改选别的旧件被拦截（不移除不串位）", (await requestCount("Remove")) === removeCountBeforeSwitch &&
+      (await savedList()).filter((item) => item.taskType === "Save").length === saveCountBeforeSwitch &&
+      (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("已移除但新件未保存") !== -1);
+    await closeToast();
+    await page.click(".btn-change-row >> nth=0");
+    await waitIdle();
+    check("同行点击即重试保存并回视图1", await page.locator(".key-component-check-view").isVisible());
+    await page.evaluate(() => { window.KeyComponentChange_Save = window.__originalSave; });
+  }
+
+  // -- 16.4 旧件已移除、新件未保存时返回：必须二次确认 --
+  {
+    await page.evaluate(() => {
+      window.__originalSaveForBack = window.KeyComponentChange_Save;
+      window.KeyComponentChange_Save = function (request, callback) { callback({ code: 1, msg: "保存失败" }); };
+    });
+    await scanMaterial("MAT-BOX-003|供应商D|CHG-REGRESS-2:1");
+    await page.click(".btn-change-row >> nth=0");
+    await page.waitForTimeout(250);
+    await page.click(".confirm-btn-ok");
+    await waitIdle();
+    await closeToast();
+    await page.click(".btn-back-change");
+    await page.waitForTimeout(300);
+    check("半完成状态返回触发二次确认", await page.locator(".template-confirm:not(.hidden)").isVisible());
+    await page.click(".confirm-btn-cancel");
+    await page.waitForTimeout(200);
+    check("取消返回仍停留更换页", await page.locator(".key-component-change-view").isVisible());
+    await page.click(".btn-back-change");
+    await page.waitForTimeout(300);
+    await page.click(".confirm-btn-ok");
+    await waitIdle();
+    check("确认返回视图1", await page.locator(".key-component-check-view").isVisible());
+    check("返回后清空更换状态", await page.evaluate(() => !KeyComponentChange.state.pendingScan && !KeyComponentChange.state.changedOldGenealogyId));
+    await page.evaluate(() => { window.KeyComponentChange_Save = window.__originalSaveForBack; });
+  }
+
+  // -- 16.5 前后位置已用尽但数量未满：降级人工选择（不再死路）；未完成时完成按钮提示 --
+  {
+    await page.evaluate(() => {
+      window.mockOrderDataMap["184000000099"] = {
+        wipOrderNo: "184000000099", wipOrderType: 1, productID: 9900, productNo: "MAT-HOST-099", productDesc: "测试底盘",
+        serialNo: "SN-HOST-0099", removeQty: 0, needRemoveQty: 0,
+        keyComponentList: [
+          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁同步电机", materialQty: 2, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+          { materialID: 9901, materialNo: "MAT-MOTOR-099", materialDesc: "永磁同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
+        ],
+        snList: [],
+      };
+    });
+    await queryOrder("184000000099");
+    await scanMaterial("MAT-MOTOR-099|供应商X|SN-M099-1:1");
+    await scanMaterial("MAT-MOTOR-099|供应商X|SN-M099-2:1");
+    check("位置用尽前数量未满 2/3", (await cardQuantity("MAT-MOTOR-099")) === "2/3");
+    await page.click(".btn-complete");
+    await page.waitForTimeout(300);
+    check("未采集完成时完成按钮给出提示", (await page.locator(".template-confirm .confirm-content").textContent()).indexOf("尚未采集完成") !== -1);
+    await page.click(".confirm-btn-cancel");
+    await page.waitForTimeout(200);
+    const checkAndSaveBeforeFallback = await requestCount("CheckAndSave");
+    await scanMaterial("MAT-MOTOR-099|供应商X|SN-M099-3:1");
+    check("位置用尽降级人工选择（不再死路）", await page.locator(".template-motor-picker:not(.hidden)").isVisible());
+    check("降级后两个位置均可选", await page.evaluate(() => Array.from(document.querySelectorAll(".motor-option")).every((option) => !option.classList.contains("disabled"))));
+    await page.click(".motor-option >> nth=0");
+    await waitIdle();
+    check("人工选择后正常提交 KC3", (await requestCount("CheckAndSave")) === checkAndSaveBeforeFallback + 1);
+  }
+
+  // -- 16.6 同物料编码多条配置：materialID 必须跟随所选序号 --
+  {
+    await page.evaluate(() => {
+      window.mockOrderDataMap["184000000098"] = {
+        wipOrderNo: "184000000098", wipOrderType: 1, productID: 9800, productNo: "MAT-HOST-098", productDesc: "成对件底盘",
+        serialNo: "SN-HOST-0098", removeQty: 0, needRemoveQty: 0,
+        keyComponentList: [
+          { materialID: 9801, materialNo: "MAT-PAIR-098", materialDesc: "成对关重件", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "1" },
+          { materialID: 9802, materialNo: "MAT-PAIR-098", materialDesc: "成对关重件", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "2" },
+        ],
+        snList: [],
+      };
+    });
+    await queryOrder("184000000098");
+    const savedCountBeforePair = (await savedList()).length;
+    await scanMaterial("MAT-PAIR-098|供应商X|SN-PAIR-1:1");
+    await scanMaterial("MAT-PAIR-098|供应商X|SN-PAIR-2:1");
+    const pairSaveList = (await savedList()).slice(savedCountBeforePair).map((item) => ({ seq: item.reported.materialSeq, materialID: item.reported.materialID }));
+    check("同物料多配置按序号归属 materialID", pairSaveList.length === 2 && pairSaveList[0].seq === "1" && pairSaveList[0].materialID === 9801 && pairSaveList[1].seq === "2" && pairSaveList[1].materialID === 9802, JSON.stringify(pairSaveList));
+  }
+
+  // -- 16.7 更换流程中慢的旧 KC2 响应必须丢弃（否则新件被旧数据覆盖） --
+  {
+    await queryOrder(PRODUCTION_ORDER);
+    const stalePayload = await page.evaluate((orderNo) => new Promise((resolve) => {
+      window.KeyComponentChange_GetKeyComponentInfo({ taskType: "GetKeyComponentInfo", reported: { wipOrderNo: orderNo, wipOrderType: 1 } }, resolve);
+    }), PRODUCTION_ORDER);
+    await page.evaluate(() => {
+      window.__originalKc2ForRace = window.KeyComponentChange_GetKeyComponentInfo;
+      window.__staleKc2Payload = null;
+      window.KeyComponentChange_GetKeyComponentInfo = function (request, callback) {
+        if (window.__staleKc2Payload) {
+          const payload = window.__staleKc2Payload;
+          window.__staleKc2Payload = null;
+          setTimeout(function () { callback(payload); }, 600);
+          return;
+        }
+        window.__originalKc2ForRace(request, callback);
+      };
+    });
+    await scanMaterial("MAT-BOX-003|供应商D|CHG-RACE-1:1");
+    await page.evaluate((payload) => { window.__staleKc2Payload = payload; }, stalePayload);
+    await page.click(".btn-change-row >> nth=0");
+    await page.waitForTimeout(250);
+    await page.click(".confirm-btn-ok");
+    await waitIdle();
+    await page.waitForTimeout(900);
+    const raceSerialList = await page.evaluate(() => Array.from(document.querySelectorAll(".serial-row .serial-no")).map((node) => node.textContent));
+    check("慢的旧 KC2 响应被丢弃（新件不被覆盖）", raceSerialList.indexOf("CHG-RACE-1") !== -1, JSON.stringify(raceSerialList));
+    await page.evaluate(() => {
+      window.KeyComponentChange_GetKeyComponentInfo = window.__originalKc2ForRace;
+      window.__staleKc2Payload = null;
+    });
+  }
+
+  // -- 16.8 Portal 接口缺失：提示且不卡 loading 遮罩 --
+  {
+    await page.evaluate(() => {
+      window.__originalOrderApi = window.KeyComponentChange_GetWipOrderNoInfo;
+      window.KeyComponentChange_GetWipOrderNoInfo = undefined;
+    });
+    await page.fill(".input-order-key", PRODUCTION_ORDER);
+    await page.click(".btn-search-order");
+    await page.waitForTimeout(400);
+    check("Portal 接口缺失时提示且不卡遮罩", (await page.locator(".template-toast:not(.hidden) .toast-content").textContent()).indexOf("接口未就绪") !== -1 &&
+      !(await page.locator(".template-loading:not(.hidden)").isVisible()));
+    await closeToast();
+    await page.evaluate(() => { window.KeyComponentChange_GetWipOrderNoInfo = window.__originalOrderApi; });
+  }
+
+  // ============ 17. 容器缺失不崩溃（Portal 表单环境 HTML 晚注入场景） ============
   await page.evaluate(() => {
     document.querySelector(".mom-key-component-change").remove();
     window.__probe = { payload: null, renderError: null, initError: null };
