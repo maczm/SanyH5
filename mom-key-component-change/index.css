@@ -66,6 +66,8 @@ body {
   color: #fff;
   padding: 12px 16px;
   padding-top: calc(12px + env(safe-area-inset-top));
+  /* 右侧给悬浮的 VIN更换 按钮让位，避免标题栏时间被按钮压住 */
+  padding-right: 116px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -82,6 +84,50 @@ body {
   opacity: 0.75;
   margin-left: auto;
   font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+/* ==================== 悬浮按钮：VIN更换 ==================== */
+/* 固定在页面右上角，不随表头显隐：表头可被 Portal 注入属性隐藏（协议见 docs/关重件更换INF.md） */
+.mom-key-component-change .btn-vin-change {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: 16px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mom-key-component-change .btn-vin-change svg {
+  width: 14px;
+  height: 14px;
+}
+.mom-key-component-change .btn-vin-change:active {
+  background: rgba(255, 255, 255, 0.36);
+}
+
+/* 表头被隐藏：顶部留出按钮高度，按钮换实底白底以便在浅色内容上可读 */
+.mom-key-component-change.header-hidden {
+  padding-top: 48px;
+}
+.mom-key-component-change.header-hidden .btn-vin-change {
+  background: #fff;
+  border-color: var(--border-color);
+  color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+.mom-key-component-change.header-hidden .btn-vin-change:active {
+  background: var(--primary-bg);
 }
 
 /* ==================== 视图容器 ==================== */
@@ -777,12 +823,28 @@ body {
   .mom-key-component-change .page-header {
     padding: 8px 12px;
     padding-top: calc(8px + env(safe-area-inset-top));
+    padding-right: 104px;
   }
   .mom-key-component-change .page-header .header-title {
     font-size: 14px;
   }
   .mom-key-component-change .page-header .header-time {
     font-size: 11px;
+  }
+  .mom-key-component-change .btn-vin-change {
+    top: calc(8px + env(safe-area-inset-top));
+    right: 12px;
+    gap: 3px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+  .mom-key-component-change .btn-vin-change svg {
+    width: 12px;
+    height: 12px;
+  }
+  .mom-key-component-change.header-hidden {
+    padding-top: 44px;
   }
 
   .mom-key-component-change .check-form-area {

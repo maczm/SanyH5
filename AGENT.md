@@ -193,8 +193,10 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 1. **每个输入框必须成对提供「搜索按钮」与「扫码按钮」**（class 成对命名 `btn-search-*` / `btn-scan-*`）：搜索按钮走手动输入后的查询，扫码按钮走 `OpenCamera`；业务动作只由 回车 / 按钮 / 扫码 触发（§8.4 禁失焦触发）
 2. **每个按钮独立配置「显示开关」与「权限开关」**，集中在页面命名空间的一个 `BUTTON_SWITCH` 常量对象里（禁止散落在各处 if 中）：
    - `visible: false` → 给按钮加 `.hidden`（不显示）
-   - `permitted: false` → 给按钮加 `disabled`（**置灰禁用、保留占位**，布局不跳动）
-   - 开关对象按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back`），一个按钮一项，互相独立
+   - `permitted: false` → **置灰禁用、保留占位**（布局不跳动），禁用方式按「是否需要点击提示」二分：
+     - 需要提示的（配置 `deniedMessage: "提示文案"`）→ 加 `.disabled` 类 + `aria-disabled="true"`，**不加原生 `disabled`**（原生 `disabled` 不派发 click，提示无从触发）；点击回调首行用 `ensureButtonPermitted(开关项)` 拦截并弹提示，业务动作不执行
+     - 不需要提示的 → 原生 `disabled`
+   - 开关对象按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back` / `vinChange`），一个按钮一项，互相独立
 3. **开关按「class → 按钮」映射表统一应用**：常量 `BUTTON_SELECTOR`（开关项 → 按钮 class 选择器）+ 统一函数 `applyButtonSwitch()`（初始化与每次渲染后各调一次）；**循环结构克隆出来的行内按钮必须在渲染后重放一次**，否则克隆元素拿不到初始作用域上的开关状态
 4. **业务条件与开关叠加取交集**：如解绑按钮 = `wipOrderType === 2 && needRemoveQty > removeQty && BUTTON_SWITCH.unbind.visible`，由专门的更新函数（如 `updateUnbindButton()`）在开关应用末尾统一计算，不允许两处各写一半
 5. 本条对**新建/改造页面**生效；既有页面在后续改造时同步，不做一次性批量改造
@@ -349,3 +351,4 @@ NODE_PATH=$(npm root -g) node tests/packing.regress.cjs
 8. **新建文件权限为 600**：write 工具创建的文件默认 `-rw-------`，nginx（www-data）读不了会 403；新建被 nginx 服务的文件后需 `chmod 644 <文件>`
 9. **tidy 退出码不可信**：无错误时也返回 1；判断依据是 stderr 是否为空（见 §14.2）；`--duplicate-ids` 后面不能跟 `yes`
 10. **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`，原因见 §14.2）
+11. **`aria-disabled="true"` 的元素 Playwright 拒绝点击**（判为 not enabled），回归脚本里必须 `.click({ force: true })`；真实浏览器不受影响，照常派发 click（§8.11 的「可点但置灰」按钮即此类）

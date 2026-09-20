@@ -98,7 +98,7 @@ window.KeyComponentChange_CheckAndSave(
 | `materialQty` | number | 是 | 关重件数量（二维码第三段） |
 | `uomCode` | string | 是 | 单位（查询关重件信息 配置条目） |
 | `partner` | string | 是 | 供应商（二维码第二段） |
-| `inputType` | string | 是 | 输入方式：`"扫码"` / `"手输"` |
+| `inputType` | number | 是 | 输入方式：`0`=手输，`1`=扫码 |
 | `inputCode` | number | 是 | 输入键位：回车 `13`，鼠标左键点击 `1` |
 
 **出参** `data`
@@ -172,3 +172,13 @@ window.KeyComponentChange_Save(
 | `oldGenealogyID` | string | 是 | 被替换旧件的 ID（移除关重件 返回） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
+
+## 页面配置（Portal 注入属性）
+
+```js
+window.KeyComponentChangeHideHeader
+```
+
+| 属性 | 类型 | 说明 |
+|---|---|---|
+| `KeyComponentChangeHideHeader` | boolean | `true` = 隐藏页面表头（标题栏）；`false` / 未注入 = 显示表头 |

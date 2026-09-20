@@ -2,6 +2,7 @@
 // 数据来源：Portal 注入的 window.KeyComponentChange_* 七个接口（callback 风格，
 // 信封 { code, msg, data }，code 0 为成功），入参统一 { taskType, reported }。
 // 本地开发由同目录 mock.js 兜底（生产不部署，Portal 只取 index.html / index.js / index.css）。
+// 另有 Portal 注入属性 window.KeyComponentChangeHideHeader：true 时隐藏页面表头（协议见 docs/关重件更换INF.md）。
 
 // ============== Portal 表单回车提交拦截 ==============
 // 平台约定：页面定义该空实现钩子即可（定义即生效），不需要页面调用，用于消除输入框回车提交刷新。
@@ -13,7 +14,8 @@ var KeyComponentChange = {
   // 只有该类型的关重件有前后位置（序号 "1"/"2"），前后位置弹窗也只对它发生
   MOTOR_MATERIAL_TYPE: "永磁体同步电机",
 
-  // 按钮开关：visible 是否显示（false 隐藏），permitted 是否有权限（false 置灰禁用）
+  // 按钮开关：visible 是否显示（false 隐藏），permitted 是否有权限（false 置灰禁用、保留占位）
+  // deniedMessage：权限关闭时的点击提示文案；配置了它的按钮用「视觉禁用 + 可点」实现，未配置的用原生 disabled
   BUTTON_SWITCH: {
     searchOrder: { visible: true, permitted: true },
     scanOrder: { visible: true, permitted: true },
@@ -21,10 +23,11 @@ var KeyComponentChange = {
     scanMaterial: { visible: true, permitted: true },
     unbind: { visible: true, permitted: true },
     complete: { visible: true, permitted: true },
-    deleteSerial: { visible: true, permitted: true },
+    deleteSerial: { visible: true, permitted: true, deniedMessage: "没有权限，请扫码更换" },
     removeRecord: { visible: true, permitted: true },
     changeRecord: { visible: true, permitted: true },
     back: { visible: true, permitted: true },
+    vinChange: { visible: true, permitted: true, deniedMessage: "没有权限" },
   },
 
   BUTTON_SELECTOR: {
@@ -38,6 +41,7 @@ var KeyComponentChange = {
     removeRecord: ".btn-remove-row",
     changeRecord: ".btn-change-row",
     back: ".btn-back-remove, .btn-back-change",
+    vinChange: ".btn-vin-change",
   },
 
   state: {
@@ -46,7 +50,7 @@ var KeyComponentChange = {
     serialList: [],
     removeQty: 0,
     needRemoveQty: 0,
-    inputSource: { inputType: "手输", inputCode: 13 },
+    inputSource: { inputType: 0, inputCode: 13 },
     pendingScan: null,
     changedOldGenealogyId: null,
     changedOldSerialNo: null,
@@ -83,12 +87,19 @@ var KeyComponentChange = {
       callback({ code: -1, msg: "请求超时，请重试" });
     }, KeyComponentChange.API_TIMEOUT);
     args = args || [];
-    fn.apply(null, args.concat([function (res) {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      callback(res);
-    }]));
+    console.log("apiCall", fn.name, "request", JSON.stringify(args));
+    fn.apply(
+      null,
+      args.concat([
+        function (res) {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          console.log("apiCall", fn.name, "response", JSON.stringify(res));
+          callback(res);
+        },
+      ])
+    );
   },
 
   /** 本页接口统一入参形态：{ taskType, reported } */
@@ -99,14 +110,29 @@ var KeyComponentChange = {
   // ============== 时间与格式化 ==============
   now: function () {
     var d = new Date();
-    var pad = function (n) { return n < 10 ? "0" + n : n; };
-    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " +
-      pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+    var pad = function (n) {
+      return n < 10 ? "0" + n : n;
+    };
+    return (
+      d.getFullYear() +
+      "-" +
+      pad(d.getMonth() + 1) +
+      "-" +
+      pad(d.getDate()) +
+      " " +
+      pad(d.getHours()) +
+      ":" +
+      pad(d.getMinutes()) +
+      ":" +
+      pad(d.getSeconds())
+    );
   },
 
   /** 扫描时间统一为 "YYYY-MM-DD HH:mm:ss"（兼容 ISO 的 T 分隔），显示与排序共用 */
   normalizeTime: function (value) {
-    return String(value || "").replace("T", " ").trim();
+    return String(value || "")
+      .replace("T", " ")
+      .trim();
   },
 
   getOrderTypeLabel: function (wipOrderType) {
@@ -214,9 +240,26 @@ var KeyComponentChange = {
       if (buttonName !== "unbind") {
         $buttons.toggleClass("hidden", !setting.visible);
       }
-      $buttons.prop("disabled", !setting.permitted).toggleClass("disabled", !setting.permitted);
+      if (setting.deniedMessage) {
+        // 需要「无权限」提示：只做视觉禁用。不能加原生 disabled —— 原生 disabled 不派发 click，提示无从触发
+        $buttons.prop("disabled", false).attr("aria-disabled", setting.permitted ? "false" : "true");
+      } else {
+        $buttons.prop("disabled", !setting.permitted).removeAttr("aria-disabled");
+      }
+      $buttons.toggleClass("disabled", !setting.permitted);
     });
     KeyComponentChange.updateUnbindButton();
+  },
+
+  /**
+   * 权限开关前置校验：permitted=false 时按 deniedMessage 弹提示并返回 false，调用方据此中断业务动作。
+   * 仅对配置了 deniedMessage 的按钮有效（其余按钮是原生 disabled，点击事件根本不会到达调用方）。
+   */
+  ensureButtonPermitted: function (buttonName) {
+    var setting = KeyComponentChange.BUTTON_SWITCH[buttonName];
+    if (!setting || setting.permitted) return true;
+    KeyComponentChange.showToast("提示", setting.deniedMessage || "没有权限", "error");
+    return false;
   },
 
   /** 解绑按钮：业务条件（改制订单且需解绑总数 > 已解绑数）与开关取交集 */
@@ -258,6 +301,7 @@ var KeyComponentChange = {
     }, 0);
   },
 
+  // inputType 为后端枚举：0=手输，1=扫码；inputCode 为触发键位：回车 13、鼠标点击 1
   setInputSource: function (inputType, inputCode) {
     KeyComponentChange.state.inputSource = { inputType: inputType, inputCode: inputCode };
   },
@@ -299,7 +343,7 @@ var KeyComponentChange = {
         KeyComponentChange.loadKeyComponentInfo(function () {
           KeyComponentChange.focusMaterialInput();
         });
-      },
+      }
     );
   },
 
@@ -323,10 +367,12 @@ var KeyComponentChange = {
     KeyComponentChange.showLoading("加载关重件中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetKeyComponentInfo,
-      [KeyComponentChange.buildTaskRequest("GetKeyComponentInfo", {
-        wipOrderNo: orderInfo.wipOrderNo,
-        wipOrderType: orderInfo.wipOrderType,
-      })],
+      [
+        KeyComponentChange.buildTaskRequest("GetKeyComponentInfo", {
+          wipOrderNo: orderInfo.wipOrderNo,
+          wipOrderType: orderInfo.wipOrderType,
+        }),
+      ],
       function (res) {
         KeyComponentChange.hideLoading();
         // 过期响应丢弃：移除旧件后与保存新件后的两次刷新会重叠，慢的旧响应会覆盖新数据
@@ -343,7 +389,7 @@ var KeyComponentChange = {
         state.needRemoveQty = data.needRemoveQty || 0;
         KeyComponentChange.renderKeyComponentList();
         if (typeof finishedCallback === "function") finishedCallback();
-      },
+      }
     );
   },
 
@@ -404,9 +450,11 @@ var KeyComponentChange = {
       }
     });
     groups.forEach(function (group) {
-      group.serialList = serialList.filter(function (serial) {
-        return group.materialIds.indexOf(serial.materialID) !== -1;
-      }).sort(KeyComponentChange.compareSerialByScanTime);
+      group.serialList = serialList
+        .filter(function (serial) {
+          return group.materialIds.indexOf(serial.materialID) !== -1;
+        })
+        .sort(KeyComponentChange.compareSerialByScanTime);
       group.latestScanTime = group.serialList.length
         ? KeyComponentChange.normalizeTime(group.serialList[0].scanTime)
         : "";
@@ -423,7 +471,9 @@ var KeyComponentChange = {
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
     // 未查询订单时不显示 0/0，避免误读为「该订单需采集 0 件」
-    $(".collect-quantity-tag").text(orderInfo ? state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList) : "");
+    $(".collect-quantity-tag").text(
+      orderInfo ? state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList) : ""
+    );
     $(".remove-quantity-tag").text(orderInfo ? state.removeQty + "/" + state.needRemoveQty : "");
     $(".remove-quantity-row").toggleClass("hidden", !isChangeOrder);
 
@@ -479,16 +529,25 @@ var KeyComponentChange = {
   },
 
   getCollectedSequenceList: function (materialIds) {
-    return KeyComponentChange.state.serialList.filter(function (serial) {
-      return materialIds.indexOf(serial.materialID) !== -1 && serial.materialSeq !== null && serial.materialSeq !== undefined && String(serial.materialSeq) !== "";
-    }).map(function (serial) {
-      return String(serial.materialSeq);
-    });
+    return KeyComponentChange.state.serialList
+      .filter(function (serial) {
+        return (
+          materialIds.indexOf(serial.materialID) !== -1 &&
+          serial.materialSeq !== null &&
+          serial.materialSeq !== undefined &&
+          String(serial.materialSeq) !== ""
+        );
+      })
+      .map(function (serial) {
+        return String(serial.materialSeq);
+      });
   },
 
   /** 同一物料编码的已扫描/需扫描数量（配置可能多条，如永磁体同步电机） */
   getMaterialQuantityState: function (matchedComponents) {
-    var materialIds = matchedComponents.map(function (component) { return component.materialID; });
+    var materialIds = matchedComponents.map(function (component) {
+      return component.materialID;
+    });
     var collectedQuantity = KeyComponentChange.state.serialList.filter(function (serial) {
       return materialIds.indexOf(serial.materialID) !== -1;
     }).length;
@@ -511,7 +570,9 @@ var KeyComponentChange = {
    * - 采集且配置明确（两条恰好 "1"+"2"）时自动分配未采集位置，此时人工选的序号优先。
    */
   resolveMaterialSequence: function (matchedComponents, allowCollectedSequence, chosenCallback) {
-    var materialIds = matchedComponents.map(function (component) { return component.materialID; });
+    var materialIds = matchedComponents.map(function (component) {
+      return component.materialID;
+    });
     var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
     var isMotor = KeyComponentChange.isMotorComponent(matchedComponents);
     if (isMotor && allowCollectedSequence) {
@@ -524,9 +585,13 @@ var KeyComponentChange = {
       chosenCallback(matchedComponents.length ? matchedComponents[0].materialSeq : null);
       return;
     }
-    var configuredSequenceList = matchedComponents.map(function (component) { return String(component.materialSeq); });
-    var isClearMotorPair = matchedComponents.length === 2 &&
-      configuredSequenceList.indexOf("1") !== -1 && configuredSequenceList.indexOf("2") !== -1;
+    var configuredSequenceList = matchedComponents.map(function (component) {
+      return String(component.materialSeq);
+    });
+    var isClearMotorPair =
+      matchedComponents.length === 2 &&
+      configuredSequenceList.indexOf("1") !== -1 &&
+      configuredSequenceList.indexOf("2") !== -1;
     var freeSequenceList = KeyComponentChange.getMotorSequenceList().filter(function (sequence) {
       return collectedSequenceList.indexOf(sequence) === -1;
     });
@@ -617,7 +682,11 @@ var KeyComponentChange = {
     if (materialSequence === null || materialSequence === undefined || materialSequence === "") return null;
     var sequenceText = String(materialSequence);
     var matchedList = matchedComponents.filter(function (component) {
-      return component.materialSeq !== null && component.materialSeq !== undefined && String(component.materialSeq) === sequenceText;
+      return (
+        component.materialSeq !== null &&
+        component.materialSeq !== undefined &&
+        String(component.materialSeq) === sequenceText
+      );
     });
     return matchedList.length ? matchedList[0] : null;
   },
@@ -625,7 +694,8 @@ var KeyComponentChange = {
   buildPendingScan: function (parsedQrCode, materialSequence) {
     var inputSource = KeyComponentChange.state.inputSource;
     var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
-    var component = KeyComponentChange.findComponentBySequence(matchedComponents, materialSequence) || matchedComponents[0] || {};
+    var component =
+      KeyComponentChange.findComponentBySequence(matchedComponents, materialSequence) || matchedComponents[0] || {};
     return {
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
@@ -703,7 +773,7 @@ var KeyComponentChange = {
         KeyComponentChange.loadKeyComponentInfo(function () {
           KeyComponentChange.clearMaterialInput();
         });
-      },
+      }
     );
   },
 
@@ -715,12 +785,14 @@ var KeyComponentChange = {
       KeyComponentChange.showLoading("删除中...");
       KeyComponentChange.apiCall(
         window.KeyComponentChange_Remove,
-        [KeyComponentChange.buildTaskRequest("Remove", {
-          wipOrderNo: orderInfo.wipOrderNo,
-          wipOrderType: orderInfo.wipOrderType,
-          serialNo: orderInfo.serialNo,
-          materialSerialNo: materialSerialNo,
-        })],
+        [
+          KeyComponentChange.buildTaskRequest("Remove", {
+            wipOrderNo: orderInfo.wipOrderNo,
+            wipOrderType: orderInfo.wipOrderType,
+            serialNo: orderInfo.serialNo,
+            materialSerialNo: materialSerialNo,
+          }),
+        ],
         function (res) {
           KeyComponentChange.hideLoading();
           if (res.code !== 0) {
@@ -729,7 +801,7 @@ var KeyComponentChange = {
           }
           KeyComponentChange.showToast("提示", "删除成功", "success");
           KeyComponentChange.loadKeyComponentInfo();
-        },
+        }
       );
     });
   },
@@ -742,9 +814,10 @@ var KeyComponentChange = {
     }
     var collectedQuantity = state.serialList.length;
     var requiredQuantity = KeyComponentChange.sumMaterialQty(state.keyComponentList);
-    var message = collectedQuantity < requiredQuantity
-      ? "当前采集 " + collectedQuantity + "/" + requiredQuantity + "，尚未采集完成，确认结束本次会话？"
-      : "确认完成并清空当前会话？";
+    var message =
+      collectedQuantity < requiredQuantity
+        ? "当前采集 " + collectedQuantity + "/" + requiredQuantity + "，尚未采集完成，确认结束本次会话？"
+        : "确认完成并清空当前会话？";
     KeyComponentChange.showConfirmDialog(message, function () {
       KeyComponentChange.resetCheckSession();
     });
@@ -796,10 +869,12 @@ var KeyComponentChange = {
     KeyComponentChange.showLoading("加载移除明细中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetRemoveKeyComponentInfo,
-      [KeyComponentChange.buildTaskRequest("GetRemoveKeyComponentInfo", {
-        wipOrderNo: orderInfo.wipOrderNo,
-        wipOrderType: orderInfo.wipOrderType,
-      })],
+      [
+        KeyComponentChange.buildTaskRequest("GetRemoveKeyComponentInfo", {
+          wipOrderNo: orderInfo.wipOrderNo,
+          wipOrderType: orderInfo.wipOrderType,
+        }),
+      ],
       function (res) {
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
@@ -807,7 +882,7 @@ var KeyComponentChange = {
           return;
         }
         KeyComponentChange.renderRemoveRecordList(Array.isArray(res.data) ? res.data : []);
-      },
+      }
     );
   },
 
@@ -816,7 +891,9 @@ var KeyComponentChange = {
     $(".empty-remove-record").toggleClass("hidden", recordList.length > 0);
     recordList.forEach(function (record) {
       var $card = KeyComponentChange.cloneTemplate("template-remove-record-card");
-      $card.find(".remove-record-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
+      $card
+        .find(".remove-record-order-no")
+        .text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
       $card.find(".remove-record-material-no").text(record.materialNo || "");
       $card.find(".remove-record-material-desc").text(record.materialDesc || "");
       $card.find(".remove-record-old-serial").text(record.materialSerialNo || "");
@@ -829,29 +906,34 @@ var KeyComponentChange = {
 
   removeRecord: function (record) {
     if (!record) return;
-    KeyComponentChange.showConfirmDialog("确认移除关重件旧序列号 " + (record.materialSerialNo || "") + " ？", function () {
-      KeyComponentChange.showLoading("移除中...");
-      KeyComponentChange.apiCall(
-        window.KeyComponentChange_Remove,
-        [KeyComponentChange.buildTaskRequest("Remove", {
-          wipOrderNo: record.wipOrderNo,
-          wipOrderType: record.wipOrderType,
-          serialNo: record.serialNo,
-          materialSerialNo: record.materialSerialNo,
-        })],
-        function (res) {
-          KeyComponentChange.hideLoading();
-          if (res.code !== 0) {
-            KeyComponentChange.showToast("移除失败", res.msg || "移除关重件失败", "error");
-            return;
+    KeyComponentChange.showConfirmDialog(
+      "确认移除关重件旧序列号 " + (record.materialSerialNo || "") + " ？",
+      function () {
+        KeyComponentChange.showLoading("移除中...");
+        KeyComponentChange.apiCall(
+          window.KeyComponentChange_Remove,
+          [
+            KeyComponentChange.buildTaskRequest("Remove", {
+              wipOrderNo: record.wipOrderNo,
+              wipOrderType: record.wipOrderType,
+              serialNo: record.serialNo,
+              materialSerialNo: record.materialSerialNo,
+            }),
+          ],
+          function (res) {
+            KeyComponentChange.hideLoading();
+            if (res.code !== 0) {
+              KeyComponentChange.showToast("移除失败", res.msg || "移除关重件失败", "error");
+              return;
+            }
+            KeyComponentChange.showToast("提示", "移除成功", "success");
+            // 删除后刷新订单数据（需解绑数量、卡片列表）与待移除清单
+            KeyComponentChange.loadKeyComponentInfo();
+            KeyComponentChange.loadRemoveRecordList();
           }
-          KeyComponentChange.showToast("提示", "移除成功", "success");
-          // 删除后刷新订单数据（需解绑数量、卡片列表）与待移除清单
-          KeyComponentChange.loadKeyComponentInfo();
-          KeyComponentChange.loadRemoveRecordList();
-        },
-      );
-    });
+        );
+      }
+    );
   },
 
   // ============== 视图3：关重件更换 ==============
@@ -861,8 +943,11 @@ var KeyComponentChange = {
     var pendingScan = state.pendingScan;
     if (!orderInfo || !pendingScan) return;
     $(".change-material-tag").text(
-      KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType) + "-" +
-      pendingScan.materialNo + "-" + pendingScan.materialDesc
+      KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType) +
+        "-" +
+        pendingScan.materialNo +
+        "-" +
+        pendingScan.materialDesc
     );
     $(".new-serial-tag").text(pendingScan.materialSerialNo);
     KeyComponentChange.switchView("key-component-change-view");
@@ -876,12 +961,14 @@ var KeyComponentChange = {
     KeyComponentChange.showLoading("加载更换明细中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetChangeKeyComponentInfo,
-      [KeyComponentChange.buildTaskRequest("GetChangeKeyComponentInfo", {
-        wipOrderNo: orderInfo.wipOrderNo,
-        wipOrderType: orderInfo.wipOrderType,
-        materialNo: state.pendingScan.materialNo,
-        materialSeq: KeyComponentChange.normalizeMaterialSequence(state.pendingScan.materialSeq),
-      })],
+      [
+        KeyComponentChange.buildTaskRequest("GetChangeKeyComponentInfo", {
+          wipOrderNo: orderInfo.wipOrderNo,
+          wipOrderType: orderInfo.wipOrderType,
+          materialNo: state.pendingScan.materialNo,
+          materialSeq: KeyComponentChange.normalizeMaterialSequence(state.pendingScan.materialSeq),
+        }),
+      ],
       function (res) {
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
@@ -889,7 +976,7 @@ var KeyComponentChange = {
           return;
         }
         KeyComponentChange.renderChangeRecordList(Array.isArray(res.data) ? res.data : []);
-      },
+      }
     );
   },
 
@@ -898,7 +985,9 @@ var KeyComponentChange = {
     $(".empty-change-record").toggleClass("hidden", recordList.length > 0);
     recordList.forEach(function (record) {
       var $card = KeyComponentChange.cloneTemplate("template-change-record-card");
-      $card.find(".change-record-order-no").text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
+      $card
+        .find(".change-record-order-no")
+        .text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
       $card.find(".change-record-old-serial").text(record.materialSerialNo || "");
       $card.find(".change-record-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
       $card.data("record", record);
@@ -927,7 +1016,11 @@ var KeyComponentChange = {
         KeyComponentChange.saveChangedKeyComponent();
         return;
       }
-      KeyComponentChange.showToast("提示", "旧件 " + (state.changedOldSerialNo || "") + " 已移除但新件未保存，请点「重试保存」", "error");
+      KeyComponentChange.showToast(
+        "提示",
+        "旧件 " + (state.changedOldSerialNo || "") + " 已移除但新件未保存，请点「重试保存」",
+        "error"
+      );
       return;
     }
     KeyComponentChange.showConfirmDialog(
@@ -936,12 +1029,14 @@ var KeyComponentChange = {
         KeyComponentChange.showLoading("移除旧件中...");
         KeyComponentChange.apiCall(
           window.KeyComponentChange_Remove,
-          [KeyComponentChange.buildTaskRequest("Remove", {
-            wipOrderNo: record.wipOrderNo,
-            wipOrderType: record.wipOrderType,
-            serialNo: record.serialNo,
-            materialSerialNo: record.materialSerialNo,
-          })],
+          [
+            KeyComponentChange.buildTaskRequest("Remove", {
+              wipOrderNo: record.wipOrderNo,
+              wipOrderType: record.wipOrderType,
+              serialNo: record.serialNo,
+              materialSerialNo: record.materialSerialNo,
+            }),
+          ],
           function (res) {
             KeyComponentChange.hideLoading();
             if (res.code !== 0) {
@@ -954,9 +1049,9 @@ var KeyComponentChange = {
             // 删除旧件后立即刷新订单数据（数量与卡片），保存新件后再刷新一次
             KeyComponentChange.loadKeyComponentInfo();
             KeyComponentChange.saveChangedKeyComponent();
-          },
+          }
         );
-      },
+      }
     );
   },
 
@@ -985,7 +1080,7 @@ var KeyComponentChange = {
         KeyComponentChange.loadKeyComponentInfo(function () {
           KeyComponentChange.clearMaterialInput();
         });
-      },
+      }
     );
   },
 
@@ -1016,6 +1111,23 @@ var KeyComponentChange = {
     });
   },
 
+  // ============== VIN更换入口 ==============
+  /**
+   * 跳转 VIN更换 页面（入口按钮在右上角悬浮，不随表头显隐）。
+   * 跳转方式与传参待 Portal 侧确认：本仓库无跨页跳转先例，Portal 目前只提供 OpenCamera 桥接（AGENT.md §12.4）。
+   */
+  openVinChangePage: function () {
+    KeyComponentChange.showToast("提示", "VIN更换页面待接入", "error");
+  },
+
+  // ============== 页面配置（Portal 注入属性，协议见 docs/关重件更换INF.md） ==============
+  /** 表头显隐：window.KeyComponentChangeHideHeader 为 true 时隐藏表头；缺省/其它值显示 */
+  applyHeaderVisibility: function () {
+    var hideHeader = window.KeyComponentChangeHideHeader === true;
+    $(".page-header").toggleClass("hidden", hideHeader);
+    $(".mom-key-component-change").toggleClass("header-hidden", hideHeader);
+  },
+
   // ============== 页面尺寸（表单宿主无高度链时按视口自适应，避免整页滚动条） ==============
   fitPageHeight: function () {
     var $root = $(".mom-key-component-change");
@@ -1037,7 +1149,7 @@ var KeyComponentChange = {
       if ($input.hasClass("input-order-key")) {
         KeyComponentChange.queryOrderInfo();
       } else if ($input.hasClass("input-material-qr")) {
-        KeyComponentChange.setInputSource("手输", 13);
+        KeyComponentChange.setInputSource(0, 13);
         KeyComponentChange.handleMaterialCheck();
       }
     });
@@ -1052,16 +1164,17 @@ var KeyComponentChange = {
       });
     });
     $(".key-component-check-view").on("click", ".btn-search-material", function () {
-      KeyComponentChange.setInputSource("手输", 1);
+      KeyComponentChange.setInputSource(0, 1);
       KeyComponentChange.handleMaterialCheck();
     });
     $(".key-component-check-view").on("click", ".btn-scan-material", function () {
       KeyComponentChange.doScan(".input-material-qr", function () {
-        KeyComponentChange.setInputSource("扫码", 1);
+        KeyComponentChange.setInputSource(1, 1);
         KeyComponentChange.handleMaterialCheck();
       });
     });
     $(".key-component-check-view").on("click", ".btn-delete-serial", function () {
+      if (!KeyComponentChange.ensureButtonPermitted("deleteSerial")) return;
       KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial-no"));
     });
     $(".key-component-check-view").on("click", ".btn-unbind", function () {
@@ -1069,6 +1182,12 @@ var KeyComponentChange = {
     });
     $(".key-component-check-view").on("click", ".btn-complete", function () {
       KeyComponentChange.completeCheck();
+    });
+
+    // 悬浮按钮：VIN更换（独立于表头的页面级入口）
+    $(".mom-key-component-change").on("click", ".btn-vin-change", function () {
+      if (!KeyComponentChange.ensureButtonPermitted("vinChange")) return;
+      KeyComponentChange.openVinChangePage();
     });
 
     // 视图2 / 视图3
@@ -1148,6 +1267,7 @@ var KeyComponentChange = {
       $(".header-time").text(now());
     }, 1000);
 
+    KeyComponentChange.applyHeaderVisibility();
     KeyComponentChange.initEvents();
     KeyComponentChange.applyButtonSwitch();
     KeyComponentChange.renderKeyComponentList();

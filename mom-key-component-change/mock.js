@@ -5,6 +5,11 @@
 // 回归脚本可用 window.__mockDelayMilliseconds 调低延迟（页面脚本执行前注入），默认 400ms 贴近真机
 var MOCK_DELAY = typeof window.__mockDelayMilliseconds === "number" ? window.__mockDelayMilliseconds : 400;
 
+// -- Portal 注入属性兜底：true = 隐藏页面表头；本地改这一行即可预览隐藏形态 --
+if (typeof window.KeyComponentChangeHideHeader !== "boolean") {
+  window.KeyComponentChangeHideHeader = false;
+}
+
 var mockOrderDataMap = {
   // 生产订单：永磁体同步电机序号恰为 1、2（自动分配），另有序号为 null 的关重件
   "184000000012": {
