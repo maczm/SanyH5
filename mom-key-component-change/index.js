@@ -1,5 +1,5 @@
-// ============== 关重件更换（更换主页 + 移除页 + 更换页三视图） ==============
-// 数据来源：Portal 注入的 window.KeyComponentChange_* 七个接口（callback 风格，
+// ============== 关重件更换（更换主页 + 移除页 + 更换页 + VIN更换页 四视图） ==============
+// 数据来源：Portal 注入的 window.KeyComponentChange_* 九个接口（callback 风格，
 // 信封 { code, msg, data }，code 0 为成功），入参统一 { taskType, reported }。
 // 本地开发由同目录 mock.js 兜底（生产不部署，Portal 只取 index.html / index.js / index.css）。
 // 另有 Portal 注入属性 window.KeyComponentChangeHideHeader：true 时隐藏页面表头（协议见 docs/关重件更换INF.md）。
@@ -28,6 +28,12 @@ var KeyComponentChange = {
     changeRecord: { visible: true, permitted: true },
     back: { visible: true, permitted: true },
     vinChange: { visible: true, permitted: true, deniedMessage: "没有权限" },
+    searchVinOrder: { visible: true, permitted: true },
+    scanVinOrder: { visible: true, permitted: true },
+    scanNewVin: { visible: true, permitted: true },
+    scanFactoryCode: { visible: true, permitted: true },
+    confirmVinChange: { visible: true, permitted: true },
+    backVinChange: { visible: true, permitted: true },
   },
 
   BUTTON_SELECTOR: {
@@ -42,6 +48,12 @@ var KeyComponentChange = {
     changeRecord: ".btn-change-row",
     back: ".btn-back-remove, .btn-back-change",
     vinChange: ".btn-vin-change",
+    searchVinOrder: ".btn-search-vin-order",
+    scanVinOrder: ".btn-scan-vin-order",
+    scanNewVin: ".btn-scan-new-vin",
+    scanFactoryCode: ".btn-scan-factory-code",
+    confirmVinChange: ".btn-vin-change-confirm",
+    backVinChange: ".btn-vin-change-back",
   },
 
   state: {
@@ -57,6 +69,7 @@ var KeyComponentChange = {
     isSubmitting: false,
     orderRequestSequence: 0,
     keyComponentRequestSequence: 0,
+    vinInfoRequestSequence: 0,
   },
 
   _loadingCount: 0,
@@ -277,7 +290,9 @@ var KeyComponentChange = {
 
   // ============== 视图切换 ==============
   switchView: function (viewClassName) {
-    $(".key-component-check-view, .key-component-remove-view, .key-component-change-view").addClass("hidden");
+    $(
+      ".key-component-check-view, .key-component-remove-view, .key-component-change-view, .key-component-vin-change-view"
+    ).addClass("hidden");
     $("." + viewClassName).removeClass("hidden");
   },
 
@@ -1111,13 +1126,127 @@ var KeyComponentChange = {
     });
   },
 
-  // ============== VIN更换入口 ==============
-  /**
-   * 跳转 VIN更换 页面（入口按钮在右上角悬浮，不随表头显隐）。
-   * 跳转方式与传参待 Portal 侧确认：本仓库无跨页跳转先例，Portal 目前只提供 OpenCamera 桥接（AGENT.md §12.4）。
-   */
-  openVinChangePage: function () {
-    KeyComponentChange.showToast("提示", "VIN更换页面待接入", "error");
+  // ============== 视图4：VIN更换 ==============
+  /** 提示信息为前端固定文案（协议无该字段） */
+  VIN_CHANGE_TIP: "请核对旧VIN，扫码录入新VIN与出厂编码后点击确认",
+
+  /** 进入 VIN更换页：订单号预填当前订单号，有当前订单则自动查询旧VIN/出厂编码 */
+  enterVinChangeView: function () {
+    var orderInfo = KeyComponentChange.state.orderInfo;
+    KeyComponentChange.resetVinChangeForm();
+    $(".input-vin-order-no").val(orderInfo ? orderInfo.wipOrderNo || "" : "");
+    KeyComponentChange.switchView("key-component-vin-change-view");
+    if (orderInfo && orderInfo.wipOrderNo) {
+      KeyComponentChange.queryVinInfo();
+      return;
+    }
+    setTimeout(function () {
+      $(".input-vin-order-no").focus();
+    }, 0);
+  },
+
+  /** 清空 VIN更换页的查询结果与录入项（进入/离开/提交成功复用） */
+  resetVinChangeForm: function () {
+    $(".old-vin-tag").text("");
+    $(".vin-change-tip-tag").text(KeyComponentChange.VIN_CHANGE_TIP);
+    $(".input-new-vin").val("");
+    $(".input-factory-code").val("");
+  },
+
+  /** 按订单号查询 VIN 信息，回填 旧VIN 与 出厂编码（序号守卫：过期响应丢弃） */
+  queryVinInfo: function () {
+    var state = KeyComponentChange.state;
+    var wipOrderNo = ($(".input-vin-order-no").val() || "").trim();
+    if (!wipOrderNo) {
+      KeyComponentChange.showToast("提示", "请输入或扫码订单号", "error");
+      return;
+    }
+    state.vinInfoRequestSequence++;
+    var vinInfoRequestSequence = state.vinInfoRequestSequence;
+    KeyComponentChange.showLoading("查询VIN中...");
+    KeyComponentChange.apiCall(
+      window.KeyComponentChange_GetVinInfo,
+      [KeyComponentChange.buildTaskRequest("GetVinInfo", { wipOrderNo: wipOrderNo })],
+      function (res) {
+        KeyComponentChange.hideLoading();
+        if (vinInfoRequestSequence !== state.vinInfoRequestSequence) return;
+        if (res.code !== 0) {
+          $(".old-vin-tag").text("");
+          KeyComponentChange.showToast("查询失败", res.msg || "查询VIN信息失败", "error");
+          return;
+        }
+        var data = res.data || {};
+        $(".old-vin-tag").text(data.oldVin || "");
+        $(".input-factory-code").val(data.factoryCode || "");
+      }
+    );
+  },
+
+  saveVinChange: function () {
+    var state = KeyComponentChange.state;
+    if (state.isSubmitting) return;
+    var wipOrderNo = ($(".input-vin-order-no").val() || "").trim();
+    var oldVin = ($(".old-vin-tag").text() || "").trim();
+    var newVin = ($(".input-new-vin").val() || "").trim();
+    var factoryCode = ($(".input-factory-code").val() || "").trim();
+    if (!wipOrderNo) {
+      KeyComponentChange.showToast("提示", "请输入或扫码订单号", "error");
+      return;
+    }
+    if (!oldVin) {
+      KeyComponentChange.showToast("提示", "请先查询该订单的旧VIN", "error");
+      return;
+    }
+    if (!newVin) {
+      KeyComponentChange.showToast("提示", "请输入或扫码新VIN", "error");
+      return;
+    }
+    if (!factoryCode) {
+      KeyComponentChange.showToast("提示", "请输入或扫码出厂编码", "error");
+      return;
+    }
+    state.isSubmitting = true;
+    KeyComponentChange.showLoading("提交中...");
+    KeyComponentChange.apiCall(
+      window.KeyComponentChange_SaveVin,
+      [
+        KeyComponentChange.buildTaskRequest("SaveVin", {
+          wipOrderNo: wipOrderNo,
+          newVin: newVin,
+          factoryCode: factoryCode,
+        }),
+      ],
+      function (res) {
+        state.isSubmitting = false;
+        KeyComponentChange.hideLoading();
+        if (res.code !== 0) {
+          KeyComponentChange.showToast("提交失败", res.msg || "保存VIN失败", "error");
+          return;
+        }
+        KeyComponentChange.finishVinChange();
+      }
+    );
+  },
+
+  /** 退出 VIN更换页：清空本页录入并回视图1（返回按钮；不调接口、不刷新） */
+  leaveVinChangeView: function () {
+    KeyComponentChange.resetVinChangeForm();
+    $(".input-vin-order-no").val("");
+    KeyComponentChange.switchView("key-component-check-view");
+    KeyComponentChange.focusMaterialInput();
+  },
+
+  /** VIN更换提交成功收尾：Toast + 回视图1 + 刷新关重件信息 */
+  finishVinChange: function () {
+    KeyComponentChange.showToast("提示", "VIN更换成功", "success");
+    KeyComponentChange.leaveVinChangeView();
+    if (!KeyComponentChange.state.orderInfo) {
+      KeyComponentChange.clearMaterialInput();
+      return;
+    }
+    KeyComponentChange.loadKeyComponentInfo(function () {
+      KeyComponentChange.clearMaterialInput();
+    });
   },
 
   // ============== 页面配置（Portal 注入属性，协议见 docs/关重件更换INF.md） ==============
@@ -1151,6 +1280,8 @@ var KeyComponentChange = {
       } else if ($input.hasClass("input-material-qr")) {
         KeyComponentChange.setInputSource(0, 13);
         KeyComponentChange.handleMaterialCheck();
+      } else if ($input.hasClass("input-vin-order-no")) {
+        KeyComponentChange.queryVinInfo();
       }
     });
 
@@ -1187,7 +1318,29 @@ var KeyComponentChange = {
     // 悬浮按钮：VIN更换（独立于表头的页面级入口）
     $(".mom-key-component-change").on("click", ".btn-vin-change", function () {
       if (!KeyComponentChange.ensureButtonPermitted("vinChange")) return;
-      KeyComponentChange.openVinChangePage();
+      KeyComponentChange.enterVinChangeView();
+    });
+
+    // 视图4：VIN更换
+    $(".key-component-vin-change-view").on("click", ".btn-search-vin-order", function () {
+      KeyComponentChange.queryVinInfo();
+    });
+    $(".key-component-vin-change-view").on("click", ".btn-scan-vin-order", function () {
+      KeyComponentChange.doScan(".input-vin-order-no", function () {
+        KeyComponentChange.queryVinInfo();
+      });
+    });
+    $(".key-component-vin-change-view").on("click", ".btn-scan-new-vin", function () {
+      KeyComponentChange.doScan(".input-new-vin", function () {});
+    });
+    $(".key-component-vin-change-view").on("click", ".btn-scan-factory-code", function () {
+      KeyComponentChange.doScan(".input-factory-code", function () {});
+    });
+    $(".key-component-vin-change-view").on("click", ".btn-vin-change-confirm", function () {
+      KeyComponentChange.saveVinChange();
+    });
+    $(".key-component-vin-change-view").on("click", ".btn-vin-change-back", function () {
+      KeyComponentChange.leaveVinChangeView();
     });
 
     // 视图2 / 视图3

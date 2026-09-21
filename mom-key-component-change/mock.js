@@ -19,6 +19,8 @@ var mockOrderDataMap = {
     productNo: "MAT-HOST-001",
     productDesc: "8x4 自卸车底盘",
     serialNo: "SN-HOST-0001",
+    vin: "LSVU2A0N260800001",
+    factoryCode: "FAC-0001",
     removeQty: 0,
     needRemoveQty: 0,
     keyComponentList: [
@@ -40,6 +42,8 @@ var mockOrderDataMap = {
     productNo: "MAT-HOST-002",
     productDesc: "8x4 搅拌车底盘",
     serialNo: "SN-HOST-0002",
+    vin: "LSVU2A0N260800002",
+    factoryCode: "FAC-0002",
     removeQty: 0,
     needRemoveQty: 2,
     keyComponentList: [
@@ -280,6 +284,46 @@ if (typeof window.KeyComponentChange_Save != "function") {
       }
       if (!window.__keyComponentMockSaved) window.__keyComponentMockSaved = [];
       window.__keyComponentMockSaved.push({ taskType: "Save", reported: reported });
+      callback({ code: 0, msg: "ok", data: null });
+    }, MOCK_DELAY);
+  };
+}
+
+// -- Mock API 8：查询 VIN 信息（按订单号回旧VIN + 出厂编码） --
+if (typeof window.KeyComponentChange_GetVinInfo != "function") {
+  window.KeyComponentChange_GetVinInfo = function (request, callback) {
+    var reported = (request && request.reported) || {};
+    recordMockRequest("GetVinInfo", reported);
+    setTimeout(function () {
+      var orderData = findMockOrderData(reported);
+      if (!orderData) {
+        callback({ code: 1, msg: "未查询到订单信息" });
+        return;
+      }
+      callback({
+        code: 0,
+        msg: "ok",
+        data: { oldVin: orderData.vin || "", factoryCode: orderData.factoryCode || "" },
+      });
+    }, MOCK_DELAY);
+  };
+}
+
+// -- Mock API 9：保存 VIN（写入新VIN与出厂编码） --
+if (typeof window.KeyComponentChange_SaveVin != "function") {
+  window.KeyComponentChange_SaveVin = function (request, callback) {
+    var reported = (request && request.reported) || {};
+    recordMockRequest("SaveVin", reported);
+    setTimeout(function () {
+      var orderData = findMockOrderData(reported);
+      if (!orderData) {
+        callback({ code: 1, msg: "未查询到订单信息" });
+        return;
+      }
+      orderData.vin = reported.newVin;
+      orderData.factoryCode = reported.factoryCode;
+      if (!window.__keyComponentMockSavedVin) window.__keyComponentMockSavedVin = [];
+      window.__keyComponentMockSavedVin.push(reported);
       callback({ code: 0, msg: "ok", data: null });
     }, MOCK_DELAY);
   };

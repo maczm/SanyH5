@@ -15,7 +15,7 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
 | 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
 | 装配物料检查 | mom-assembly-material-check/ | 骨架 + template + `AssemblyMaterialCheck` 命名空间（双视图：工位选择/物料检查） | 4（window.assemblyMaterialCheck_*） |
-| 关重件更换 | mom-key-component-change/ | 骨架 + template + `KeyComponentChange` 命名空间（三视图：更换/移除/更换确认） | 7（window.KeyComponentChange_*） |
+| 关重件更换 | mom-key-component-change/ | 骨架 + template + `KeyComponentChange` 命名空间（四视图：更换/移除/更换确认/VIN更换） | 9（window.KeyComponentChange_*） |
 
 所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
@@ -196,7 +196,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
    - `permitted: false` → **置灰禁用、保留占位**（布局不跳动），禁用方式按「是否需要点击提示」二分：
      - 需要提示的（配置 `deniedMessage: "提示文案"`）→ 加 `.disabled` 类 + `aria-disabled="true"`，**不加原生 `disabled`**（原生 `disabled` 不派发 click，提示无从触发）；点击回调首行用 `ensureButtonPermitted(开关项)` 拦截并弹提示，业务动作不执行
      - 不需要提示的 → 原生 `disabled`
-   - 开关对象按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back` / `vinChange`），一个按钮一项，互相独立
+   - 开关对象按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back` / `vinChange` / `searchVinOrder` / `scanVinOrder` / `scanNewVin` / `scanFactoryCode` / `confirmVinChange` / `backVinChange`），一个按钮一项，互相独立
 3. **开关按「class → 按钮」映射表统一应用**：常量 `BUTTON_SELECTOR`（开关项 → 按钮 class 选择器）+ 统一函数 `applyButtonSwitch()`（初始化与每次渲染后各调一次）；**循环结构克隆出来的行内按钮必须在渲染后重放一次**，否则克隆元素拿不到初始作用域上的开关状态
 4. **业务条件与开关叠加取交集**：如解绑按钮 = `wipOrderType === 2 && needRemoveQty > removeQty && BUTTON_SWITCH.unbind.visible`，由专门的更新函数（如 `updateUnbindButton()`）在开关应用末尾统一计算，不允许两处各写一半
 5. 本条对**新建/改造页面**生效；既有页面在后续改造时同步，不做一次性批量改造

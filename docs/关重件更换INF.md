@@ -173,6 +173,43 @@ window.KeyComponentChange_Save(
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
 
+## 查询 VIN 信息
+
+```js
+window.KeyComponentChange_GetVinInfo(
+  { taskType: "GetVinInfo", reported: { wipOrderNo } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号（VIN更换页 订单号输入框） |
+
+**出参** `data`
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `oldVin` | string | 订单当前 VIN（页面「旧VIN」显示值） |
+| `factoryCode` | string | 出厂编码 |
+
+## 保存 VIN
+
+```js
+window.KeyComponentChange_SaveVin(
+  { taskType: "SaveVin", reported: { wipOrderNo, newVin, factoryCode } }, callback)
+```
+
+**入参** `reported`
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `wipOrderNo` | string | 是 | 订单号 |
+| `newVin` | string | 是 | 新VIN（VIN更换页 新VIN输入框） |
+| `factoryCode` | string | 是 | 出厂编码（VIN更换页 出厂编码输入框） |
+
+**出参**：仅 `code`、`msg`，`data` 为 `null`。
+
 ## 页面配置（Portal 注入属性）
 
 ```js

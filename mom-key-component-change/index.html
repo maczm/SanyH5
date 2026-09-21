@@ -129,6 +129,69 @@
         </div>
       </div>
 
+      <!-- ==================== 视图4：VIN更换页 ==================== -->
+      <div class="key-component-vin-change-view hidden">
+        <div class="check-form-area">
+          <div class="check-form-row">
+            <span class="check-form-label">订单号</span>
+            <div class="input-row">
+              <input
+                class="search-input input-vin-order-no"
+                type="text"
+                placeholder="请输入或扫码订单号"
+                autocomplete="off"
+              />
+              <button type="button" class="icon-btn btn-search btn-search-vin-order" aria-label="查询订单">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+              </button>
+              <button type="button" class="icon-btn btn-scan btn-scan-vin-order" aria-label="扫码订单">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">旧VIN</span>
+            <span class="info-tag old-vin-tag"></span>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">提示信息</span>
+            <span class="info-tag vin-change-tip-tag"></span>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">新VIN</span>
+            <div class="input-row">
+              <input
+                class="search-input input-new-vin"
+                type="text"
+                placeholder="请输入或扫码新VIN"
+                autocomplete="off"
+              />
+              <button type="button" class="icon-btn btn-scan btn-scan-new-vin" aria-label="扫码新VIN">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="check-form-row">
+            <span class="check-form-label">出厂编码</span>
+            <div class="input-row">
+              <input
+                class="search-input input-factory-code"
+                type="text"
+                placeholder="请输入或扫码出厂编码"
+                autocomplete="off"
+              />
+              <button type="button" class="icon-btn btn-scan btn-scan-factory-code" aria-label="扫码出厂编码">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-action-area">
+          <button type="button" class="btn-vin-change-confirm">确认</button>
+          <button type="button" class="btn-vin-change-back">返回</button>
+        </div>
+      </div>
+
       <!-- ==================== 循环结构模板 ==================== -->
       <template class="template-key-component-card">
         <div class="key-component-card">
