@@ -1128,7 +1128,7 @@ var KeyComponentChange = {
 
   // ============== 视图4：VIN更换 ==============
   /** 提示信息为前端固定文案（协议无该字段） */
-  VIN_CHANGE_TIP: "请核对旧VIN，扫码录入新VIN与出厂编码后点击确认",
+  VIN_CHANGE_TIP: "注:vin修改会同步修改订单信息、关重件、合格证、电池采集，请谨慎操作",
 
   /** 进入 VIN更换页：订单号预填当前订单号，有当前订单则自动查询旧VIN/出厂编码 */
   enterVinChangeView: function () {
