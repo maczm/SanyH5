@@ -278,31 +278,26 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 编码/名称/时间统一字号（继承结果行 font-size），时间只显示年月日 */
 .mom-assembly-material-check .check-result-row .cr-check-time {
   margin-left: auto;
   white-space: nowrap;
-  font-size: 12px;
   opacity: 0.75;
 }
 .mom-assembly-material-check .check-result-row .cr-join {
   color: var(--text-muted);
 }
-/* 结果徽标：与结果同行的独立小块（成功/失败） */
-.mom-assembly-material-check .check-result-row .cr-result-badge {
+/* 结果图标：与结果同行的对勾/叉（替代「成功/失败」文字，省空间） */
+.mom-assembly-material-check .check-result-row .cr-result-icon {
   flex-shrink: 0;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
 }
-.mom-assembly-material-check .check-result-row.pass .cr-result-badge {
-  background: #e6f4ea;
-  color: #1e7e34;
-}
-.mom-assembly-material-check .check-result-row.fail .cr-result-badge {
-  background: #fce8e6;
-  color: var(--error);
+.mom-assembly-material-check .check-result-row .cr-result-icon svg {
+  width: 1em;
+  height: 1em;
 }
 .mom-assembly-material-check .check-result-row.pass {
   color: #1e7e34;

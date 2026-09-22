@@ -60,6 +60,11 @@ var AssemblyMaterialCheck = {
       pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   },
 
+  /** 检查结果时间只到天（年月日），不带时分秒 */
+  today: function () {
+    return AssemblyMaterialCheck.now().split(" ")[0];
+  },
+
   /** 非阻断提示：3 秒自动消失，也可点击提前关闭 */
   showToast: function (title, content, type) {
     if (AssemblyMaterialCheck._toastTimer) {
@@ -326,11 +331,14 @@ var AssemblyMaterialCheck = {
 
   appendCheckRow: function (materialCode, materialDesc, checkResult) {
     var $row = AssemblyMaterialCheck.cloneTemplate("template-check-result-row");
-    $row.addClass(checkResult === "pass" ? "pass" : "fail");
-    $row.find(".cr-result-badge").text(checkResult === "pass" ? "成功" : "失败");
+    var isPass = checkResult === "pass";
+    $row.addClass(isPass ? "pass" : "fail");
+    // 结果用图标表达（对勾/叉），比「成功/失败」文字省空间
+    $row.find(".cr-icon-pass").toggleClass("hidden", !isPass);
+    $row.find(".cr-icon-fail").toggleClass("hidden", isPass);
     $row.find(".cr-material-code").text(materialCode);
     $row.find(".cr-material-desc").text(materialDesc);
-    $row.find(".cr-check-time").text(AssemblyMaterialCheck.now());
+    $row.find(".cr-check-time").text(AssemblyMaterialCheck.today());
     var $area = $(".check-result-area");
     $(".empty-check-result").addClass("hidden");
     // 检查列表按时间倒序：最新一条插到顶部
