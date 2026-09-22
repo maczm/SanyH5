@@ -278,7 +278,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 编码/名称/时间统一字号（继承结果行 font-size），时间只显示年月日 */
+/* 编码/名称/时间统一字号（继承结果行 font-size），时间只显示时分秒 */
 .mom-assembly-material-check .check-result-row .cr-check-time {
   margin-left: auto;
   white-space: nowrap;

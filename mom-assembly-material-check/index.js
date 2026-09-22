@@ -60,9 +60,9 @@ var AssemblyMaterialCheck = {
       pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
   },
 
-  /** 检查结果时间只到天（年月日），不带时分秒 */
-  today: function () {
-    return AssemblyMaterialCheck.now().split(" ")[0];
+  /** 检查结果时间只显示时分秒，不带年月日 */
+  currentTime: function () {
+    return AssemblyMaterialCheck.now().split(" ")[1];
   },
 
   /** 非阻断提示：3 秒自动消失，也可点击提前关闭 */
@@ -338,7 +338,7 @@ var AssemblyMaterialCheck = {
     $row.find(".cr-icon-fail").toggleClass("hidden", isPass);
     $row.find(".cr-material-code").text(materialCode);
     $row.find(".cr-material-desc").text(materialDesc);
-    $row.find(".cr-check-time").text(AssemblyMaterialCheck.today());
+    $row.find(".cr-check-time").text(AssemblyMaterialCheck.currentTime());
     var $area = $(".check-result-area");
     $(".empty-check-result").addClass("hidden");
     // 检查列表按时间倒序：最新一条插到顶部
