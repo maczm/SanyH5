@@ -70,6 +70,8 @@ var KeyComponentChange = {
     orderRequestSequence: 0,
     keyComponentRequestSequence: 0,
     vinInfoRequestSequence: 0,
+    vinChangeOldVin: "",
+    vinChangeOldFactoryCode: "",
   },
 
   _loadingCount: 0,
@@ -1147,6 +1149,9 @@ var KeyComponentChange = {
 
   /** 清空 VIN更换页的查询结果与录入项（进入/离开/提交成功复用） */
   resetVinChangeForm: function () {
+    var state = KeyComponentChange.state;
+    state.vinChangeOldVin = "";
+    state.vinChangeOldFactoryCode = "";
     $(".old-vin-tag").text("");
     $(".vin-change-tip-tag").text(KeyComponentChange.VIN_CHANGE_TIP);
     $(".input-new-vin").val("");
@@ -1171,13 +1176,18 @@ var KeyComponentChange = {
         KeyComponentChange.hideLoading();
         if (vinInfoRequestSequence !== state.vinInfoRequestSequence) return;
         if (res.code !== 0) {
+          state.vinChangeOldVin = "";
+          state.vinChangeOldFactoryCode = "";
           $(".old-vin-tag").text("");
           KeyComponentChange.showToast("查询失败", res.msg || "查询VIN信息失败", "error");
           return;
         }
+        // 旧VIN / 旧出厂编码落库到 state：出厂编码输入框会被操作员改写，提交时需要原值
         var data = res.data || {};
-        $(".old-vin-tag").text(data.oldVin || "");
-        $(".input-factory-code").val(data.factoryCode || "");
+        state.vinChangeOldVin = data.oldVin || "";
+        state.vinChangeOldFactoryCode = data.oldFactoryCode || "";
+        $(".old-vin-tag").text(state.vinChangeOldVin);
+        $(".input-factory-code").val(state.vinChangeOldFactoryCode);
       }
     );
   },
@@ -1203,7 +1213,8 @@ var KeyComponentChange = {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) return;
     var wipOrderNo = ($(".input-vin-order-no").val() || "").trim().toUpperCase();
-    var oldVin = ($(".old-vin-tag").text() || "").trim();
+    var oldVin = KeyComponentChange.state.vinChangeOldVin;
+    var oldFactoryCode = KeyComponentChange.state.vinChangeOldFactoryCode;
     var newVin = KeyComponentChange.removeWhitespace($(".input-new-vin").val()).toUpperCase();
     var factoryCode = KeyComponentChange.removeWhitespace($(".input-factory-code").val()).toUpperCase();
     // 回写去空格后的值：界面显示与提交内容保持一致
@@ -1244,7 +1255,9 @@ var KeyComponentChange = {
       [
         KeyComponentChange.buildTaskRequest("SaveVin", {
           wipOrderNo: wipOrderNo,
+          oldVin: oldVin,
           newVin: newVin,
+          oldFactoryCode: oldFactoryCode,
           factoryCode: factoryCode,
         }),
       ],

@@ -303,7 +303,7 @@ if (typeof window.KeyComponentChange_GetVinInfo != "function") {
       callback({
         code: 0,
         msg: "ok",
-        data: { oldVin: orderData.vin || "", factoryCode: orderData.factoryCode || "" },
+        data: { oldVin: orderData.vin || "", oldFactoryCode: orderData.factoryCode || "" },
       });
     }, MOCK_DELAY);
   };

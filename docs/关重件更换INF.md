@@ -190,14 +190,14 @@ window.KeyComponentChange_GetVinInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `oldVin` | string | 订单当前 VIN（页面「旧VIN」显示值） |
-| `factoryCode` | string | 出厂编码 |
+| `oldVin` | string | 订单当前 VIN（旧VIN，页面「旧VIN」显示值） |
+| `oldFactoryCode` | string | 订单当前出厂编码（旧出厂编码，回填页面「出厂编码」输入框供修改） |
 
 ## 保存 VIN
 
 ```js
 window.KeyComponentChange_SaveVin(
-  { taskType: "SaveVin", reported: { wipOrderNo, newVin, factoryCode } }, callback)
+  { taskType: "SaveVin", reported: { wipOrderNo, oldVin, newVin, oldFactoryCode, factoryCode } }, callback)
 ```
 
 **入参** `reported`
@@ -205,8 +205,10 @@ window.KeyComponentChange_SaveVin(
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `wipOrderNo` | string | 是 | 订单号 |
+| `oldVin` | string | 是 | 旧VIN（查询 VIN 信息 返回） |
 | `newVin` | string | 是 | 新VIN（VIN更换页 新VIN输入框） |
-| `factoryCode` | string | 是 | 出厂编码（VIN更换页 出厂编码输入框） |
+| `oldFactoryCode` | string | 是 | 旧出厂编码（查询 VIN 信息 返回） |
+| `factoryCode` | string | 是 | 出厂编码（VIN更换页 出厂编码输入框，本次录入的新值） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
 
