@@ -1182,13 +1182,21 @@ var KeyComponentChange = {
     );
   },
 
+  /** 新VIN / 出厂编码统一去除全部空白字符（扫码枪与手输常带空格） */
+  removeWhitespace: function (value) {
+    return String(value || "").replace(/\s+/g, "");
+  },
+
   saveVinChange: function () {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) return;
     var wipOrderNo = ($(".input-vin-order-no").val() || "").trim();
     var oldVin = ($(".old-vin-tag").text() || "").trim();
-    var newVin = ($(".input-new-vin").val() || "").trim();
-    var factoryCode = ($(".input-factory-code").val() || "").trim();
+    var newVin = KeyComponentChange.removeWhitespace($(".input-new-vin").val());
+    var factoryCode = KeyComponentChange.removeWhitespace($(".input-factory-code").val());
+    // 回写去空格后的值：界面显示与提交内容保持一致
+    $(".input-new-vin").val(newVin);
+    $(".input-factory-code").val(factoryCode);
     if (!wipOrderNo) {
       KeyComponentChange.showToast("提示", "请输入或扫码订单号", "error");
       return;
@@ -1201,8 +1209,20 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", "请输入或扫码新VIN", "error");
       return;
     }
+    if (newVin.length !== 17) {
+      KeyComponentChange.showToast("提示", "新VIN必须为17位", "error");
+      return;
+    }
     if (!factoryCode) {
       KeyComponentChange.showToast("提示", "请输入或扫码出厂编码", "error");
+      return;
+    }
+    if (factoryCode.length !== 16) {
+      KeyComponentChange.showToast("提示", "出厂编码必须为16位", "error");
+      return;
+    }
+    if (newVin.slice(-5) !== factoryCode.slice(-5)) {
+      KeyComponentChange.showToast("提示", "新VIN与出厂编码后五位不一致", "error");
       return;
     }
     state.isSubmitting = true;
