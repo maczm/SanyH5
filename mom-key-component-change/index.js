@@ -1187,13 +1187,25 @@ var KeyComponentChange = {
     return String(value || "").replace(/\s+/g, "");
   },
 
+  /** VIN更换页输入统一转大写（VIN / 出厂编码不区分大小写录入；保留光标位置） */
+  normalizeVinInputCase: function ($input) {
+    var upperValue = ($input.val() || "").toUpperCase();
+    if ($input.val() === upperValue) return;
+    var selectionStart = $input[0].selectionStart;
+    var selectionEnd = $input[0].selectionEnd;
+    $input.val(upperValue);
+    if (typeof selectionStart === "number" && typeof selectionEnd === "number") {
+      $input[0].setSelectionRange(selectionStart, selectionEnd);
+    }
+  },
+
   saveVinChange: function () {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) return;
-    var wipOrderNo = ($(".input-vin-order-no").val() || "").trim();
+    var wipOrderNo = ($(".input-vin-order-no").val() || "").trim().toUpperCase();
     var oldVin = ($(".old-vin-tag").text() || "").trim();
-    var newVin = KeyComponentChange.removeWhitespace($(".input-new-vin").val());
-    var factoryCode = KeyComponentChange.removeWhitespace($(".input-factory-code").val());
+    var newVin = KeyComponentChange.removeWhitespace($(".input-new-vin").val()).toUpperCase();
+    var factoryCode = KeyComponentChange.removeWhitespace($(".input-factory-code").val()).toUpperCase();
     // 回写去空格后的值：界面显示与提交内容保持一致
     $(".input-new-vin").val(newVin);
     $(".input-factory-code").val(factoryCode);
@@ -1341,20 +1353,32 @@ var KeyComponentChange = {
       KeyComponentChange.enterVinChangeView();
     });
 
-    // 视图4：VIN更换
+    // 视图4：VIN更换（输入/扫码统一转大写）
+    $(".key-component-vin-change-view").on(
+      "input",
+      ".input-vin-order-no, .input-new-vin, .input-factory-code",
+      function () {
+        KeyComponentChange.normalizeVinInputCase($(this));
+      }
+    );
     $(".key-component-vin-change-view").on("click", ".btn-search-vin-order", function () {
       KeyComponentChange.queryVinInfo();
     });
     $(".key-component-vin-change-view").on("click", ".btn-scan-vin-order", function () {
       KeyComponentChange.doScan(".input-vin-order-no", function () {
+        KeyComponentChange.normalizeVinInputCase($(".input-vin-order-no"));
         KeyComponentChange.queryVinInfo();
       });
     });
     $(".key-component-vin-change-view").on("click", ".btn-scan-new-vin", function () {
-      KeyComponentChange.doScan(".input-new-vin", function () {});
+      KeyComponentChange.doScan(".input-new-vin", function () {
+        KeyComponentChange.normalizeVinInputCase($(".input-new-vin"));
+      });
     });
     $(".key-component-vin-change-view").on("click", ".btn-scan-factory-code", function () {
-      KeyComponentChange.doScan(".input-factory-code", function () {});
+      KeyComponentChange.doScan(".input-factory-code", function () {
+        KeyComponentChange.normalizeVinInputCase($(".input-factory-code"));
+      });
     });
     $(".key-component-vin-change-view").on("click", ".btn-vin-change-confirm", function () {
       KeyComponentChange.saveVinChange();
