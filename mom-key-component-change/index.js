@@ -20,7 +20,8 @@ var KeyComponentChange = {
     searchOrder: { visible: true, permitted: true },
     scanOrder: { visible: true, permitted: true },
     searchMaterial: { visible: true, permitted: true },
-    scanMaterial: { visible: true, permitted: true },
+    // 扫码 API 待修复：当前用 PDA 直接键入物料二维码，修复后置回 visible: true
+    scanMaterial: { visible: false, permitted: true },
     unbind: { visible: true, permitted: true },
     complete: { visible: true, permitted: true },
     deleteSerial: { visible: true, permitted: true, deniedMessage: "没有权限，请扫码更换" },
