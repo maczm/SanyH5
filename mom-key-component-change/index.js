@@ -20,7 +20,9 @@ var KeyComponentChange = {
     searchOrder: { visible: true, permitted: true },
     scanOrder: { visible: true, permitted: true },
     searchMaterial: { visible: true, permitted: true },
-    // 扫码 API 待修复：当前用 PDA 直接键入物料二维码，修复后置回 visible: true
+    // 物料二维码是「物料编码|供应商|序列号:数量」复合串，扫码 API 会对内容做处理、只返回最后一个值，
+    // 无法原样返回整串（订单号/VIN/新VIN/出厂编码都是单值，不受影响）→ 该 📷 默认隐藏，当前用 PDA 键入；
+    // 待扫码 API 支持原样返回后置回 visible: true
     scanMaterial: { visible: false, permitted: true },
     unbind: { visible: true, permitted: true },
     complete: { visible: true, permitted: true },
