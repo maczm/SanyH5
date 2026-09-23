@@ -135,15 +135,15 @@ window.KeyComponentChange_Remove(
 window.KeyComponentChange_GetRemoveKeyComponentInfo(
   { taskType: "GetRemoveKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
 window.KeyComponentChange_GetChangeKeyComponentInfo(
-  { taskType: "GetChangeKeyComponentInfo", reported: { wipOrderNo, wipOrderType, materialNo } }, callback)
+  { taskType: "GetChangeKeyComponentInfo", reported: { wipOrderNo, wipOrderType, materialNo, materialSeq } }, callback)
 ```
 
 **入参** `reported`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `wipOrderNo` | string | 是 | 改制订单号（查询订单信息 返回） |
-| `wipOrderType` | number | 是 | 订单类型（改制订单为 2） |
+| `wipOrderNo` | string | 是 | 订单号（查询订单信息 返回） |
+| `wipOrderType` | number | 是 | 订单类型（查询订单信息 返回：1=生产订单，2=改制订单） |
 | `materialNo` | string | 仅 查询待更换明细 | 关重件物料编码（查询待更换明细 按该物料过滤更换清单） |
 | `materialSeq` | string | 否 | 关重件序号（查询待更换明细 按位置过滤旧件）：`"1"`=只回前电机旧件 / `"2"`=只回后电机旧件 / `""`=不按位置过滤；由位置弹窗人工选择或页面自动分配的结果带入 |
 
