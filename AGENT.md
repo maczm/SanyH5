@@ -145,6 +145,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 - 回车处理统一入口：委托在页面根容器上按输入框 class 分派，并跳过输入法组字中的回车（`isComposing` 或 `keyCode === 229`）
 - **扫码类输入框的键盘控制**：输入框平时保持可编辑（扫码枪可直接键入、连续扫码），**程序化聚焦时先临时 `readonly` 再聚焦**（聚焦瞬间只读 → 不弹软键盘），聚焦后解锁；手动点击照常弹键盘。摄像头扫码与扫码枪两种方式因此并存（OpenCamera 契约见 §12.4）
 - 页面初次渲染（初始显隐状态）必须在 `initPage` 中显式执行一次
+- **表单宿主可能在根容器上方留不可见占位**（实测 6px，而父层 `padding`/`border` 均为 0）：统一用 `compensateHostTopGap()` 抵消——先复位 `margin-top`，再测「根容器顶部偏移 − 父层顶部偏移」，仅当父层无 `padding`/`border` 且差值在 40px 以内时施加等量负 margin；**必须紧接在 `fitPageHeight()` 之前执行**（顺序反了高度会按旧偏移计算），`resize` 时同样先抵消后算高。本地直开 / iframe 嵌入时父层为 `body`、差值为 0，自然 no-op
 
 ### 8.5 UI 一致性规范（用户确认的交互标准）
 

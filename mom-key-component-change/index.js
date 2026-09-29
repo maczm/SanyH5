@@ -1306,6 +1306,23 @@ var KeyComponentChange = {
   },
 
   // ============== 页面尺寸（表单宿主无高度链时按视口自适应，避免整页滚动条） ==============
+  /**
+   * 表单宿主（Apriso 表单 DIV）可能在根容器上方留下不可见占位（实测 6px）：
+   * 父层没有 padding/border 时该占位不可能是宿主有意留白，用等量负 margin 抵消，让页面顶到宿主内容区顶部；
+   * 抵消必须在 fitPageHeight() 之前执行，否则高度仍按旧的顶部偏移计算。
+   */
+  compensateHostTopGap: function () {
+    var $root = $(".mom-key-component-change");
+    if (!$root.length) return;
+    $root.css("margin-top", "");
+    var $host = $root.parent();
+    if ((parseFloat($host.css("padding-top")) || 0) > 0) return;
+    if ((parseFloat($host.css("border-top-width")) || 0) > 0) return;
+    var gap = Math.round($root.offset().top - $host.offset().top);
+    if (gap <= 0 || gap > 40) return;
+    $root.css("margin-top", -gap + "px");
+  },
+
   fitPageHeight: function () {
     var $root = $(".mom-key-component-change");
     if (!$root.length) return;
@@ -1487,9 +1504,11 @@ var KeyComponentChange = {
     KeyComponentChange.applyHeaderVisibility();
     KeyComponentChange.initEvents();
     KeyComponentChange.applyButtonSwitch();
+    KeyComponentChange.compensateHostTopGap();
     KeyComponentChange.renderKeyComponentList();
     KeyComponentChange.fitPageHeight();
     $(window).on("resize", function () {
+      KeyComponentChange.compensateHostTopGap();
       KeyComponentChange.fitPageHeight();
     });
     setTimeout(function () {
