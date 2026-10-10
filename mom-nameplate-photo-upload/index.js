@@ -4,6 +4,7 @@ var CONFIG = {
   MAX_IMAGE_HEIGHT: 3000,
   JPEG_QUALITY: 0.8,
   API_TIMEOUT: 10000, // API 超时兜底（毫秒）
+  RETURN_DELAY: 600, // 关重件入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
 };
 
 /*
@@ -28,7 +29,8 @@ var CONFIG = {
  * 入口模式（关重件页面进入）：
  *   window.fromKeyPart === "KeyPart" 时按钮文案为「保存并返回」，并读取
  *   window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
- *   「返回」由 Portal 自行处理，页面不调用任何导航/关闭函数。
+ *   保存成功后调用 window.KeyComponentChange_ReturnFromPhotoUpload() 交回关重件页面
+ *   （Portal 注入并实现，页面不自行做任何导航/关闭）
  *
  * Portal 必须注入以下 4 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
@@ -260,6 +262,19 @@ var NameplatePhotoUpload = {
   /** 关重件页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
   isKeyPartEntry: function () {
     return window.fromKeyPart === "KeyPart";
+  },
+
+  /**
+   * 返回关重件页面：调用 Portal 注入的 window.KeyComponentChange_ReturnFromPhotoUpload()
+   * （该函数由 Portal 侧实现；未注入时静默跳过，本地开发不影响流程）
+   * 延迟一小段再调，让「保存成功」提示先渲染出来，避免整页切走导致用户看不到结果
+   */
+  returnToKeyPartPage: function () {
+    setTimeout(function () {
+      if (typeof window.KeyComponentChange_ReturnFromPhotoUpload === "function") {
+        window.KeyComponentChange_ReturnFromPhotoUpload();
+      }
+    }, CONFIG.RETURN_DELAY);
   },
 
   /** 按钮文案随入口切换：关重件进入为「保存并返回」（返回动作由 Portal 处理），否则为「保存」 */
@@ -1021,13 +1036,14 @@ var NameplatePhotoUpload = {
         var count = (NameplatePhotoUpload.state.photos[photoType.typeCode] || []).length;
         rows.push({ label: photoType.typeName, value: count + " 张（" + photoType.minCount + "~" + photoType.maxCount + "）" });
       });
-      if (NameplatePhotoUpload.state.fromKeyPart) {
-        rows.push({ label: "返回", value: "请返回关重件页面继续操作" });
-      }
-
       NameplatePhotoUpload.showToast(actionText + "成功", rows, "success", function () {
         NameplatePhotoUpload.resetForm();
       });
+
+      // 关重件入口：保存成功后交回关重件页面（返回方法由 Portal 实现）
+      if (NameplatePhotoUpload.state.fromKeyPart) {
+        NameplatePhotoUpload.returnToKeyPartPage();
+      }
     });
   },
 

@@ -163,6 +163,16 @@ if (typeof window.submitPhotoRecord != "function") {
   };
 }
 
+// -- Mock 返回关重件页面（生产由 Portal 注入实现，见 docs/铭牌照片上传INF.md）--
+// window.returnFromPhotoUploadCount：本地联调探针，便于确认保存成功后确实触发了返回
+if (typeof window.KeyComponentChange_ReturnFromPhotoUpload != "function") {
+  window.returnFromPhotoUploadCount = 0;
+  window.KeyComponentChange_ReturnFromPhotoUpload = function () {
+    window.returnFromPhotoUploadCount++;
+    console.log("[Mock] KeyComponentChange_ReturnFromPhotoUpload 被调用（生产由 Portal 实现返回导航）");
+  };
+}
+
 // -- Mock 操作员 --
 if (!window.Operator) {
   window.Operator = "开发用户";

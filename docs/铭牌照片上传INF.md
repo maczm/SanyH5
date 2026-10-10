@@ -138,8 +138,26 @@ window.KeyPartOrderNo         // 由关重件页面带入的订单号（可选�
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
-| `fromKeyPart` | string | 等于 `"KeyPart"` 时：底部按钮文案为「保存并返回」（否则为「保存」）；保存成功后提示会提示可返回，**返回动作由 Portal 自行处理**（页面不调用任何导航/关闭函数） |
+| `fromKeyPart` | string | 等于 `"KeyPart"` 时：底部按钮文案为「保存并返回」（否则为「保存」）；保存成功后页面调用下方的返回方法交回关重件页面 |
 | `KeyPartStationCode` | string | 与 `fromKeyPart` 配套带入；存在时页面预填工位并在工位列表返回后自动匹配 |
 | `KeyPartOrderNo` | string | 与 `fromKeyPart` 配套带入；与工位同时存在时页面自动发起一次照片配置查询 |
 
 > 两属性缺省/为空时页面不预填，按正常手工查询流程使用；本地开发由 `mock.js` 提供兜底值。
+
+## API-N5：返回关重件页面（页面调用，Portal 实现）
+
+```js
+window.KeyComponentChange_ReturnFromPhotoUpload()
+window.KeyComponentChange_ReturnFromPhotoUpload   // 必须是函数；页面用 typeof 检测
+```
+
+**调用时机**：`window.fromKeyPart === "KeyPart"` 且保存接口（API-N4）返回 `code: 0` 之后，页面延迟 600ms（先让「保存成功」提示渲染出来）调用一次，**无入参、不接收返回值/回调**。
+
+**页面侧行为**：
+
+| 情况 | 行为 |
+|---|---|
+| 已注入该函数 | 保存成功后调用一次，由 Portal 执行返回导航（关页 / 回上一页等自行决定） |
+| 未注入（本地开发） | 静默跳过，不报错；`mock.js` 提供空实现便于本地联调（生产不部署） |
+
+> 页面不自行做任何导航（不调用 `history.back()`、不操作 `window.parent`）；返回方式完全由 Portal 在该函数内决定。
