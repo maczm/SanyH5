@@ -108,7 +108,7 @@ window.submitPhotoRecord({
 | `templateId` | string | 是 | 选中的模板 ID（无模板/未选时为空字符串） |
 | `templateImageUrl` | string | 是 | 选中的模板图片 URL（无模板/未选时为空字符串） |
 | `saveType` | string | 是 | 固定为 `"save"`（页面只做保存，不再提交 AI 检测） |
-| `toKeyPart` | boolean | 是 | 是否由关重件页面进入（即按钮文案「保存并返回」场景） |
+| `toKeyPart` | boolean | 是 | 是否由关重件绑定（KeyPart）页面进入（即按钮文案「保存并返回」场景） |
 | `photos` | array | 是 | 照片列表，按类型分组 |
 
 **photos 每项**
@@ -131,24 +131,24 @@ window.submitPhotoRecord({
 ## 页面配置与入口（Portal 注入属性）
 
 ```js
-window.fromKeyPart            // 入口标识：值为 "KeyPart" 表示由关重件页面进入
-window.KeyPartStationCode     // 由关重件页面带入的工位编码（可选，用于预填并自动查询）
-window.KeyPartOrderNo         // 由关重件页面带入的订单号（可选，用于预填并自动查询）
+window.fromKeyPart            // 入口标识：值为 "KeyPart" 表示由关重件绑定页面进入
+window.KeyPartStationCode     // 由关重件绑定页面带入的工位编码（可选，用于预填并自动查询）
+window.KeyPartOrderNo         // 由关重件绑定页面带入的订单号（可选，用于预填并自动查询）
 ```
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
-| `fromKeyPart` | string | 等于 `"KeyPart"` 时：底部按钮文案为「保存并返回」（否则为「保存」）；保存成功后页面调用下方的返回方法交回关重件页面 |
+| `fromKeyPart` | string | 等于 `"KeyPart"` 时：底部按钮文案为「保存并返回」（否则为「保存」）；保存成功后页面调用下方的返回方法交回关重件绑定页面 |
 | `KeyPartStationCode` | string | 与 `fromKeyPart` 配套带入；存在时页面预填工位并在工位列表返回后自动匹配 |
 | `KeyPartOrderNo` | string | 与 `fromKeyPart` 配套带入；与工位同时存在时页面自动发起一次照片配置查询 |
 
 > 两属性缺省/为空时页面不预填，按正常手工查询流程使用；本地开发由 `mock.js` 提供兜底值。
 
-## API-N5：返回关重件页面（页面调用，Portal 实现）
+## API-N5：返回关重件绑定页面（页面调用，Portal 实现）
 
 ```js
-window.KeyComponentChange_ReturnFromPhotoUpload()
-window.KeyComponentChange_ReturnFromPhotoUpload   // 必须是函数；页面用 typeof 检测
+window.KeyPart_ReturnFromPhotoUpload()
+window.KeyPart_ReturnFromPhotoUpload   // 必须是函数；页面用 typeof 检测
 ```
 
 **调用时机**：`window.fromKeyPart === "KeyPart"` 且保存接口（API-N4）返回 `code: 0` 之后，页面延迟 600ms（先让「保存成功」提示渲染出来）调用一次，**无入参、不接收返回值/回调**。

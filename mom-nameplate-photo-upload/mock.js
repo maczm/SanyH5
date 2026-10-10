@@ -4,8 +4,8 @@
 // 删除本文件即可完全移除 Mock，业务代码零改动。
 var MOCK_DELAY = 500;
 
-// -- Mock 入口模式（对应 Portal 注入的 fromKeyPart / KeyPartStationCode / KeyPartOrderNo）--
-// MOCK_FROM_KEY_PART = true：模拟「由关重件页面进入」——按钮文案变「保存并返回」，
+// -- Mock 入口模式（对应关重件绑定页注入的 fromKeyPart / KeyPartStationCode / KeyPartOrderNo）--
+// MOCK_FROM_KEY_PART = true：模拟「由关重件绑定页面进入」——按钮文案变「保存并返回」，
 // 并按下方工位/订单号自动查询；改成 false 即回到正常入口（按钮为「保存」）。
 var MOCK_FROM_KEY_PART = true;
 if (typeof window.fromKeyPart !== "string") {
@@ -163,13 +163,13 @@ if (typeof window.submitPhotoRecord != "function") {
   };
 }
 
-// -- Mock 返回关重件页面（生产由 Portal 注入实现，见 docs/铭牌照片上传INF.md）--
+// -- Mock 返回关重件绑定页面（生产由 Portal 注入实现，见 docs/铭牌照片上传INF.md）--
 // window.returnFromPhotoUploadCount：本地联调探针，便于确认保存成功后确实触发了返回
-if (typeof window.KeyComponentChange_ReturnFromPhotoUpload != "function") {
+if (typeof window.KeyPart_ReturnFromPhotoUpload != "function") {
   window.returnFromPhotoUploadCount = 0;
-  window.KeyComponentChange_ReturnFromPhotoUpload = function () {
+  window.KeyPart_ReturnFromPhotoUpload = function () {
     window.returnFromPhotoUploadCount++;
-    console.log("[Mock] KeyComponentChange_ReturnFromPhotoUpload 被调用（生产由 Portal 实现返回导航）");
+    console.log("[Mock] KeyPart_ReturnFromPhotoUpload 被调用（生产由 Portal 实现返回导航）");
   };
 }
 

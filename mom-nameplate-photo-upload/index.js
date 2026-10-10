@@ -4,7 +4,7 @@ var CONFIG = {
   MAX_IMAGE_HEIGHT: 3000,
   JPEG_QUALITY: 0.8,
   API_TIMEOUT: 10000, // API 超时兜底（毫秒）
-  RETURN_DELAY: 600, // 关重件入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
+  RETURN_DELAY: 600, // 关重件绑定入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
 };
 
 /*
@@ -23,13 +23,13 @@ var CONFIG = {
  *   API 1 (工位列表) : 获取工位列表
  *   API 2 (照片配置) : 获取照片类型配置（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
- *   API 4 (记录保存) : 保存工位照片信息（saveType 固定 "save"、toKeyPart 标识关重件入口；不触发 AI 检测）
+ *   API 4 (记录保存) : 保存工位照片信息（saveType 固定 "save"、toKeyPart 标识关重件绑定入口；不触发 AI 检测）
  *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
- * 入口模式（关重件页面进入）：
+ * 入口模式（关重件绑定 KeyPart 页面进入）：
  *   window.fromKeyPart === "KeyPart" 时按钮文案为「保存并返回」，并读取
  *   window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
- *   保存成功后调用 window.KeyComponentChange_ReturnFromPhotoUpload() 交回关重件页面
+ *   保存成功后调用 window.KeyPart_ReturnFromPhotoUpload() 交回关重件绑定页面
  *   （Portal 注入并实现，页面不自行做任何导航/关闭）
  *
  * Portal 必须注入以下 4 个 window 属性：
@@ -259,25 +259,25 @@ var NameplatePhotoUpload = {
     NameplatePhotoUpload.updateButtons();
   },
 
-  /** 关重件页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
+  /** 关重件绑定（KeyPart）页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
   isKeyPartEntry: function () {
     return window.fromKeyPart === "KeyPart";
   },
 
   /**
-   * 返回关重件页面：调用 Portal 注入的 window.KeyComponentChange_ReturnFromPhotoUpload()
+   * 返回关重件绑定页面：调用 Portal 注入的 window.KeyPart_ReturnFromPhotoUpload()
    * （该函数由 Portal 侧实现；未注入时静默跳过，本地开发不影响流程）
    * 延迟一小段再调，让「保存成功」提示先渲染出来，避免整页切走导致用户看不到结果
    */
   returnToKeyPartPage: function () {
     setTimeout(function () {
-      if (typeof window.KeyComponentChange_ReturnFromPhotoUpload === "function") {
-        window.KeyComponentChange_ReturnFromPhotoUpload();
+      if (typeof window.KeyPart_ReturnFromPhotoUpload === "function") {
+        window.KeyPart_ReturnFromPhotoUpload();
       }
     }, CONFIG.RETURN_DELAY);
   },
 
-  /** 按钮文案随入口切换：关重件进入为「保存并返回」（返回动作由 Portal 处理），否则为「保存」 */
+  /** 按钮文案随入口切换：关重件绑定进入为「保存并返回」（返回动作由 Portal 处理），否则为「保存」 */
   applySaveButtonLabel: function () {
     $(".btn-save").text(NameplatePhotoUpload.state.fromKeyPart ? "保存并返回" : "保存");
   },
@@ -921,7 +921,7 @@ var NameplatePhotoUpload = {
       templateId: state.selectedTemplateId,
       templateImageUrl: state.selectedTemplateUrl,
       saveType: "save", // 页面只做保存，不再提交 AI 检测
-      toKeyPart: state.fromKeyPart, // 是否关重件页面入口（按钮文案「保存并返回」场景）
+      toKeyPart: state.fromKeyPart, // 是否关重件绑定页面入口（按钮文案「保存并返回」场景）
       photos: photoList,
     };
   },
@@ -1040,7 +1040,7 @@ var NameplatePhotoUpload = {
         NameplatePhotoUpload.resetForm();
       });
 
-      // 关重件入口：保存成功后交回关重件页面（返回方法由 Portal 实现）
+      // 关重件绑定入口：保存成功后交回关重件绑定页面（返回方法由 Portal 实现）
       if (NameplatePhotoUpload.state.fromKeyPart) {
         NameplatePhotoUpload.returnToKeyPartPage();
       }
@@ -1260,7 +1260,7 @@ var NameplatePhotoUpload = {
 
     NameplatePhotoUpload.loadStationList();
 
-    // 关重件页面入口：用带入的工位与订单号预填并自动查询，省去现场重复输入
+    // 关重件绑定页面入口：用带入的工位与订单号预填并自动查询，省去现场重复输入
     var keyPartStationCode = window.KeyPartStationCode || "";
     var keyPartOrderNo = window.KeyPartOrderNo || "";
     if (NameplatePhotoUpload.state.fromKeyPart && keyPartStationCode && keyPartOrderNo) {
@@ -1269,7 +1269,7 @@ var NameplatePhotoUpload = {
   },
 
   /**
-   * 关重件入口预填：先落下订单号，工位编码待工位列表就绪后按编码匹配（匹配不到只填编码原文）
+   * 关重件绑定入口预填：先落下订单号，工位编码待工位列表就绪后按编码匹配（匹配不到只填编码原文）
    * 两者齐备后自动发起一次照片配置查询
    */
   prefillKeyPartOrder: function (keyPartStationCode, keyPartOrderNo) {
