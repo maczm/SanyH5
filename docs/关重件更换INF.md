@@ -211,13 +211,3 @@ window.KeyComponentChange_SaveVin(
 | `factoryCode` | string | 是 | 出厂编码（VIN更换页 出厂编码输入框，本次录入的新值） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
-
-## 页面配置（Portal 注入属性）
-
-```js
-window.KeyComponentChangeHideHeader
-```
-
-| 属性 | 类型 | 说明 |
-|---|---|---|
-| `KeyComponentChangeHideHeader` | boolean | `true` = 隐藏页面表头（标题栏）；`false` / 未注入 = 显示表头 |

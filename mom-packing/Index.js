@@ -837,19 +837,6 @@ var Packing = {
       return;
     }
 
-    // 头部：操作员 + 时钟
-    $(".header-operator").text(window.Operator);
-
-    function now() {
-      var d = new Date();
-      var pad = function (n) { return n < 10 ? "0" + n : n; };
-      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
-    }
-    $(".header-time").text(now());
-    setInterval(function () {
-      $(".header-time").text(now());
-    }, 1000);
-
     Packing.initEvents();
 
     Packing.updateStepIndicator(0);

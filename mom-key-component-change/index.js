@@ -2,7 +2,6 @@
 // 数据来源：Portal 注入的 window.KeyComponentChange_* 九个接口（callback 风格，
 // 信封 { code, msg, data }，code 0 为成功），入参统一 { taskType, reported }。
 // 本地开发由同目录 mock.js 兜底（生产不部署，Portal 只取 index.html / index.js / index.css）。
-// 另有 Portal 注入属性 window.KeyComponentChangeHideHeader：true 时隐藏页面表头（协议见 docs/关重件更换INF.md）。
 
 // ============== Portal 表单回车提交拦截 ==============
 // 平台约定：页面定义该空实现钩子即可（定义即生效），不需要页面调用，用于消除输入框回车提交刷新。
@@ -126,26 +125,6 @@ var KeyComponentChange = {
   },
 
   // ============== 时间与格式化 ==============
-  now: function () {
-    var d = new Date();
-    var pad = function (n) {
-      return n < 10 ? "0" + n : n;
-    };
-    return (
-      d.getFullYear() +
-      "-" +
-      pad(d.getMonth() + 1) +
-      "-" +
-      pad(d.getDate()) +
-      " " +
-      pad(d.getHours()) +
-      ":" +
-      pad(d.getMinutes()) +
-      ":" +
-      pad(d.getSeconds())
-    );
-  },
-
   /** 扫描时间统一为 "YYYY-MM-DD HH:mm:ss"（兼容 ISO 的 T 分隔），显示与排序共用 */
   normalizeTime: function (value) {
     return String(value || "")
@@ -1297,14 +1276,6 @@ var KeyComponentChange = {
     });
   },
 
-  // ============== 页面配置（Portal 注入属性，协议见 docs/关重件更换INF.md） ==============
-  /** 表头显隐：window.KeyComponentChangeHideHeader 为 true 时隐藏表头；缺省/其它值显示 */
-  applyHeaderVisibility: function () {
-    var hideHeader = window.KeyComponentChangeHideHeader === true;
-    $(".page-header").toggleClass("hidden", hideHeader);
-    $(".mom-key-component-change").toggleClass("header-hidden", hideHeader);
-  },
-
   // ============== 页面尺寸（表单宿主无高度链时按视口自适应，避免整页滚动条） ==============
   /**
    * 表单宿主（Apriso 表单 DIV）可能在根容器上方留下不可见占位（实测 6px）：
@@ -1495,13 +1466,6 @@ var KeyComponentChange = {
       return;
     }
 
-    var now = KeyComponentChange.now;
-    $(".header-time").text(now());
-    setInterval(function () {
-      $(".header-time").text(now());
-    }, 1000);
-
-    KeyComponentChange.applyHeaderVisibility();
     KeyComponentChange.initEvents();
     KeyComponentChange.applyButtonSwitch();
     KeyComponentChange.compensateHostTopGap();

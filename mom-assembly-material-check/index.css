@@ -60,30 +60,6 @@ body {
   display: none !important;
 }
 
-/* ==================== 页面头部 ==================== */
-.mom-assembly-material-check .page-header {
-  background: var(--gradient-primary);
-  color: #fff;
-  padding: 12px 16px;
-  padding-top: calc(12px + env(safe-area-inset-top));
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
-}
-.mom-assembly-material-check .page-header .header-title {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-.mom-assembly-material-check .page-header .header-time {
-  font-size: 12px;
-  opacity: 0.75;
-  margin-left: auto;
-  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
-}
-
 /* ==================== 视图容器（空间分配：内容区占满，底栏按需） ==================== */
 .mom-assembly-material-check .station-select-view,
 .mom-assembly-material-check .material-check-view {
@@ -520,17 +496,6 @@ body {
 
 /* 屏窄（≤420px）或屏矮（≤600px）时压缩排布，元素全部保留 */
 @media (max-width: 420px), (max-height: 600px) {
-  .mom-assembly-material-check .page-header {
-    padding: 8px 12px;
-    padding-top: calc(8px + env(safe-area-inset-top));
-  }
-  .mom-assembly-material-check .page-header .header-title {
-    font-size: 14px;
-  }
-  .mom-assembly-material-check .page-header .header-time {
-    font-size: 11px;
-  }
-
   .mom-assembly-material-check .check-form-area {
     padding: 6px 10px;
   }

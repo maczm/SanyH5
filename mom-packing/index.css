@@ -65,27 +65,6 @@ body {
   overflow: hidden;
 }
 
-/* ==================== 页面头部 ==================== */
-.mom-packing-app .page-header {
-  background: var(--gradient-primary);
-  color: #fff;
-  padding: 10px 16px;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.mom-packing-app .page-header .header-operator {
-  font-size: 14px;
-  font-weight: 500;
-}
-.mom-packing-app .page-header .header-time {
-  font-size: 13px;
-  opacity: 0.85;
-  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
-}
-
 /* ==================== 步骤指示器 ==================== */
 .mom-packing-app .step-indicator {
   display: flex;

@@ -2,7 +2,6 @@
   --primary: #1976d2;
   --primary-dark: #1565c0;
   --primary-bg: #e3f2fd;
-  --gradient-primary: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #1e88e5 100%);
   --border-color: #e8eaed;
   --text-muted: #9aa0a6;
   --text-secondary: #5f6368;
@@ -51,29 +50,10 @@ body {
   flex-direction: column;
 }
 
-/* ==================== 页面头部 ==================== */
-.mom-check-result .page-header {
-  background: var(--gradient-primary);
-  color: #fff;
-  padding: 12px 16px;
-  padding-top: calc(12px + env(safe-area-inset-top));
-  padding-right: 96px; /* 为固定右上角的返回按钮让位，避免遮挡时钟 */
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
-}
-.mom-check-result .page-header .header-title {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-.mom-check-result .page-header .header-time {
-  font-size: 12px;
-  opacity: 0.75;
-  margin-left: auto;
-  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+/* ==================== 顶部悬浮按钮占位 ==================== */
+/* 返回按钮固定在右上角，页面顶部留出按钮高度，避免压住结论横幅 */
+.mom-check-result {
+  padding-top: calc(48px + env(safe-area-inset-top));
 }
 
 /* ==================== 返回按钮（固定右上角，行为由 JS 绑定） ==================== */

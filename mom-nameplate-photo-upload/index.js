@@ -1171,18 +1171,6 @@ var NameplatePhotoUpload = {
 
     NameplatePhotoUpload.state.fromKeyPart = NameplatePhotoUpload.isKeyPartEntry();
 
-    $(".header-operator").text(window.Operator);
-
-    function now() {
-      var d = new Date();
-      var pad = function (n) { return n < 10 ? "0" + n : n; };
-      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
-    }
-    $(".header-time").text(now());
-    setInterval(function () {
-      $(".header-time").text(now());
-    }, 1000);
-
     NameplatePhotoUpload.initEvents();
 
     // 渲染初始表单状态（按钮文案按入口切换、查询前置灰）

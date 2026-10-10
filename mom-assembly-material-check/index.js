@@ -484,12 +484,6 @@ var AssemblyMaterialCheck = {
       return;
     }
 
-    var now = AssemblyMaterialCheck.now;
-    $(".header-time").text(now());
-    setInterval(function () {
-      $(".header-time").text(now());
-    }, 1000);
-
     AssemblyMaterialCheck.initEvents();
     AssemblyMaterialCheck.applyScanButtonSwitch();
     AssemblyMaterialCheck.fitPageHeight();
