@@ -121,10 +121,15 @@ if (typeof window.uploadPhoto != "function") {
 }
 
 // -- Mock API 4：记录提交/保存（saveType 区分） --
+// window.lastSubmitPhotoRecord / window.submitPhotoRecordCount：本地联调探针（生产不部署本文件）
+// window.MOCK_FORCE_ERROR = true：需要验证失败分支时手动开启（默认确定性成功，不做随机失败）
 if (typeof window.submitPhotoRecord != "function") {
+  window.submitPhotoRecordCount = 0;
   window.submitPhotoRecord = function (data, callback) {
+    window.submitPhotoRecordCount++;
+    window.lastSubmitPhotoRecord = data;
     setTimeout(function () {
-      if (Math.random() < 0.1) {
+      if (window.MOCK_FORCE_ERROR) {
         callback({ code: 1, msg: "系统繁忙，请稍后重试" });
       } else {
         callback({ code: 0, msg: data.saveType === "save" ? "保存成功" : "提交成功" });

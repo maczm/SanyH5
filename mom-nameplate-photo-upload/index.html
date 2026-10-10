@@ -46,7 +46,7 @@
                 />
                 <input class="input-station-code" type="hidden" />
                 <svg class="combobox-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
-                <div class="combobox-dropdown dropdown-station" style="display:none;"></div>
+                <div class="combobox-dropdown dropdown-station hidden"></div>
               </div>
             </div>
             <div class="form-group">
@@ -191,6 +191,13 @@
           <span class="combobox-item-code"></span>
           <span class="combobox-item-name"></span>
         </div>
+      </template>
+      <!-- 工位下拉：无匹配项 / 列表未就绪 -->
+      <template class="template-combobox-empty">
+        <div class="combobox-empty">无匹配工位</div>
+      </template>
+      <template class="template-combobox-loading">
+        <div class="combobox-empty">工位加载中...</div>
       </template>
       <!-- 照片类型卡片 -->
       <template class="template-photo-card">

@@ -22,7 +22,7 @@ var CONFIG = {
  *   API 1 (工位列表) : 获取工位列表
  *   API 2 (照片配置) : 获取照片类型配置（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
- *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：submit=提交AI检测（二次确认后触发），save=保存工位照片信息（不触发检测）
+ *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：submit=提交AI检测（需全部达到最少数，二次确认后触发），save=保存工位照片信息（草稿保存，至少 1 张即可，不触发检测）
  *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
  * Portal 必须注入以下 5 个 window 属性：
@@ -55,6 +55,7 @@ var NameplatePhotoUpload = {
     selectedTemplateName: "",
     selectedTemplateUrl: "",
     stations: [],
+    stationsLoaded: false, // 工位列表是否已返回（区分「加载中」与「无匹配」）
     sessionId: 0,         // 会话标识：查询/清空/换工位时递增，用于丢弃过期异步回调（防串单）
   },
 
@@ -239,6 +240,10 @@ var NameplatePhotoUpload = {
     $(".input-station").val(state.stationCode ? NameplatePhotoUpload.getStationDisplay(state.stationCode) : "");
     $(".input-station-code").val(state.stationCode);
     $(".input-order").val(state.orderNo);
+
+    // 表单状态变化的统一出口（初始化/清空/重置/查询都经此）：按钮可用态一并重算，
+    // 否则提交成功重置后按钮会残留可用态（doSubmit 回调里刚把 disabled 改回 false）
+    NameplatePhotoUpload.updateButtons();
   },
 
   getStationDisplay: function (stationCode) {
@@ -260,10 +265,16 @@ var NameplatePhotoUpload = {
         return;
       }
       NameplatePhotoUpload.state.stations = res.data || [];
+      NameplatePhotoUpload.state.stationsLoaded = true;
 
       if (NameplatePhotoUpload.state.stationCode) {
         $(".input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
         $(".input-station-code").val(NameplatePhotoUpload.state.stationCode);
+      }
+
+      // 列表就绪前打开的下拉：重新渲染，避免停留「工位加载中...」
+      if (!$(".dropdown-station").hasClass("hidden")) {
+        NameplatePhotoUpload.showStationDropdown();
       }
     });
   },
@@ -286,7 +297,11 @@ var NameplatePhotoUpload = {
     $dropdown.empty();
 
     if (!filtered.length) {
-      $dropdown.append('<div class="combobox-empty">无匹配工位</div>');
+      // 列表未就绪与筛选无果要区分，否则用户看到一个永远不会刷新的空下拉
+      var emptyTemplate = NameplatePhotoUpload.state.stationsLoaded
+        ? "template-combobox-empty"
+        : "template-combobox-loading";
+      $dropdown.append(NameplatePhotoUpload.cloneTemplate(emptyTemplate));
     } else {
       filtered.forEach(function (state) {
         var $item = NameplatePhotoUpload.cloneTemplate("template-combobox-item");
@@ -296,14 +311,14 @@ var NameplatePhotoUpload = {
         $dropdown.append($item);
       });
     }
-    $dropdown.show();
+    $dropdown.removeClass("hidden");
   },
 
   selectStation: function (stationCode, stationName) {
     NameplatePhotoUpload.state.stationCode = stationCode;
     $(".input-station").val(stationCode + " - " + stationName);
     $(".input-station-code").val(stationCode);
-    $(".dropdown-station").hide();
+    $(".dropdown-station").addClass("hidden");
 
     if (NameplatePhotoUpload.state.configLoaded) {
       NameplatePhotoUpload.state.configLoaded = false;
@@ -851,43 +866,40 @@ var NameplatePhotoUpload = {
     };
   },
 
-  // ============== 按钮状态（两按钮交互一致） ==============
+  // ============== 按钮状态（保存=草稿：有照片即可存；提交=完整：全部达到最少数才可提） ==============
   updateButtons: function () {
     var $confirmButton = $(".btn-confirm");
     var $saveButton = $(".btn-save");
     var state = NameplatePhotoUpload.state;
 
     if (!state.configLoaded || !state.photoTypes.length) {
-      $confirmButton.prop("disabled", true);
-      $saveButton.prop("disabled", true).addClass("btn-disabled");
-      return;
-    }
-
-    // 有模板时必须选了模板才能提交
-    var templates = state.orderInfo.templates || [];
-    if (templates.length > 0 && !state.selectedTemplateId) {
       $confirmButton.prop("disabled", true).addClass("btn-disabled");
       $saveButton.prop("disabled", true).addClass("btn-disabled");
       return;
     }
 
+    var templates = state.orderInfo.templates || [];
+    var templateReady = !templates.length || !!state.selectedTemplateId;
+
     var allReachedMin = true;
+    var totalTaken = 0;
     for (var i = 0; i < state.photoTypes.length; i++) {
       var photoType = state.photoTypes[i];
       var taken = (state.photos[photoType.typeCode] || []).length;
+      totalTaken += taken;
       if (taken < photoType.minCount) {
         allReachedMin = false;
-        break;
       }
     }
 
-    if (allReachedMin) {
-      $confirmButton.prop("disabled", false).removeClass("btn-disabled");
-      $saveButton.prop("disabled", false).removeClass("btn-disabled");
-    } else {
-      $confirmButton.prop("disabled", true).addClass("btn-disabled");
-      $saveButton.prop("disabled", true).addClass("btn-disabled");
-    }
+    // 提交：模板已定 + 每种照片类型均达到最少数
+    var confirmReady = templateReady && allReachedMin;
+    $confirmButton.prop("disabled", !confirmReady);
+    $confirmButton.toggleClass("btn-disabled", !confirmReady);
+    // 保存：模板已定 + 至少有一张照片（允许未达最少数，草稿保存）
+    var saveReady = templateReady && totalTaken > 0;
+    $saveButton.prop("disabled", !saveReady);
+    $saveButton.toggleClass("btn-disabled", !saveReady);
   },
 
   // ============== 提交/保存（交互一致，仅 saveType 区分后台逻辑） ==============
@@ -902,25 +914,33 @@ var NameplatePhotoUpload = {
       return;
     }
 
+    var totalTaken = 0;
     var errors = [];
     for (var i = 0; i < state.photoTypes.length; i++) {
       var photoType = state.photoTypes[i];
       var taken = (state.photos[photoType.typeCode] || []).length;
+      totalTaken += taken;
       if (taken < photoType.minCount) {
         errors.push("「" + photoType.typeName + "」还需拍摄 " + (photoType.minCount - taken) + " 张（至少 " + photoType.minCount + " 张）");
       }
     }
 
+    // 保存 = 草稿保存：未达最少数也可存，但需至少一张照片
+    if (saveType === "save") {
+      if (!totalTaken) {
+        NameplatePhotoUpload.showToast("提示", "请至少拍摄一张照片", "error");
+        return;
+      }
+      NameplatePhotoUpload.doSubmit(saveType);
+      return;
+    }
+
+    // 提交 = 提交AI检测：必须全部达到最少数
     if (errors.length) {
       NameplatePhotoUpload.showToast("照片未完成", errors.join("<br>"), "error");
       return;
     }
 
-    // 保存：无需二次确认，直接提交；提交AI检测：需二次确认
-    if (saveType === "save") {
-      NameplatePhotoUpload.doSubmit(saveType);
-      return;
-    }
     NameplatePhotoUpload.showConfirmDialog("车辆所有工位铭牌是否全部上传", function () {
       NameplatePhotoUpload.doSubmit(saveType);
     });
@@ -1028,8 +1048,8 @@ var NameplatePhotoUpload = {
     // 下拉箭头点击
     $(".form-area").on("click", ".combobox-arrow", function () {
       var $dropdown = $(".dropdown-station");
-      if ($dropdown.is(":visible")) {
-        $dropdown.hide();
+      if (!$dropdown.hasClass("hidden")) {
+        $dropdown.addClass("hidden");
       } else {
         NameplatePhotoUpload.showStationDropdown();
       }
@@ -1038,7 +1058,7 @@ var NameplatePhotoUpload = {
     // 点击页面其他地方关闭下拉
     $(document).on("mousedown", function (e) {
       if (!$(e.target).closest(".combobox-station").length) {
-        $(".dropdown-station").hide();
+        $(".dropdown-station").addClass("hidden");
         if (NameplatePhotoUpload.state.stationCode) {
           $(".input-station").val(NameplatePhotoUpload.getStationDisplay(NameplatePhotoUpload.state.stationCode));
         }
@@ -1048,10 +1068,10 @@ var NameplatePhotoUpload = {
     // 工位输入框回车
     $(".form-area").on("keypress", ".input-station", function (e) {
       if (e.which !== 13) {
-        $(".dropdown-station").hide();
+        $(".dropdown-station").addClass("hidden");
         return;
       }
-      $(".dropdown-station").hide();
+      $(".dropdown-station").addClass("hidden");
       if (!NameplatePhotoUpload.state.stationCode) {
         var val = $(this).val().trim();
         if (val) {
@@ -1212,6 +1232,9 @@ var NameplatePhotoUpload = {
 
     // 渲染初始表单状态（查询前：独立清空按钮可见）
     NameplatePhotoUpload.renderForm();
+
+    // 查询前按钮不满足业务条件（无配置/无模板/无照片），初始化即置灰，避免可点后无反馈
+    NameplatePhotoUpload.updateButtons();
 
     NameplatePhotoUpload.loadStationList();
   },
