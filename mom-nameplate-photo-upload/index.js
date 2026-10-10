@@ -22,14 +22,19 @@ var CONFIG = {
  *   API 1 (工位列表) : 获取工位列表
  *   API 2 (照片配置) : 获取照片类型配置（含 minCount/maxCount）和订单信息（含铭牌模板列表）
  *   API 3 (照片上传) : 上传单张照片（前端压缩为 JPEG Base64，生产需上传 CDN/OSS 返回 URL）
- *   API 4 (记录提交) : 提交与保存共用。data.saveType 区分：submit=提交AI检测（需全部达到最少数，二次确认后触发），save=保存工位照片信息（草稿保存，至少 1 张即可，不触发检测）
+ *   API 4 (记录保存) : 保存工位照片信息（saveType 固定 "save"、toKeyPart 标识关重件入口；不触发 AI 检测）
  *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
- * Portal 必须注入以下 5 个 window 属性：
+ * 入口模式（关重件页面进入）：
+ *   window.fromKeyPart === "KeyPart" 时按钮文案为「保存并返回」，并读取
+ *   window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
+ *   「返回」由 Portal 自行处理，页面不调用任何导航/关闭函数。
+ *
+ * Portal 必须注入以下 4 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
  *   window.getPhotoConfig     — API 2：获取照片类型配置 + 订单信息
  *   window.uploadPhoto        — API 3：照片上传
- *   window.submitPhotoRecord  — API 4：照片记录提交/保存（data.saveType 区分：submit / save）
+ *   window.submitPhotoRecord  — API 4：照片记录保存
  *   window.Operator           — 当前操作员姓名
  */
 
@@ -37,26 +42,28 @@ var CONFIG = {
 // 所有页面逻辑挂在 NameplatePhotoUpload 下，避免全局函数互相覆盖（Portal 同 iframe 切页场景）
 var NameplatePhotoUpload = {
   // ============== 状态管理 ==============
+  // photoTypes/photos 为查询结果，仅在本页流转；其余为入口与 UI 状态
   state: {
+    fromKeyPart: false,
     stationCode: "",
     orderNo: "",
-    photoTypes: [],       // [{ typeCode, typeName, minCount, maxCount }]
-    photos: {},           // { typeCode: [{ url: 字符串 }] }
-    submitting: false,
+    photoTypes: [], // [{ typeCode, typeName, minCount, maxCount }]
+    photos: {}, // { typeCode: [{ url: 字符串 }] }
+    saving: false,
     configLoaded: false,
     formCollapsed: false,
     orderInfoCollapsed: false,
     orderInfo: {
       machineCode: "",
       vin: "",
-      templates: [],      // [{ templateId, templateName, templateImageUrl }]
+      templates: [], // [{ templateId, templateName, templateImageUrl }]
     },
     selectedTemplateId: "",
     selectedTemplateName: "",
     selectedTemplateUrl: "",
     stations: [],
     stationsLoaded: false, // 工位列表是否已返回（区分「加载中」与「无匹配」）
-    sessionId: 0,         // 会话标识：查询/清空/换工位时递增，用于丢弃过期异步回调（防串单）
+    sessionId: 0, // 会话标识：查询/清空/换工位时递增，用于丢弃过期异步回调（防串单）
   },
 
   _toastTimer: null,
@@ -200,12 +207,6 @@ var NameplatePhotoUpload = {
     }
   },
 
-  // ============== 二次确认弹窗（骨架预埋） ==============
-  showConfirmDialog: function (message, onConfirm) {
-    $(".confirm-content").text(message);
-    $(".template-confirm").data("on-confirm", onConfirm).removeClass("hidden");
-  },
-
   // ============== 模板选择弹窗（骨架预埋 + 列表克隆） ==============
   showTemplatePicker: function (templates, callback) {
     var $list = $(".picker-list");
@@ -241,9 +242,20 @@ var NameplatePhotoUpload = {
     $(".input-station-code").val(state.stationCode);
     $(".input-order").val(state.orderNo);
 
-    // 表单状态变化的统一出口（初始化/清空/重置/查询都经此）：按钮可用态一并重算，
-    // 否则提交成功重置后按钮会残留可用态（doSubmit 回调里刚把 disabled 改回 false）
+    // 表单状态变化的统一出口（初始化/清空/重置/查询都经此）：按钮文案与可用态一并重算，
+    // 否则保存成功后重置时按钮会残留「保存中...」与禁用态
+    NameplatePhotoUpload.applySaveButtonLabel();
     NameplatePhotoUpload.updateButtons();
+  },
+
+  /** 关重件页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
+  isKeyPartEntry: function () {
+    return window.fromKeyPart === "KeyPart";
+  },
+
+  /** 按钮文案随入口切换：关重件进入为「保存并返回」（返回动作由 Portal 处理），否则为「保存」 */
+  applySaveButtonLabel: function () {
+    $(".btn-save").text(NameplatePhotoUpload.state.fromKeyPart ? "保存并返回" : "保存");
   },
 
   getStationDisplay: function (stationCode) {
@@ -451,7 +463,7 @@ var NameplatePhotoUpload = {
       NameplatePhotoUpload.renderPhotoTypeCards();
       NameplatePhotoUpload.updateButtons();
       $(".photo-cards-area").removeClass("hidden");
-      // 无照片类型（无需拍照工位）：不显示保存/提交按钮
+      // 无照片类型（无需拍照工位）：不显示保存按钮
       if (state.photoTypes.length) {
         $(".confirm-section").removeClass("hidden");
       } else {
@@ -519,7 +531,7 @@ var NameplatePhotoUpload = {
     $(".empty-no-photo").addClass("hidden");
 
     if (!state.photoTypes.length) {
-      // 空态提示：骨架在 index.html；无照片类型不显示保存/提交按钮
+      // 空态提示：骨架在 index.html；无照片类型不显示保存按钮
       $(".empty-no-photo").removeClass("hidden");
       $(".confirm-section").addClass("hidden");
       return;
@@ -838,7 +850,7 @@ var NameplatePhotoUpload = {
     $mask.removeClass("hidden");
   },
 
-  // ============== 数据构建（保存/提交共用） ==============
+  // ============== 数据构建（保存报文） ==============
   buildPhotoList: function () {
     var state = NameplatePhotoUpload.state;
     return state.photoTypes.map(function (photoType) {
@@ -851,7 +863,7 @@ var NameplatePhotoUpload = {
     });
   },
 
-  buildSubmitData: function (photoList, saveType) {
+  buildSubmitData: function (photoList) {
     var state = NameplatePhotoUpload.state;
     return {
       stationCode: state.stationCode,
@@ -861,118 +873,69 @@ var NameplatePhotoUpload = {
       vin: state.orderInfo.vin,
       templateId: state.selectedTemplateId,
       templateImageUrl: state.selectedTemplateUrl,
-      saveType: saveType, // submit=提交AI检测 / save=保存工位照片信息
+      saveType: "save", // 页面只做保存，不再提交 AI 检测
+      toKeyPart: state.fromKeyPart, // 是否关重件页面入口（按钮文案「保存并返回」场景）
       photos: photoList,
     };
   },
 
-  // ============== 按钮状态（保存=草稿：有照片即可存；提交=完整：全部达到最少数才可提） ==============
+  // ============== 按钮状态（草稿保存：配置已加载且有照片即可存；未知铭牌模板不卡控） ==============
   updateButtons: function () {
-    var $confirmButton = $(".btn-confirm");
     var $saveButton = $(".btn-save");
     var state = NameplatePhotoUpload.state;
 
     if (!state.configLoaded || !state.photoTypes.length) {
-      $confirmButton.prop("disabled", true).addClass("btn-disabled");
       $saveButton.prop("disabled", true).addClass("btn-disabled");
       return;
     }
 
-    var templates = state.orderInfo.templates || [];
-    var templateReady = !templates.length || !!state.selectedTemplateId;
-
-    var allReachedMin = true;
     var totalTaken = 0;
     for (var i = 0; i < state.photoTypes.length; i++) {
-      var photoType = state.photoTypes[i];
-      var taken = (state.photos[photoType.typeCode] || []).length;
-      totalTaken += taken;
-      if (taken < photoType.minCount) {
-        allReachedMin = false;
-      }
+      totalTaken += (state.photos[state.photoTypes[i].typeCode] || []).length;
     }
 
-    // 提交：模板已定 + 每种照片类型均达到最少数
-    var confirmReady = templateReady && allReachedMin;
-    $confirmButton.prop("disabled", !confirmReady);
-    $confirmButton.toggleClass("btn-disabled", !confirmReady);
-    // 保存：模板已定 + 至少有一张照片（允许未达最少数，草稿保存）
-    var saveReady = templateReady && totalTaken > 0;
+    var saveReady = totalTaken > 0;
     $saveButton.prop("disabled", !saveReady);
     $saveButton.toggleClass("btn-disabled", !saveReady);
   },
 
-  // ============== 提交/保存（交互一致，仅 saveType 区分后台逻辑） ==============
-  handleSubmit: function (saveType) {
+  // ============== 保存（未达最少数也可存：草稿保存） ==============
+  handleSave: function () {
     var state = NameplatePhotoUpload.state;
-    if (state.submitting) return;
-
-    // 有模板时必须选择
-    var templates = state.orderInfo.templates || [];
-    if (templates.length > 0 && !state.selectedTemplateId) {
-      NameplatePhotoUpload.showToast("提示", "请选择铭牌模板", "error");
-      return;
-    }
+    if (state.saving) return;
 
     var totalTaken = 0;
-    var errors = [];
     for (var i = 0; i < state.photoTypes.length; i++) {
-      var photoType = state.photoTypes[i];
-      var taken = (state.photos[photoType.typeCode] || []).length;
-      totalTaken += taken;
-      if (taken < photoType.minCount) {
-        errors.push("「" + photoType.typeName + "」还需拍摄 " + (photoType.minCount - taken) + " 张（至少 " + photoType.minCount + " 张）");
-      }
+      totalTaken += (state.photos[state.photoTypes[i].typeCode] || []).length;
     }
 
-    // 保存 = 草稿保存：未达最少数也可存，但需至少一张照片
-    if (saveType === "save") {
-      if (!totalTaken) {
-        NameplatePhotoUpload.showToast("提示", "请至少拍摄一张照片", "error");
-        return;
-      }
-      NameplatePhotoUpload.doSubmit(saveType);
+    if (!totalTaken) {
+      NameplatePhotoUpload.showToast("提示", "请至少拍摄一张照片", "error");
       return;
     }
 
-    // 提交 = 提交AI检测：必须全部达到最少数
-    if (errors.length) {
-      NameplatePhotoUpload.showToast("照片未完成", errors.join("<br>"), "error");
-      return;
-    }
-
-    NameplatePhotoUpload.showConfirmDialog("车辆所有工位铭牌是否全部上传", function () {
-      NameplatePhotoUpload.doSubmit(saveType);
-    });
+    NameplatePhotoUpload.doSubmit();
   },
 
-  doSubmit: function (saveType) {
-    var isSave = saveType === "save";
-    var actionText = isSave ? "保存" : "提交";
+  doSubmit: function () {
+    var actionText = "保存";
     var photoList = NameplatePhotoUpload.buildPhotoList();
-    var submitData = NameplatePhotoUpload.buildSubmitData(photoList, saveType);
+    var submitData = NameplatePhotoUpload.buildSubmitData(photoList);
 
-    NameplatePhotoUpload.state.submitting = true;
-    var $confirmButton = $(".btn-confirm");
+    NameplatePhotoUpload.state.saving = true;
     var $saveButton = $(".btn-save");
-    $confirmButton.prop("disabled", true);
-    $saveButton.prop("disabled", true);
-    if (isSave) {
-      $saveButton.text("保存中...");
-    } else {
-      $confirmButton.text("提交中...");
-    }
+    $saveButton.prop("disabled", true).text("保存中...");
 
     NameplatePhotoUpload.showLoading(actionText + "中...");
 
-    console.log("[API] submitPhotoRecord(" + saveType + ")", submitData);
+    console.log("[API] submitPhotoRecord", submitData);
     NameplatePhotoUpload.apiCall(window.submitPhotoRecord, [submitData], function (res) {
-      console.log("[API] submitPhotoRecord(" + saveType + ") 返回", res);
+      console.log("[API] submitPhotoRecord 返回", res);
       NameplatePhotoUpload.hideLoading();
-      NameplatePhotoUpload.state.submitting = false;
-      // 恢复按钮：文案从 data-label 缓存读取（初始文案只定义在 index.html 骨架）
-      $confirmButton.prop("disabled", false).text($confirmButton.data("label"));
+      NameplatePhotoUpload.state.saving = false;
+      // 恢复按钮：文案由入口决定（保留 data-label 供骨架文案变更时兜底）
       $saveButton.prop("disabled", false).text($saveButton.data("label"));
+      NameplatePhotoUpload.applySaveButtonLabel();
 
       if (res.code !== 0) {
         NameplatePhotoUpload.showToast(actionText + "失败", res.msg || "请稍后重试", "error");
@@ -996,6 +959,9 @@ var NameplatePhotoUpload = {
         var count = (NameplatePhotoUpload.state.photos[photoType.typeCode] || []).length;
         rows.push({ label: photoType.typeName, value: count + " 张（" + photoType.minCount + "~" + photoType.maxCount + "）" });
       });
+      if (NameplatePhotoUpload.state.fromKeyPart) {
+        rows.push({ label: "返回", value: "请返回关重件页面继续操作" });
+      }
 
       NameplatePhotoUpload.showToast(actionText + "成功", rows, "success", function () {
         NameplatePhotoUpload.resetForm();
@@ -1010,7 +976,7 @@ var NameplatePhotoUpload = {
     state.orderNo = "";
     state.photoTypes = [];
     state.photos = {};
-    state.submitting = false;
+    state.saving = false;
     state.configLoaded = false;
     state.formCollapsed = false;
     state.orderInfoCollapsed = false;
@@ -1138,11 +1104,9 @@ var NameplatePhotoUpload = {
     });
 
     // 底部按钮区
+    // 保存按钮（文案由入口决定：保存 / 保存并返回）
     $(".confirm-section").on("click", ".btn-save", function () {
-      NameplatePhotoUpload.handleSubmit("save");
-    });
-    $(".confirm-section").on("click", ".btn-confirm", function () {
-      NameplatePhotoUpload.handleSubmit("submit");
+      NameplatePhotoUpload.handleSave();
     });
 
     // 订单信息区：模板选择/预览/折叠
@@ -1176,16 +1140,6 @@ var NameplatePhotoUpload = {
         if (callback) callback();
       }
     });
-    // 二次确认：取消/遮罩关闭，确定执行回调
-    $(".template-confirm").on("click", function (e) {
-      if (e.target === this || $(e.target).hasClass("confirm-btn-cancel")) {
-        $(this).addClass("hidden");
-      } else if ($(e.target).hasClass("confirm-btn-ok")) {
-        var callback = $(this).data("on-confirm");
-        $(this).addClass("hidden");
-        if (callback) callback();
-      }
-    });
     // 模板选择：列表项/取消/遮罩
     $(".picker-list").on("click", ".picker-item", function () {
       var callback = $(".template-picker").data("on-pick");
@@ -1213,8 +1167,9 @@ var NameplatePhotoUpload = {
     }
 
     // 缓存按钮初始文案（骨架在 index.html，JS 恢复时用，避免双重定义）
-    $(".btn-confirm").data("label", $(".btn-confirm").text());
     $(".btn-save").data("label", $(".btn-save").text());
+
+    NameplatePhotoUpload.state.fromKeyPart = NameplatePhotoUpload.isKeyPartEntry();
 
     $(".header-operator").text(window.Operator);
 
@@ -1230,13 +1185,57 @@ var NameplatePhotoUpload = {
 
     NameplatePhotoUpload.initEvents();
 
-    // 渲染初始表单状态（查询前：独立清空按钮可见）
+    // 渲染初始表单状态（按钮文案按入口切换、查询前置灰）
     NameplatePhotoUpload.renderForm();
 
-    // 查询前按钮不满足业务条件（无配置/无模板/无照片），初始化即置灰，避免可点后无反馈
-    NameplatePhotoUpload.updateButtons();
-
     NameplatePhotoUpload.loadStationList();
+
+    // 关重件页面入口：用带入的工位与订单号预填并自动查询，省去现场重复输入
+    var keyPartStationCode = window.KeyPartStationCode || "";
+    var keyPartOrderNo = window.KeyPartOrderNo || "";
+    if (NameplatePhotoUpload.state.fromKeyPart && keyPartStationCode && keyPartOrderNo) {
+      NameplatePhotoUpload.prefillKeyPartOrder(keyPartStationCode, keyPartOrderNo);
+    }
+  },
+
+  /**
+   * 关重件入口预填：先落下订单号，工位编码待工位列表就绪后按编码匹配（匹配不到只填编码原文）
+   * 两者齐备后自动发起一次照片配置查询
+   */
+  prefillKeyPartOrder: function (keyPartStationCode, keyPartOrderNo) {
+    $(".input-order").val(keyPartOrderNo);
+    NameplatePhotoUpload.state.orderNo = keyPartOrderNo;
+
+    function matchStation() {
+      var stations = NameplatePhotoUpload.state.stations || [];
+      for (var i = 0; i < stations.length; i++) {
+        if (stations[i].stationCode === keyPartStationCode) {
+          NameplatePhotoUpload.selectStation(stations[i].stationCode, stations[i].stationName);
+          return;
+        }
+      }
+      NameplatePhotoUpload.state.stationCode = keyPartStationCode;
+      $(".input-station").val(keyPartStationCode);
+      $(".input-station-code").val(keyPartStationCode);
+    }
+
+    if (NameplatePhotoUpload.state.stationsLoaded) {
+      matchStation();
+      NameplatePhotoUpload.doQueryPhotoConfig();
+    } else {
+      // 等列表就绪再匹配；超时放弃（工位列表接口自身有超时兜底与失败提示，不在此永久轮询）
+      var waited = 0;
+      var waitStationList = setInterval(function () {
+        waited += 100;
+        if (!NameplatePhotoUpload.state.stationsLoaded) {
+          if (waited >= 10000) clearInterval(waitStationList);
+          return;
+        }
+        clearInterval(waitStationList);
+        matchStation();
+        NameplatePhotoUpload.doQueryPhotoConfig();
+      }, 100);
+    }
   },
 };
 

@@ -4,6 +4,20 @@
 // 删除本文件即可完全移除 Mock，业务代码零改动。
 var MOCK_DELAY = 500;
 
+// -- Mock 入口模式（对应 Portal 注入的 fromKeyPart / KeyPartStationCode / KeyPartOrderNo）--
+// MOCK_FROM_KEY_PART = true：模拟「由关重件页面进入」——按钮文案变「保存并返回」，
+// 并按下方工位/订单号自动查询；改成 false 即回到正常入口（按钮为「保存」）。
+var MOCK_FROM_KEY_PART = true;
+if (typeof window.fromKeyPart !== "string") {
+  window.fromKeyPart = MOCK_FROM_KEY_PART ? "KeyPart" : "";
+}
+if (typeof window.KeyPartStationCode !== "string") {
+  window.KeyPartStationCode = MOCK_FROM_KEY_PART ? "S001" : "";
+}
+if (typeof window.KeyPartOrderNo !== "string") {
+  window.KeyPartOrderNo = MOCK_FROM_KEY_PART ? "PO-MOCK-001" : "";
+}
+
 // -- Mock 工位列表 --
 var mockStations = [
   { stationCode: "S001", stationName: "1号工位-外观检测" },
@@ -70,6 +84,17 @@ var mockPhotoConfigs = {
         { templateId: "TPL020", templateName: "电气铭牌A", templateImageUrl: "../18601605145677184.jpg" },
         { templateId: "TPL021", templateName: "电气铭牌B", templateImageUrl: "../18601605145677184.jpg" },
       ],
+    },
+  },
+  // S005：有最低张数要求但订单未查到铭牌模板 → 验证「无铭牌记录不卡控」仍可保存
+  S005: {
+    photoTypes: [
+      { typeCode: "seal_front", typeName: "密封面照片", minCount: 2, maxCount: 4 },
+    ],
+    orderInfo: {
+      machineCode: "MC-2024-E005",
+      vin: "LSVAU2E00N2100005",
+      templates: [],
     },
   },
 };

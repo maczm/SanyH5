@@ -79,12 +79,12 @@ window.uploadPhoto({ base64, photoType, stationCode, orderNo }, callback)
 
 **出参** `data.url`（string）：照片 CDN/OSS 访问 URL。
 
-## API-N4：照片记录提交/保存
+## API-N4：照片记录保存
 
 ```js
 window.submitPhotoRecord({
   stationCode, orderNo, operator, machineCode, vin,
-  templateId, templateImageUrl, saveType, photos
+  templateId, templateImageUrl, saveType, toKeyPart, photos
 }, callback)
 ```
 
@@ -95,11 +95,12 @@ window.submitPhotoRecord({
 | `stationCode` | string | 是 | 工位编码 |
 | `orderNo` | string | 是 | 订单号 |
 | `operator` | string | 是 | `window.Operator` |
-| `machineCode` | string | 是 | 主机编码（API-N2 返回） |
+| `machineCode` | string | 是 | 主机编码（API-N2 返回，可为空字符串） |
 | `vin` | string | 是 | 车辆识别码（可为空字符串） |
-| `templateId` | string | 是 | 选中的模板 ID（无模板时为空字符串） |
-| `templateImageUrl` | string | 是 | 选中的模板图片 URL（无模板时为空字符串） |
-| `saveType` | string | 是 | 操作类型：`"submit"` / `"save"` |
+| `templateId` | string | 是 | 选中的模板 ID（无模板/未选时为空字符串） |
+| `templateImageUrl` | string | 是 | 选中的模板图片 URL（无模板/未选时为空字符串） |
+| `saveType` | string | 是 | 固定为 `"save"`（页面只做保存，不再提交 AI 检测） |
+| `toKeyPart` | boolean | 是 | 是否由关重件页面进入（即按钮文案「保存并返回」场景） |
 | `photos` | array | 是 | 照片列表，按类型分组 |
 
 **photos 每项**
@@ -115,7 +116,22 @@ window.submitPhotoRecord({
 
 | 值 | 业务含义 | 后台处理 | 页面侧校验 |
 |---|---|---|---|
-| `"submit"` | 提交AI检测 | 触发铭牌 AI 检测流程 | 每种照片类型均达到 `minCount`，且需二次确认 |
 | `"save"` | 保存工位照片信息 | 仅持久化记录，不触发检测 | 至少 1 张照片即可（允许未达 `minCount`，草稿保存） |
 
-> 两种类型都要求：配置已加载，且存在模板时必须已选中模板。`photos` 中未拍的类型仍回传空 `urlList`。
+> 页面不再提交 AI 检测：原 `"submit"`（触发铭牌 AI 检测流程）入口与分支已删除。
+
+## 页面配置与入口（Portal 注入属性）
+
+```js
+window.fromKeyPart            // 入口标识：值为 "KeyPart" 表示由关重件页面进入
+window.KeyPartStationCode     // 由关重件页面带入的工位编码（可选，用于预填并自动查询）
+window.KeyPartOrderNo         // 由关重件页面带入的订单号（可选，用于预填并自动查询）
+```
+
+| 属性 | 类型 | 说明 |
+|---|---|---|
+| `fromKeyPart` | string | 等于 `"KeyPart"` 时：底部按钮文案为「保存并返回」（否则为「保存」）；保存成功后提示会提示可返回，**返回动作由 Portal 自行处理**（页面不调用任何导航/关闭函数） |
+| `KeyPartStationCode` | string | 与 `fromKeyPart` 配套带入；存在时页面预填工位并在工位列表返回后自动匹配 |
+| `KeyPartOrderNo` | string | 与 `fromKeyPart` 配套带入；与工位同时存在时页面自动发起一次照片配置查询 |
+
+> 两属性缺省/为空时页面不预填，按正常手工查询流程使用；本地开发由 `mock.js` 提供兜底值。
