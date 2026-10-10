@@ -438,6 +438,25 @@ body {
   background: #bbdefb;
 }
 
+/* 模板缺失提示与必选提示（订单信息区内） */
+.mom-photo-upload .block-template-none,
+.mom-photo-upload .block-template-missing {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+.mom-photo-upload .block-template-none .template-required-tip,
+.mom-photo-upload .block-template-missing .template-required-tip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e8710a;
+}
+.mom-photo-upload .template-missing-tip {
+  color: #e8710a;
+  font-weight: 600;
+}
+
 .mom-photo-upload .btn-change-template-inline {
   padding: 4px 12px;
   border: 1px solid var(--border-color);
@@ -854,7 +873,7 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.35);
-  z-index: 99999;
+  z-index: 100001; /* 最高：加载遮罩下不可交互 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -921,7 +940,7 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 99999;
+  z-index: 100000; /* 高于模板选择弹窗，保证提示可关闭 */
   display: flex;
   align-items: center;
   justify-content: center;

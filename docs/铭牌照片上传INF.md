@@ -58,9 +58,17 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `templateId` | string | 模板 ID（选中后提交回传） |
+| `templateId` | string | 模板 ID（选中后保存回传） |
 | `templateName` | string | 模板名称 |
 | `templateImageUrl` | string | 模板参考图片 URL |
+
+**templates 数量对应的页面行为**
+
+| `templates.length` | 页面行为 |
+|---|---|
+| `0` | 订单信息区提示「未查到铭牌模板」，**不卡控保存**（`templateId` 回传空字符串） |
+| `1` | 自动选中该模板，不弹窗 |
+| `>1` | 查询后**自动弹出选择弹窗**：点「取消」不关闭并提示，未选择时保存按钮置灰拦截（点击提示「请先选择铭牌模板」）；重新查询会清空上一次选择并重新弹窗 |
 
 ## API-N3：照片上传
 

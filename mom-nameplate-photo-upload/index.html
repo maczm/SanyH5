@@ -97,10 +97,21 @@
               </div>
               <img class="template-image template-selected-image" src="" alt="铭牌模板">
             </div>
-            <!-- 态D：多模板未选 -->
-            <div class="field-row hidden block-template-none">
-              <span class="field-label">铭牌模板</span>
-              <button type="button" class="btn-pick-template-inline pick-template-btn">点击选择</button>
+            <!-- 态D：多模板未选（必须选择，否则不允许保存） -->
+            <div class="hidden block-template-none">
+              <div class="field-row">
+                <span class="field-label">铭牌模板</span>
+                <button type="button" class="btn-pick-template-inline pick-template-btn">点击选择</button>
+              </div>
+              <p class="template-required-tip">该订单有多个铭牌模板，请先选择后再保存</p>
+            </div>
+            <!-- 态E：订单未查到铭牌记录（不卡控保存，仅提示） -->
+            <div class="hidden block-template-missing">
+              <div class="field-row">
+                <span class="field-label">铭牌模板</span>
+                <span class="field-value template-missing-tip">未查到铭牌模板</span>
+              </div>
+              <p class="template-required-tip">可继续拍照并保存，铭牌模板待业务补充</p>
             </div>
           </div>
         </div>

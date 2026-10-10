@@ -208,6 +208,12 @@ var NameplatePhotoUpload = {
   },
 
   // ============== 模板选择弹窗（骨架预埋 + 列表克隆） ==============
+  /**
+   * 打开模板选择弹窗
+   * @param {Array} templates - 模板列表
+   * @param {Function} callback - 选中回调 (templateId, templateName, templateImageUrl)
+   * 多个模板时进入强制选择：点「取消」不关闭并提示（未选择不允许保存，遮罩点击仍可暂退以便换单）
+   */
   showTemplatePicker: function (templates, callback) {
     var $list = $(".picker-list");
     $list.empty();
@@ -218,7 +224,10 @@ var NameplatePhotoUpload = {
       $item.data("id", template.templateId).data("name", template.templateName).data("url", template.templateImageUrl);
       $list.append($item);
     });
-    $(".template-picker").data("on-pick", callback).removeClass("hidden");
+    $(".template-picker")
+      .data("on-pick", callback)
+      .data("force-choose", templates.length > 1)
+      .removeClass("hidden");
   },
 
   // ============== 表单渲染（骨架已静态化，此处仅切换状态与回填值） ==============
@@ -473,6 +482,18 @@ var NameplatePhotoUpload = {
       setTimeout(function () {
         $(".order-info-area")[0].scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
+
+      // 多个铭牌模板：查询后自动弹窗强制选择（未选不允许保存）
+      var queriedTemplates = state.orderInfo.templates || [];
+      if (queriedTemplates.length > 1) {
+        NameplatePhotoUpload.showTemplatePicker(queriedTemplates, function (templateId, templateName, templateUrl) {
+          state.selectedTemplateId = templateId;
+          state.selectedTemplateName = templateName;
+          state.selectedTemplateUrl = templateUrl;
+          NameplatePhotoUpload.renderOrderInfo();
+          NameplatePhotoUpload.updateButtons();
+        });
+      }
     });
   },
 
@@ -491,6 +512,13 @@ var NameplatePhotoUpload = {
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
+    // 订单未查到铭牌记录：展开订单信息，保证提示可见（默认状态本就展开，此处兜住手动折叠）
+    if (!((state.orderInfo.templates || []).length) && state.orderInfoCollapsed) {
+      state.orderInfoCollapsed = false;
+      $(".order-info-arrow .arrow-down").removeClass("hidden");
+      $(".order-info-arrow .arrow-up").addClass("hidden");
+    }
+
     $(".order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
     if (state.orderInfoCollapsed) return;
 
@@ -500,26 +528,30 @@ var NameplatePhotoUpload = {
     $(".machine-code-value").text(state.orderInfo.machineCode || "-");
     $(".vin-value").text(state.orderInfo.vin || "-");
 
-    // 态B/C/D：模板三态互斥
+    // 态B/C/D/E：模板四态互斥
     $(".block-template-single").addClass("hidden");
     $(".block-template-selected").addClass("hidden");
     $(".block-template-none").addClass("hidden");
+    $(".block-template-missing").addClass("hidden");
 
     var templates = state.orderInfo.templates || [];
     if (templates.length === 1) {
-      // 单模板：自动选中
+      // 单模板：自动选中（无需用户操作）
       $(".block-template-single").removeClass("hidden");
       $(".template-single-name-value").text(templates[0].templateName || "");
       $(".template-single-image").attr("src", templates[0].templateImageUrl);
-    } else if (state.selectedTemplateId) {
+    } else if (templates.length > 1 && state.selectedTemplateId) {
       // 多模板已选
       $(".block-template-selected").removeClass("hidden");
       $(".template-selected-name-value").text(state.selectedTemplateName);
       $(".template-selected-image").attr("src", state.selectedTemplateUrl);
     } else if (templates.length > 1) {
-      // 多模板未选
+      // 多模板未选：必须选择（保存按钮同步置灰）
       $(".block-template-none").removeClass("hidden");
       $(".block-template-none .btn-pick-template-inline").text("点击选择（" + templates.length + "个可选）");
+    } else {
+      // 订单未查到铭牌记录：仅提示，不卡控保存
+      $(".block-template-missing").removeClass("hidden");
     }
   },
 
@@ -879,13 +911,13 @@ var NameplatePhotoUpload = {
     };
   },
 
-  // ============== 按钮状态（草稿保存：配置已加载且有照片即可存；未知铭牌模板不卡控） ==============
+  // ============== 按钮状态（配置已加载 + 至少 1 张照片；多模板未选时拦截） ==============
   updateButtons: function () {
     var $saveButton = $(".btn-save");
     var state = NameplatePhotoUpload.state;
 
     if (!state.configLoaded || !state.photoTypes.length) {
-      $saveButton.prop("disabled", true).addClass("btn-disabled");
+      $saveButton.prop("disabled", true).removeAttr("aria-disabled").addClass("btn-disabled");
       return;
     }
 
@@ -894,15 +926,45 @@ var NameplatePhotoUpload = {
       totalTaken += (state.photos[state.photoTypes[i].typeCode] || []).length;
     }
 
-    var saveReady = totalTaken > 0;
-    $saveButton.prop("disabled", !saveReady);
-    $saveButton.toggleClass("btn-disabled", !saveReady);
+    // 无照片：原生置灰（点击无意义）
+    if (!totalTaken) {
+      $saveButton.prop("disabled", true).removeAttr("aria-disabled").addClass("btn-disabled");
+      return;
+    }
+
+    // 有照片但多模板未选：保留占位、置灰外观但可点击，点击给「请先选择铭牌模板」提示
+    // （原生 disabled 不派发 click，提示无从触发，故用 aria-disabled + .btn-disabled）
+    var templateMismatch = NameplatePhotoUpload.hasTemplateMismatch();
+    $saveButton.prop("disabled", false);
+    $saveButton.toggleClass("btn-disabled", templateMismatch);
+    if (templateMismatch) {
+      $saveButton.attr("aria-disabled", "true");
+    } else {
+      $saveButton.removeAttr("aria-disabled");
+    }
+  },
+
+  /** 多个铭牌模板但未选择：不允许保存（订单未查到模板时不拦） */
+  hasTemplateMismatch: function () {
+    var state = NameplatePhotoUpload.state;
+    var templates = state.orderInfo.templates || [];
+    return templates.length > 1 && !state.selectedTemplateId;
+  },
+
+  /** 保存前拦截：多模板未选时提示并给出选择入口 */
+  ensureTemplateSelected: function () {
+    if (!NameplatePhotoUpload.hasTemplateMismatch()) return true;
+    NameplatePhotoUpload.showToast("提示", "请先选择铭牌模板", "error");
+    NameplatePhotoUpload.renderOrderInfo();
+    return false;
   },
 
   // ============== 保存（未达最少数也可存：草稿保存） ==============
   handleSave: function () {
     var state = NameplatePhotoUpload.state;
     if (state.saving) return;
+
+    if (!NameplatePhotoUpload.ensureTemplateSelected()) return;
 
     var totalTaken = 0;
     for (var i = 0; i < state.photoTypes.length; i++) {
@@ -1140,13 +1202,17 @@ var NameplatePhotoUpload = {
         if (callback) callback();
       }
     });
-    // 模板选择：列表项/取消/遮罩
+    // 模板选择：列表项/取消/遮罩（强制选择模式下「取消」不关闭并提示）
     $(".picker-list").on("click", ".picker-item", function () {
       var callback = $(".template-picker").data("on-pick");
       $(".template-picker").addClass("hidden");
       if (callback) callback($(this).data("id"), $(this).data("name"), $(this).data("url"));
     });
     $(".template-picker .picker-btn").on("click", function () {
+      if ($(".template-picker").data("force-choose")) {
+        NameplatePhotoUpload.showToast("提示", "该订单有多个铭牌模板，请先选择后再保存", "error");
+        return;
+      }
       $(".template-picker").addClass("hidden");
     });
     $(".template-picker").on("click", function (e) {
