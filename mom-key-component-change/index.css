@@ -60,38 +60,30 @@ body {
   display: none !important;
 }
 
-/* ==================== 顶部悬浮按钮占位 ==================== */
-/* 按钮固定在右上角，顶部只留出按钮自身高度（紧凑占位），避免压住首行内容 */
-.mom-key-component-change {
-  padding-top: calc(32px + env(safe-area-inset-top));
-}
-
-/* ==================== 悬浮按钮：VIN更换 ==================== */
-/* 固定在页面右上角，四个视图下都可点；实底白底以便在浅色内容上可读 */
+/* ==================== 顶部按钮：VIN更换 ==================== */
+/* 作为根容器流式首项贴顶右对齐：顶部不留任何空白，按钮自身高度即顶部占用；四个视图下都可见 */
 .mom-key-component-change .btn-vin-change {
-  position: fixed;
-  top: calc(6px + env(safe-area-inset-top));
-  right: 12px;
-  z-index: 900;
+  align-self: flex-end;
+  flex-shrink: 0;
+  margin: 0 16px;
   display: flex;
   align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  padding: 4px 9px;
+  gap: 4px;
+  padding: 7px 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   color: var(--primary-dark);
   box-shadow: var(--shadow-md);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: background 0.15s;
 }
 .mom-key-component-change .btn-vin-change svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 .mom-key-component-change .btn-vin-change:active {
   background: var(--primary-bg);
@@ -799,20 +791,16 @@ body {
 
 /* ==================== 小屏（工业 PDA）紧凑排布 ==================== */
 @media (max-width: 420px), (max-height: 600px) {
-  .mom-key-component-change {
-    padding-top: calc(28px + env(safe-area-inset-top));
-  }
   .mom-key-component-change .btn-vin-change {
-    top: calc(4px + env(safe-area-inset-top));
-    right: 10px;
+    margin: 0 12px;
     gap: 3px;
-    padding: 3px 8px;
-    border-radius: 7px;
+    padding: 6px 10px;
+    border-radius: 8px;
     font-size: 11px;
   }
   .mom-key-component-change .btn-vin-change svg {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
   }
 
   .mom-key-component-change .check-form-area {
