@@ -249,6 +249,11 @@ var NameplatePhotoUpload = {
       $body.removeClass("hidden");
     }
 
+    // 收起时卡片头显示当前工位/订单摘要（展开时不需要，输入框里已有）
+    var collapsed = state.configLoaded && state.formCollapsed;
+    $(".form-summary-station").text(collapsed ? state.stationCode : "");
+    $(".form-summary-order").text(collapsed ? state.orderNo : "");
+
     $(".input-station").val(state.stationCode ? NameplatePhotoUpload.getStationDisplay(state.stationCode) : "");
     $(".input-station-code").val(state.stationCode);
     $(".input-order").val(state.orderNo);
@@ -479,8 +484,8 @@ var NameplatePhotoUpload = {
         state.photos[state.photoTypes[i].typeCode] = [];
       }
 
-      // 查询成功：表单与订单信息默认展开（折叠交互一致：点卡片头切换）
-      state.formCollapsed = false;
+      // 查询成功：查询条件区自动收起（卡片头显示工位/订单摘要），订单信息保持展开
+      state.formCollapsed = true;
       state.orderInfoCollapsed = false;
       NameplatePhotoUpload.renderForm();
       NameplatePhotoUpload.renderOrderInfo();
@@ -494,8 +499,10 @@ var NameplatePhotoUpload = {
         $(".confirm-section").addClass("hidden");
       }
 
+      // 表单已自动收起，滚动定位到内容区顶部（订单信息），让订单信息与照片卡片一起进入视野
       setTimeout(function () {
-        $(".order-info-area")[0].scrollIntoView({ behavior: "smooth", block: "start" });
+        var contentTop = $(".photo-cards-area")[0];
+        if (contentTop) contentTop.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
 
       // 多个铭牌模板：查询后自动弹窗强制选择（未选不允许保存）
@@ -1140,7 +1147,9 @@ var NameplatePhotoUpload = {
     });
 
     // 清空（header 清空图标 + 查询前清空按钮，class 委托）
-    $(".form-area").on("click", ".btn-clear-form", function () {
+    // 清空按钮在卡片头内部，必须阻止冒泡，否则会连带触发卡片头的折叠切换
+    $(".form-area").on("click", ".btn-clear-form", function (e) {
+      e.stopPropagation();
       NameplatePhotoUpload.clearForm();
     });
 

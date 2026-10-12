@@ -340,6 +340,27 @@ body {
 .mom-photo-upload .form-card-header:active {
   background: #f0f2f5;
 }
+/* 收起时的工位/订单摘要（卡片头内，占剩余空间、超长省略） */
+.mom-photo-upload .form-collapsed-summary {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.mom-photo-upload .form-summary-station,
+.mom-photo-upload .form-summary-order {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mom-photo-upload .form-summary-order::before {
+  content: "·";
+  margin: 0 6px;
+}
 .mom-photo-upload .form-card-header .form-arrow {
   margin-left: auto; /* 与订单信息一致：箭头推到最右 */
   display: flex;

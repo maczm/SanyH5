@@ -18,6 +18,11 @@
           <div class="form-card-header hidden btn-toggle-form">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span>查询条件</span>
+            <!-- 收起时显示当前工位/订单摘要，避免收起后看不到查的是哪一单 -->
+            <span class="form-collapsed-summary">
+              <span class="form-summary-station"></span>
+              <span class="form-summary-order"></span>
+            </span>
             <button type="button" class="btn-clear-form form-clear-btn" title="清空">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
