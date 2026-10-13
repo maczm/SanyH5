@@ -691,10 +691,12 @@ var NameplatePhotoUpload = {
       // 单模板：自动选中（无需用户操作）
       $(".block-template-single").removeClass("hidden");
       $(".template-single-name-value").text(templates[0].templateName || "");
+      $(".template-single-image").attr("src", templates[0].templateImageUrl);
     } else if (templates.length > 1 && state.selectedTemplateId) {
       // 多模板已选
       $(".block-template-selected").removeClass("hidden");
       $(".template-selected-name-value").text(state.selectedTemplateName);
+      $(".template-selected-image").attr("src", state.selectedTemplateUrl);
     } else if (templates.length > 1) {
       // 多模板未选：必须选择（保存按钮同步置灰）
       $(".block-template-none").removeClass("hidden");
@@ -1339,7 +1341,9 @@ var NameplatePhotoUpload = {
         }
       });
     });
-    $(".order-info-area").on("click", ".template-image", function () {
+    // 模板图点击：只做预览，不触发卡片头的折叠切换
+    $(".order-info-area").on("click", ".template-image", function (e) {
+      e.stopPropagation();
       var url = $(this).attr("src");
       if (url) NameplatePhotoUpload.showPhotoPreview(url);
     });

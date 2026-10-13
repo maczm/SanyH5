@@ -13,7 +13,7 @@
   --error: #ea4335;
   --success: #34a853;
   --warning: #fbbc04;
-  --card-radius: 10px;
+  --card-radius: 8px;
   --photo-size: 64px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
@@ -101,7 +101,7 @@ body {
 /* ==================== 表单区 ==================== */
 .mom-photo-upload .form-area {
   flex-shrink: 0;
-  padding: 12px 12px 0;
+  padding: 0 10px;
 }
 
 .mom-photo-upload .form-card {
@@ -310,7 +310,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 12px;
+  padding: 8px 10px;
   background: #fafbfc;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
@@ -359,14 +359,16 @@ body {
   display: flex;
   align-items: center;
 }
-.mom-photo-upload .order-info-header-thumb .template-header-image {
-  width: 34px;
-  height: 34px;
+.mom-photo-upload .order-info-header-thumb .template-image.template-header-image {
+  width: 32px;
+  height: 32px;
+  max-height: 32px;
   object-fit: cover;
   border-radius: 5px;
   border: 1px solid var(--border-color);
   background: #fafbfc;
   cursor: pointer;
+  margin-top: 0;
 }
 /* 收起态箭头仍要贴右（缩略图已占 margin-left:auto） */
 .mom-photo-upload .order-info-card.is-collapsed .order-info-arrow {
@@ -388,7 +390,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 12px;
+  padding: 8px 10px;
   background: #fafbfc;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
@@ -456,7 +458,7 @@ body {
 .mom-photo-upload .order-info-body .field-row {
   display: flex;
   align-items: center;
-  padding: 3px 0;
+  padding: 2px 0;
   border-bottom: 1px solid #f5f5f5;
 }
 .mom-photo-upload .order-info-body .field-row:last-of-type {
@@ -504,13 +506,14 @@ body {
 
 .mom-photo-upload .template-image {
   display: block;
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
+  width: 100%;
+  max-height: 96px;
+  object-fit: contain;
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: #fafbfc;
   cursor: pointer;
+  margin-top: 4px;
 }
 .mom-photo-upload .template-image:active {
   opacity: 0.85;
@@ -674,15 +677,15 @@ body {
   margin-bottom: auto;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 10px 10px;
+  padding: 6px 10px 8px;
   -webkit-overflow-scrolling: touch;
 }
 
 .mom-photo-upload .photo-type-card {
   background: #fff;
   border-radius: var(--card-radius);
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
   box-shadow: var(--shadow-sm);
   border: 1px solid transparent;
   animation: fadeSlideIn 0.3s ease;
@@ -699,13 +702,13 @@ body {
 
 /* 卡片头部 */
 .mom-photo-upload .card-header {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .mom-photo-upload .card-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .mom-photo-upload .card-title {
   font-size: 15px;
@@ -935,7 +938,7 @@ body {
 
 /* ==================== 底部保存按钮区 ==================== */
 .mom-photo-upload .confirm-section {
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   background: #fff;
   border-top: 1px solid #eee;
