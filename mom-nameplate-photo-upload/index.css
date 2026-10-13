@@ -81,6 +81,14 @@ body {
   margin-left: 12px;
 }
 
+/* 标签与取值之间留白：行内字段（主机编码/VIN 行）原本贴合，窄容器下会糊成一片 */
+.mom-photo-upload .order-info-body .field-row-inline .field-label + .field-value {
+  margin-left: 6px;
+}
+.mom-photo-upload .order-info-body .field-row-inline .field-value + .field-label {
+  margin-left: 12px;
+}
+
 /* 隐藏的文件选择 input */
 .mom-photo-upload .photo-input-hidden {
   position: absolute;
@@ -282,6 +290,11 @@ body {
 .mom-photo-upload .order-info-area {
   padding: 10px 12px 0;
   flex-shrink: 0;
+  /* 限高 + 自身滚动：展开订单信息时不再把照片卡片区压成一条缝（模板参考图滚一下仍可见），
+     底部保存按钮因此始终留在可视区内 */
+  max-height: 40vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mom-photo-upload .order-info-card {
@@ -440,8 +453,25 @@ body {
   min-width: 0;
 }
 
+/* 主机编码/VIN 行：保持单行不折行；主机编码与标签不压缩，空间不足时由 VIN 省略显示 */
+.mom-photo-upload .order-info-body .field-row-inline {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.mom-photo-upload .order-info-body .field-row-inline .machine-code-value {
+  flex-shrink: 0;
+  word-break: normal;
+}
 .mom-photo-upload .order-info-body .field-row-inline .field-label {
   width: auto;
+  flex-shrink: 0;
+}
+.mom-photo-upload .order-info-body .field-row-inline .vin-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  flex: 1 1 auto;
 }
 
 .mom-photo-upload .template-image {
@@ -1093,10 +1123,5 @@ body {
   /* 模板参考图原上限 200px 会占满矮弹窗，收一档保证照片卡片区可拍 */
   .mom-photo-upload .template-image {
     max-height: 96px;
-  }
-  /* 展开查看订单信息时自身可滚，不把底部按钮挤出弹窗 */
-  .mom-photo-upload .order-info-body {
-    max-height: 40vh;
-    overflow-y: auto;
   }
 }
