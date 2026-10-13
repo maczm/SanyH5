@@ -597,12 +597,11 @@ var NameplatePhotoUpload = {
         }
       }
 
-      // 查询成功：查询条件区自动收起（卡片头显示工位/订单摘要）
+      // 查询成功：查询条件区与订单信息区都默认收起（卡片头显示工位/订单、模板名、主机编码/VIN 与模板缩略图），
+      // 把纵向空间留给拍照；需要看模板大图或更换模板时点卡片头展开
       state.formCollapsed = true;
       state.orderInfoCollapsedByUser = false; // 新订单：重置用户折叠意图
-      state.orderInfoCollapsed = false;
-      // 紧凑视口（矮弹窗）下订单信息卡片（含模板参考图）会占满可视区，交由统一逻辑收起
-      NameplatePhotoUpload.applyCompactLayout();
+      state.orderInfoCollapsed = true;
       NameplatePhotoUpload.renderForm();
       NameplatePhotoUpload.renderOrderInfo();
       NameplatePhotoUpload.renderPhotoTypeCards();
@@ -663,9 +662,15 @@ var NameplatePhotoUpload = {
 
     $(".order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
 
-    // 收起时卡片头显示主机编码/VIN 摘要（展开时不需要，body 里已有）
+    // 收起时卡片头显示「主机编码 · VIN · 模板名」摘要 + 模板缩略图（展开时不需要，body 里已有）
+    var summaryTemplates = state.orderInfo.templates || [];
+    var summaryTemplateName = state.selectedTemplateName || (summaryTemplates.length === 1 ? summaryTemplates[0].templateName || "" : "");
+    var summaryTemplateUrl = state.selectedTemplateUrl || (summaryTemplates.length === 1 ? summaryTemplates[0].templateImageUrl || "" : "");
+    $(".order-info-summary-template").text(state.orderInfoCollapsed ? summaryTemplateName : "");
     $(".order-info-summary-code").text(state.orderInfoCollapsed ? state.orderInfo.machineCode || "-" : "");
     $(".order-info-summary-vin").text(state.orderInfoCollapsed ? state.orderInfo.vin || "" : "");
+    $(".order-info-card").toggleClass("is-collapsed", state.orderInfoCollapsed);
+    $(".template-header-image").attr("src", state.orderInfoCollapsed && summaryTemplateUrl ? summaryTemplateUrl : "");
 
     if (state.orderInfoCollapsed) return;
 
@@ -686,12 +691,10 @@ var NameplatePhotoUpload = {
       // 单模板：自动选中（无需用户操作）
       $(".block-template-single").removeClass("hidden");
       $(".template-single-name-value").text(templates[0].templateName || "");
-      $(".template-single-image").attr("src", templates[0].templateImageUrl);
     } else if (templates.length > 1 && state.selectedTemplateId) {
       // 多模板已选
       $(".block-template-selected").removeClass("hidden");
       $(".template-selected-name-value").text(state.selectedTemplateName);
-      $(".template-selected-image").attr("src", state.selectedTemplateUrl);
     } else if (templates.length > 1) {
       // 多模板未选：必须选择（保存按钮同步置灰）
       $(".block-template-none").removeClass("hidden");

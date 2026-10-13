@@ -72,10 +72,14 @@
           <div class="order-info-header btn-toggle-order-info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span>订单信息</span>
-            <!-- 收起时显示主机编码/VIN 摘要（弹窗矮屏下订单信息默认收起，避免收起后看不到订单） -->
+            <!-- 收起时显示模板名 + 主机编码/VIN 摘要 + 模板缩略图（订单信息默认收起，摘要保证不丢关键信息） -->
             <span class="order-info-collapsed-summary">
               <span class="order-info-summary-code"></span>
               <span class="order-info-summary-vin"></span>
+              <span class="order-info-summary-template"></span>
+            </span>
+            <span class="order-info-header-thumb">
+              <img class="template-image template-header-image" src="" alt="铭牌模板">
             </span>
             <span class="order-info-arrow">
               <svg class="arrow-down hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
@@ -96,7 +100,6 @@
                 <span class="field-label">铭牌模板</span>
                 <span class="field-value template-single-name-value">-</span>
               </div>
-              <img class="template-image template-single-image" src="" alt="铭牌模板">
             </div>
             <!-- 态C：多模板已选 -->
             <div class="hidden block-template-selected">
@@ -105,7 +108,6 @@
                 <span class="field-value template-selected-name-value">-</span>
                 <button type="button" class="btn-change-template-inline pick-template-btn">更换</button>
               </div>
-              <img class="template-image template-selected-image" src="" alt="铭牌模板">
             </div>
             <!-- 态D：多模板未选（必须选择，否则不允许保存） -->
             <div class="hidden block-template-none">

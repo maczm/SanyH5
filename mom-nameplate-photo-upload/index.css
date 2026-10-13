@@ -13,7 +13,7 @@
   --error: #ea4335;
   --success: #34a853;
   --warning: #fbbc04;
-  --card-radius: 14px;
+  --card-radius: 10px;
   --photo-size: 64px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
@@ -288,11 +288,11 @@ body {
 /* 收起/清空按钮行 */
 /* ==================== 订单信息卡片 ==================== */
 .mom-photo-upload .order-info-area {
-  padding: 10px 12px 0;
+  padding: 6px 10px 0;
   flex-shrink: 0;
-  /* 限高 + 自身滚动：展开订单信息时不再把照片卡片区压成一条缝（模板参考图滚一下仍可见），
-     底部保存按钮因此始终留在可视区内 */
-  max-height: 40vh;
+  /* 限高 + 自身滚动：订单信息最多占可视高度 30%，超出的部分自身滚动，
+     不再把照片卡片区压成一条缝，底部保存按钮始终留在可视区内 */
+  max-height: 30vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -309,8 +309,8 @@ body {
 .mom-photo-upload .order-info-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 6px;
+  padding: 9px 12px;
   background: #fafbfc;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
@@ -323,7 +323,7 @@ body {
 .mom-photo-upload .order-info-header:active {
   background: #f0f2f5;
 }
-/* 收起时的主机编码/VIN 摘要（矮屏弹窗下订单信息默认收起，卡片头保留关键信息） */
+/* 收起时的模板名/主机编码/VIN 摘要（订单信息默认收起，卡片头保留关键信息） */
 .mom-photo-upload .order-info-collapsed-summary {
   display: flex;
   align-items: center;
@@ -331,6 +331,7 @@ body {
   flex: 1;
   overflow: hidden;
 }
+.mom-photo-upload .order-info-summary-template,
 .mom-photo-upload .order-info-summary-code,
 .mom-photo-upload .order-info-summary-vin {
   font-size: 12px;
@@ -340,9 +341,36 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.mom-photo-upload .order-info-summary-code::before,
 .mom-photo-upload .order-info-summary-vin::before {
   content: "·";
   margin: 0 6px;
+}
+.mom-photo-upload .order-info-summary-template {
+  color: var(--text-secondary);
+}
+/* 卡片头内的模板缩略图：收起时也能看到模板参考图 */
+.mom-photo-upload .order-info-header-thumb {
+  display: none;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.mom-photo-upload .order-info-card.is-collapsed .order-info-header-thumb {
+  display: flex;
+  align-items: center;
+}
+.mom-photo-upload .order-info-header-thumb .template-header-image {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background: #fafbfc;
+  cursor: pointer;
+}
+/* 收起态箭头仍要贴右（缩略图已占 margin-left:auto） */
+.mom-photo-upload .order-info-card.is-collapsed .order-info-arrow {
+  margin-left: 6px;
 }
 .mom-photo-upload .order-info-arrow {
   margin-left: auto;
@@ -359,8 +387,8 @@ body {
 .mom-photo-upload .form-card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 6px;
+  padding: 9px 12px;
   background: #fafbfc;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
@@ -428,7 +456,7 @@ body {
 .mom-photo-upload .order-info-body .field-row {
   display: flex;
   align-items: center;
-  padding: 7px 0;
+  padding: 3px 0;
   border-bottom: 1px solid #f5f5f5;
 }
 .mom-photo-upload .order-info-body .field-row:last-of-type {
@@ -476,14 +504,13 @@ body {
 
 .mom-photo-upload .template-image {
   display: block;
-  width: 100%;
-  max-height: 140px;
-  object-fit: contain;
-  border-radius: 10px;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
   background: #fafbfc;
   cursor: pointer;
-  margin-top: 8px;
 }
 .mom-photo-upload .template-image:active {
   opacity: 0.85;
@@ -564,7 +591,7 @@ body {
 }
 .mom-photo-upload .template-picker-box {
   background: #fff;
-  border-radius: 18px;
+  border-radius: 12px;
   width: 88%;
   max-width: 400px;
   max-height: 80vh;
@@ -591,7 +618,7 @@ body {
 }
 .mom-photo-upload .picker-item {
   margin-bottom: 10px;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   border: 2.5px solid transparent;
   cursor: pointer;
@@ -628,7 +655,7 @@ body {
   background: #f1f3f4;
   color: var(--text-secondary);
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -740,7 +767,7 @@ body {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -784,7 +811,7 @@ body {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
-  border-radius: 10px;
+  border-radius: 8px;
   border: 2px dashed #d0d4d9;
   display: flex;
   flex-direction: column;
@@ -814,7 +841,7 @@ body {
   width: var(--photo-size);
   height: var(--photo-size);
   min-width: var(--photo-size);
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid #e8eaed;
   display: flex;
   align-items: center;
@@ -908,7 +935,7 @@ body {
 
 /* ==================== 底部保存按钮区 ==================== */
 .mom-photo-upload .confirm-section {
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   background: #fff;
   border-top: 1px solid #eee;
@@ -917,10 +944,10 @@ body {
 }
 .mom-photo-upload .btn-save {
   flex: 1;
-  padding: 12px;
+  padding: 9px;
   border: 1.5px solid var(--primary);
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   background: #fff;
@@ -957,7 +984,7 @@ body {
 }
 .mom-photo-upload .loading-box {
   background: #fff;
-  border-radius: 18px;
+  border-radius: 12px;
   padding: 36px 32px;
   display: flex;
   flex-direction: column;
@@ -1024,7 +1051,7 @@ body {
 }
 .mom-photo-upload .toast-box {
   background: #fff;
-  border-radius: 20px;
+  border-radius: 12px;
   width: 85%;
   max-width: 340px;
   overflow: hidden;
@@ -1109,7 +1136,7 @@ body {
   background: var(--primary);
   color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   width: calc(100% - 32px);
