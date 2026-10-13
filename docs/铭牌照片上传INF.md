@@ -65,12 +65,14 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 |---|---|---|
 | 还未达标 | `minCount > 0` 且 `X < minCount` | `还需 N 张（已拍 X/minCount）`，N = `minCount − X` |
 | 刚好达标 | `X === minCount` | `已完成（已拍 X/minCount）` |
-| 超过最少数 | `X > minCount` | `已完成（已拍 X 张）`（不写 `X/minCount`，避免出现 `3/1` 这种读起来像出错的写法） |
-| 可不拍·未拍 | `minCount === 0` 且 `X === 0` | `可不拍（最多 maxCount 张）`（中性灰，**不显示完成态**） |
-| 可不拍·已拍 | `minCount === 0` 且 `X > 0` | `已拍 X 张（最多 maxCount 张）` |
+| 超过最少数（未达上限） | `minCount < X < maxCount` | `已完成（已拍 X 张，最多 maxCount 张）`（超出下限后仍看得到上限） |
+| 超过最少数（已达上限） | `X === maxCount` | `已完成（已拍 X 张）`（卡内另有「已达上限」提示，不重复写上限） |
+| 可不拍·未拍 | `minCount === 0` 且 `X === 0` | `最多 maxCount 张`（中性灰，**不显示完成态**） |
+| 可不拍·已拍 | `minCount === 0` 且 `X > 0` | `最多 maxCount 张（已拍 X 张）` |
 
 > `minCount = 0` 的类型一张没拍时**不判定为「已完成」**（旧逻辑会把 0 ≥ 0 当达标、显示绿色完成态，容易误导）；
-> 上限张数**不提前告知**，仅达上限时通过卡片提示与隐藏拍照入口表达。
+> 达标后（`X ≥ minCount`）徽章一律带出上限；已达上限时上限只由卡内「已达上限」提示表达。
+> 本地 mock 的 `S004` 含一个 `minCount = 0` 的类型（`elec_extra`，0~3），用于验证「最多 N 张」文案与"一张没拍不算完成"。
 
 **orderInfo**
 

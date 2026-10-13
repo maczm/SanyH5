@@ -83,6 +83,8 @@ var mockPhotoConfigs = {
     photoTypes: [
       { typeCode: "elec_panel", typeName: "电控面板", minCount: 1, maxCount: 2 },
       { typeCode: "elec_wiring", typeName: "接线图", minCount: 1, maxCount: 3 },
+      // minCount=0：该类型可不拍（验证 optional 徽章「最多 N 张」与"一张没拍也算完成"的区分）
+      { typeCode: "elec_extra", typeName: "补充照片", minCount: 0, maxCount: 3 },
     ],
     orderInfo: {
       machineCode: "MC-2024-D004",

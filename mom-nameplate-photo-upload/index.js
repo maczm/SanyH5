@@ -729,12 +729,20 @@ var NameplatePhotoUpload = {
       var badgeText = "";
       var badgeState = "pending";
       if (minCount === 0) {
+        // 可不拍：始终把上限写出来（拍了多少也一并告知）
         badgeState = "optional";
-        badgeText = takenCount === 0 ? "可不拍（最多 " + maxCount + " 张）" : "已拍 " + takenCount + " 张（最多 " + maxCount + " 张）";
+        badgeText = takenCount === 0 ? "最多 " + maxCount + " 张" : "最多 " + maxCount + " 张（已拍 " + takenCount + " 张）";
       } else if (takenCount >= minCount) {
         badgeState = "done";
-        // 刚好达到最少数才写 x/y；超过后写 3/1 反而像出错，只报张数
-        badgeText = takenCount === minCount ? "已完成（已拍 " + takenCount + "/" + minCount + "）" : "已完成（已拍 " + takenCount + " 张）";
+        // 刚好达到最少数写 x/y；超过后写 3/1 像出错，改为"已拍 X 张"并带上限。
+        // 已达上限时不再重复"最多 Z 张"（卡内已有「已达上限」提示，X=Z 写两遍反而绕）
+        if (takenCount === minCount) {
+          badgeText = "已完成（已拍 " + takenCount + "/" + minCount + "）";
+        } else if (reachedMax) {
+          badgeText = "已完成（已拍 " + takenCount + " 张）";
+        } else {
+          badgeText = "已完成（已拍 " + takenCount + " 张，最多 " + maxCount + " 张）";
+        }
       } else {
         badgeText = "还需 " + (minCount - takenCount) + " 张（已拍 " + takenCount + "/" + minCount + "）";
       }
