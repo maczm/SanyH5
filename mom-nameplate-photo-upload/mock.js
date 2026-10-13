@@ -87,6 +87,8 @@ var mockPhotoConfigs = {
     orderInfo: {
       machineCode: "MC-2024-D004",
       vin: "LSVAU2D00N2100004",
+      // 上次保存的模板：页面应据此自动选中（不再弹窗强制选择）
+      selectedTemplateId: "TPL021",
       templates: [
         { templateId: "TPL020", templateName: "电气铭牌A", templateImageUrl: "../18601605145677184.jpg" },
         { templateId: "TPL021", templateName: "电气铭牌B", templateImageUrl: "../18601605145677184.jpg" },

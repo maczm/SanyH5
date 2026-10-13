@@ -486,6 +486,42 @@ var NameplatePhotoUpload = {
     NameplatePhotoUpload.showToast("提示", "扫码功能仅在移动端可用，请手动输入", "error");
   },
 
+  // ============== 模板选中态（接口回显 → 单模板自动选中 → 多模板由操作员弹窗选择） ==============
+  /**
+   * 按优先级决定铭牌模板选中态：
+   *   1) 接口回显 orderInfo.selectedTemplateId（上次保存的模板）→ 在当前候选里匹配成功后选中；
+   *   2) 候选只有一个 → 自动选中；
+   *   3) 其他情况（多个候选且没有可用的回显、或回显的模板已下线）→ 交给查询成功后的弹窗强制选择。
+   * 仅当回显 ID 能在当前候选里匹配到才生效，名称与图片一律取当前候选值，避免用上已失效的旧值。
+   */
+  applyTemplateSelection: function (templates) {
+    var state = NameplatePhotoUpload.state;
+    state.selectedTemplateId = "";
+    state.selectedTemplateName = "";
+    state.selectedTemplateUrl = "";
+
+    var restoredTemplateId = "";
+    if (state.orderInfo && state.orderInfo.selectedTemplateId) {
+      restoredTemplateId = state.orderInfo.selectedTemplateId;
+    }
+    if (restoredTemplateId) {
+      for (var i = 0; i < templates.length; i++) {
+        if (templates[i].templateId === restoredTemplateId) {
+          state.selectedTemplateId = templates[i].templateId;
+          state.selectedTemplateName = templates[i].templateName || "";
+          state.selectedTemplateUrl = templates[i].templateImageUrl;
+          return;
+        }
+      }
+    }
+
+    if (templates.length === 1) {
+      state.selectedTemplateId = templates[0].templateId;
+      state.selectedTemplateName = templates[0].templateName || "";
+      state.selectedTemplateUrl = templates[0].templateImageUrl;
+    }
+  },
+
   // ============== 查询照片配置 ==============
   doQueryPhotoConfig: function () {
     var state = NameplatePhotoUpload.state;
@@ -538,15 +574,7 @@ var NameplatePhotoUpload = {
       state.configLoaded = true;
 
       var templates = state.orderInfo.templates || [];
-      if (templates.length === 1) {
-        state.selectedTemplateId = templates[0].templateId;
-        state.selectedTemplateName = templates[0].templateName || "";
-        state.selectedTemplateUrl = templates[0].templateImageUrl;
-      } else {
-        state.selectedTemplateId = "";
-        state.selectedTemplateName = "";
-        state.selectedTemplateUrl = "";
-      }
+      NameplatePhotoUpload.applyTemplateSelection(templates);
 
       for (var i = 0; i < state.photoTypes.length; i++) {
         state.photos[state.photoTypes[i].typeCode] = [];
@@ -598,9 +626,9 @@ var NameplatePhotoUpload = {
         if (contentTop) contentTop.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
 
-      // 多个铭牌模板：查询后自动弹窗强制选择（未选不允许保存）
+      // 多个铭牌模板且尚未确定选中：查询后自动弹窗强制选择（未选不允许保存）
       var queriedTemplates = state.orderInfo.templates || [];
-      if (queriedTemplates.length > 1) {
+      if (queriedTemplates.length > 1 && !state.selectedTemplateId) {
         NameplatePhotoUpload.showTemplatePicker(queriedTemplates, function (templateId, templateName, templateUrl) {
           state.selectedTemplateId = templateId;
           state.selectedTemplateName = templateName;

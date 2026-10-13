@@ -64,6 +64,7 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 |---|---|---|
 | `machineCode` | string | 主机编码 |
 | `vin` | string | 车辆识别码（可为空字符串） |
+| `selectedTemplateId` | string | **上次保存的模板 ID**（可选）。用于重新进入页面时回显选中态 |
 | `templates` | array | 铭牌模板列表（可为空数组 `[]`） |
 
 **templates 每项**
@@ -81,6 +82,17 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 | `0` | 订单信息区提示「未查到铭牌模板」，**不卡控保存**（`templateId` 回传空字符串） |
 | `1` | 自动选中该模板，不弹窗 |
 | `>1` | 查询后**自动弹出选择弹窗**：点「取消」不关闭并提示，未选择时保存按钮置灰拦截（点击提示「请先选择铭牌模板」）；重新查询会清空上一次选择并重新弹窗 |
+
+**选中态优先级**（每次查询按顺序判定）：
+
+| 优先级 | 条件 | 页面行为 |
+|---|---|---|
+| 1 | `orderInfo.selectedTemplateId` 能在本次 `templates` 中匹配到 | 自动选中该模板（名称与图片取本次候选值），**不弹窗** |
+| 2 | `templates.length === 1` | 自动选中唯一候选，不弹窗 |
+| 3 | 其他（多个候选且无可用的回显） | 弹窗强制选择 |
+| — | `templates.length === 0` | 提示「未查到铭牌模板」，不卡控保存 |
+
+> `selectedTemplateId` 指向的模板已下线（不在本次候选中）时按「未回显」处理，落回优先级 2/3，不会用旧模板的名称与图片。
 
 ## API-N3：照片上传
 
