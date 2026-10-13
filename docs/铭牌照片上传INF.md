@@ -36,6 +36,18 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 |---|---|---|
 | `photoTypes` | array | 该工位照片类型配置 |
 | `orderInfo` | object | 订单信息（主机编码/VIN/铭牌模板） |
+| `photos` | array | **已保存照片**（同保存报文结构，`[{ photoType, urlList }]`）。重新进入页面时用于回显；无已保存记录时可为 `[]` 或缺省 |
+
+**photos 每项**（回显用）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `photoType` | string | 照片类型编码，需与 `photoTypes[].typeCode` 对应 |
+| `urlList` | string[] | 该类型已保存照片 URL，按拍摄顺序显示 |
+
+> 回显规则：照片按类型回填到对应卡片，与本次拍摄的照片**同等对待**（可删除、可继续拍摄、可再保存）；
+> 无法与当前 `photoTypes` 对应的历史记录（类型已下线等）会被忽略且不报错；`urlList` 中的空串会被跳过；
+> 回填后底部按钮按下述规则自然可用（至少 1 张照片即可保存）。**已选铭牌模板不回填**，多模板仍需重新选择。
 
 **photoTypes 每项**
 

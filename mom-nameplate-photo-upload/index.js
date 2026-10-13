@@ -552,6 +552,23 @@ var NameplatePhotoUpload = {
         state.photos[state.photoTypes[i].typeCode] = [];
       }
 
+      // 回显上一次已保存的照片（后端 data.photos，与保存报文同结构）：可删、可再拍，视为已拍照片
+      var restoredPhotoCount = 0;
+      var savedPhotoGroups = res.data.photos || [];
+      for (var g = 0; g < savedPhotoGroups.length; g++) {
+        var group = savedPhotoGroups[g];
+        if (!group) continue;
+        var groupTypeCode = group.photoType;
+        if (!groupTypeCode || !state.photos[groupTypeCode]) continue; // 类型已不在当前配置里的旧照片忽略
+        var groupUrls = group.urlList || [];
+        for (var u = 0; u < groupUrls.length; u++) {
+          if (groupUrls[u]) {
+            state.photos[groupTypeCode].push({ url: groupUrls[u] });
+            restoredPhotoCount++;
+          }
+        }
+      }
+
       // 查询成功：查询条件区自动收起（卡片头显示工位/订单摘要）
       state.formCollapsed = true;
       state.orderInfoCollapsedByUser = false; // 新订单：重置用户折叠意图
@@ -568,6 +585,11 @@ var NameplatePhotoUpload = {
         $(".confirm-section").removeClass("hidden");
       } else {
         $(".confirm-section").addClass("hidden");
+      }
+
+      // 回显提示：让操作员知道看到的是上次保存的照片，可直接增删后重新保存
+      if (restoredPhotoCount) {
+        NameplatePhotoUpload.showToast("已加载已保存照片", "该订单此工位已有 " + restoredPhotoCount + " 张照片，可继续拍摄或删除后重新保存", "success");
       }
 
       // 表单已自动收起，滚动定位到内容区顶部（订单信息），让订单信息与照片卡片一起进入视野

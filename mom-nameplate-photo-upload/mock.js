@@ -46,6 +46,8 @@ var mockPhotoConfigs = {
         { templateId: "TPL003", templateName: "特殊铭牌", templateImageUrl: "../18601605145677184.jpg" },
       ],
     },
+    // 已保存照片：只拍了 1 张（正面外观 minCount=2，未达标）→ 徽章显示 1/2~5、按钮仍可草稿保存
+    photos: [{ photoType: "appearance_front", urlList: ["../18601605145677184.jpg"] }],
   },
   S002: {
     photoTypes: [
@@ -59,6 +61,11 @@ var mockPhotoConfigs = {
       vin: "LSVAU2B00N2100002",
       templates: [{ templateId: "TPL010", templateName: "尺寸铭牌", templateImageUrl: "../18601605145677184.jpg" }],
     },
+    // 已保存照片（重新进入页面时回显；生产由 Portal 的真实接口回传同样结构）
+    photos: [
+      { photoType: "measure_length", urlList: ["../18601605145677184.jpg"] },
+      { photoType: "measure_width", urlList: ["../18601605145677184.jpg"] },
+    ],
   },
   S003: {
     photoTypes: [
@@ -96,6 +103,11 @@ var mockPhotoConfigs = {
       vin: "LSVAU2E00N2100005",
       templates: [],
     },
+    // 含一条"照片类型已不在当前配置"的脏数据：页面应忽略且不报错
+    photos: [
+      { photoType: "seal_front", urlList: [] },
+      { photoType: "no_longer_configured", urlList: ["../18601605145677184.jpg"] },
+    ],
   },
 };
 
