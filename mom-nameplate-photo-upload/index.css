@@ -715,6 +715,13 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.2px;
+  /* 徽章文案变长时先省略标题，保证徽章完整可读 */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 6px;
 }
 .mom-photo-upload .card-badge {
   font-size: 12px;
@@ -725,6 +732,8 @@ body {
   align-items: center;
   gap: 4px;
   letter-spacing: 0.2px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .mom-photo-upload .card-badge.pending {
   background: #e8f0fe;
@@ -733,6 +742,11 @@ body {
 .mom-photo-upload .card-badge.done {
   background: #e6f4ea;
   color: #1e7e34;
+}
+/* 可不拍的类型：中性灰，区别于「已完成」（绿）与「还需 N 张」（蓝） */
+.mom-photo-upload .card-badge.optional {
+  background: #f1f3f4;
+  color: var(--text-secondary);
 }
 
 /* 进度条 */

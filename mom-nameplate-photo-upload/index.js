@@ -720,17 +720,33 @@ var NameplatePhotoUpload = {
       $card.find(".photo-add").attr("data-type", photoType.typeCode);
 
       var takenCount = (state.photos[photoType.typeCode] || []).length;
-      var reachedMin = takenCount >= photoType.minCount;
       var reachedMax = takenCount >= photoType.maxCount;
+      var minCount = photoType.minCount;
+      var maxCount = photoType.maxCount;
 
-      // 徽章：done（打勾）/ pending（x/y~z）
-      $card.find(".card-badge").toggleClass("done", reachedMin);
-      $card.find(".badge-check").toggleClass("hidden", !reachedMin);
-      $card.find(".badge-text").text(reachedMin ? "已完成" : takenCount + "/" + photoType.minCount + "~" + photoType.maxCount);
+      // 徽章只说人话：done（已完成）/ pending（还需 N 张）/ optional（可不拍）
+      // minCount=0 表示该类型可不拍，不能当成"已完成"（一张没拍也报完成会误导）
+      var badgeText = "";
+      var badgeState = "pending";
+      if (minCount === 0) {
+        badgeState = "optional";
+        badgeText = takenCount === 0 ? "可不拍（最多 " + maxCount + " 张）" : "已拍 " + takenCount + " 张（最多 " + maxCount + " 张）";
+      } else if (takenCount >= minCount) {
+        badgeState = "done";
+        // 刚好达到最少数才写 x/y；超过后写 3/1 反而像出错，只报张数
+        badgeText = takenCount === minCount ? "已完成（已拍 " + takenCount + "/" + minCount + "）" : "已完成（已拍 " + takenCount + " 张）";
+      } else {
+        badgeText = "还需 " + (minCount - takenCount) + " 张（已拍 " + takenCount + "/" + minCount + "）";
+      }
+      $card.find(".card-badge").toggleClass("done", badgeState === "done");
+      $card.find(".card-badge").toggleClass("pending", badgeState === "pending");
+      $card.find(".card-badge").toggleClass("optional", badgeState === "optional");
+      $card.find(".badge-check").toggleClass("hidden", badgeState !== "done");
+      $card.find(".badge-text").text(badgeText);
 
-      var progressPct = reachedMin ? 100 : Math.min(100, (takenCount / photoType.minCount) * 100);
+      var progressPct = minCount === 0 ? (takenCount > 0 ? 100 : 0) : Math.min(100, (takenCount / minCount) * 100);
       $card.find(".progress-fill").css("width", progressPct + "%");
-      $card.toggleClass("complete", reachedMin);
+      $card.toggleClass("complete", minCount > 0 && takenCount >= minCount);
 
       var $list = $card.find(".photo-thumb-list");
       (state.photos[photoType.typeCode] || []).forEach(function (photo, j) {

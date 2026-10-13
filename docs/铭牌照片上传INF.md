@@ -56,8 +56,21 @@ window.getPhotoConfig({ stationCode, orderNo }, callback)
 |---|---|---|
 | `typeCode` | string | 照片类型编码（上传时回传） |
 | `typeName` | string | 照片类型显示名称 |
-| `minCount` | number | 最少拍摄数量 |
-| `maxCount` | number | 最多拍摄数量 |
+| `minCount` | number | 最少拍摄数量；`0` 表示**该类型可不拍** |
+| `maxCount` | number | 最多拍摄数量（达到后隐藏拍照入口并提示「已达上限」） |
+
+**卡片徽章文案**（按 `minCount`/`maxCount` 与已拍张数 X 渲染）
+
+| 场景 | 条件 | 徽章文案 |
+|---|---|---|
+| 还未达标 | `minCount > 0` 且 `X < minCount` | `还需 N 张（已拍 X/minCount）`，N = `minCount − X` |
+| 刚好达标 | `X === minCount` | `已完成（已拍 X/minCount）` |
+| 超过最少数 | `X > minCount` | `已完成（已拍 X 张）`（不写 `X/minCount`，避免出现 `3/1` 这种读起来像出错的写法） |
+| 可不拍·未拍 | `minCount === 0` 且 `X === 0` | `可不拍（最多 maxCount 张）`（中性灰，**不显示完成态**） |
+| 可不拍·已拍 | `minCount === 0` 且 `X > 0` | `已拍 X 张（最多 maxCount 张）` |
+
+> `minCount = 0` 的类型一张没拍时**不判定为「已完成」**（旧逻辑会把 0 ≥ 0 当达标、显示绿色完成态，容易误导）；
+> 上限张数**不提前告知**，仅达上限时通过卡片提示与隐藏拍照入口表达。
 
 **orderInfo**
 
