@@ -72,6 +72,11 @@
           <div class="order-info-header btn-toggle-order-info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span>订单信息</span>
+            <!-- 收起时显示主机编码/VIN 摘要（弹窗矮屏下订单信息默认收起，避免收起后看不到订单） -->
+            <span class="order-info-collapsed-summary">
+              <span class="order-info-summary-code"></span>
+              <span class="order-info-summary-vin"></span>
+            </span>
             <span class="order-info-arrow">
               <svg class="arrow-down hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
               <svg class="arrow-up hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6" /></svg>

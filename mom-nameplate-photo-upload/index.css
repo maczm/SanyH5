@@ -305,11 +305,31 @@ body {
   color: var(--text-primary);
   cursor: pointer;
   user-select: none;
-  user-select: none;
   transition: background 0.15s;
 }
 .mom-photo-upload .order-info-header:active {
   background: #f0f2f5;
+}
+/* 收起时的主机编码/VIN 摘要（矮屏弹窗下订单信息默认收起，卡片头保留关键信息） */
+.mom-photo-upload .order-info-collapsed-summary {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.mom-photo-upload .order-info-summary-code,
+.mom-photo-upload .order-info-summary-vin {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mom-photo-upload .order-info-summary-vin::before {
+  content: "·";
+  margin: 0 6px;
 }
 .mom-photo-upload .order-info-arrow {
   margin-left: auto;
@@ -1065,4 +1085,18 @@ body {
 }
 .mom-photo-upload .toast-btn:active {
   background: var(--primary-dark);
+}
+
+/* ==================== 紧凑视口（弹窗/矮屏宿主） ==================== */
+/* 容器高度由宿主（弹窗 iframe）决定，故按高度而非宽度收敛；订单信息默认收起由 JS 负责 */
+@media (max-height: 560px) {
+  /* 模板参考图原上限 200px 会占满矮弹窗，收一档保证照片卡片区可拍 */
+  .mom-photo-upload .template-image {
+    max-height: 96px;
+  }
+  /* 展开查看订单信息时自身可滚，不把底部按钮挤出弹窗 */
+  .mom-photo-upload .order-info-body {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
 }

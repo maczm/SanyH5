@@ -5,6 +5,8 @@ var CONFIG = {
   JPEG_QUALITY: 0.8,
   API_TIMEOUT: 10000, // API 超时兜底（毫秒）
   RETURN_DELAY: 600, // 关重件绑定入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
+  COMPACT_VIEWPORT_HEIGHT: 560, // 可视高度低于此值视为紧凑视口（弹窗/矮屏宿主）
+  RESIZE_DEBOUNCE: 150, // resize 去抖（弹窗尺寸变化、软键盘弹出/收起）
 };
 
 /*
@@ -55,6 +57,7 @@ var NameplatePhotoUpload = {
     configLoaded: false,
     formCollapsed: false,
     orderInfoCollapsed: false,
+    orderInfoCollapsedByUser: false, // 用户手动操作过订单信息折叠：自动紧凑/展开逻辑不再覆盖其意图
     orderInfo: {
       machineCode: "",
       vin: "",
@@ -211,6 +214,17 @@ var NameplatePhotoUpload = {
 
   // ============== 模板选择弹窗（骨架预埋 + 列表克隆） ==============
   /**
+   * 关闭并清空模板选择弹窗：换单/换工位重新查询时必须调用，
+   * 否则上一单的强制选择弹窗会继续留在屏幕上，操作工会对着上一单的模板去选、去保存
+   */
+  dismissTemplatePicker: function () {
+    var $picker = $(".template-picker");
+    if (!$picker.length) return;
+    $picker.addClass("hidden").removeData("on-pick").removeData("force-choose");
+    $(".picker-list").empty();
+  },
+
+  /**
    * 打开模板选择弹窗
    * @param {Array} templates - 模板列表
    * @param {Function} callback - 选中回调 (templateId, templateName, templateImageUrl)
@@ -267,6 +281,57 @@ var NameplatePhotoUpload = {
   /** 关重件绑定（KeyPart）页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
   isKeyPartEntry: function () {
     return window.fromKeyPart === "KeyPart";
+  },
+
+  /** 延迟执行包装（resize 等高频事件用，只保留最后一次） */
+  debounce: function (delay, action) {
+    var timer = null;
+    return function () {
+      var args = arguments;
+      var context = this;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        timer = null;
+        action.apply(context, args);
+      }, delay);
+    };
+  },
+
+  // ============== 视口适配（弹窗/矮屏宿主） ==============
+  /** 可视高度低于阈值即视为紧凑视口（弹窗高度由宿主 iframe 决定，故按高度判定） */
+  isCompactViewport: function () {
+    return $(window).height() < CONFIG.COMPACT_VIEWPORT_HEIGHT;
+  },
+
+  /**
+   * 页面尺寸兜底：表单宿主没有高度链时，height:100% 解析不到，会出现整页滚动条把底部按钮推出可视区。
+   * 仅在根容器有顶部偏移（height:100% 未生效）时才显式设高；高度链正常时 top=0，本函数是 no-op。
+   */
+  fitPageHeight: function () {
+    var $root = $(".mom-photo-upload");
+    if (!$root.length) return;
+    var topOffset = Math.round($root.offset().top);
+    if (topOffset <= 0) {
+      // 高度链恢复（如宿主补齐高度）：清掉兜底高度，交回纯 CSS height:100%
+      if ($root[0].style.height) $root.css("height", "");
+      return;
+    }
+    var availableHeight = $(window).height() - topOffset;
+    $root.css("height", Math.max(240, availableHeight) + "px");
+  },
+
+  /**
+   * 紧凑视口布局：矮弹窗里订单信息卡片（含 200px 模板参考图）会占满可视区，把照片区挤到只剩一条缝。
+   * 紧凑时默认收起订单信息（卡片头显示主机编码/VIN 摘要），用户手动操作过则尊重其意图。
+   * 注意：未查到铭牌模板时 renderOrderInfo 会强制展开提示，该优先级不受本函数影响。
+   */
+  applyCompactLayout: function () {
+    var state = NameplatePhotoUpload.state;
+    if (!state.configLoaded || state.orderInfoCollapsedByUser) return;
+    var compact = NameplatePhotoUpload.isCompactViewport();
+    if (state.orderInfoCollapsed === compact) return;
+    state.orderInfoCollapsed = compact;
+    NameplatePhotoUpload.renderOrderInfo();
   },
 
   /**
@@ -390,6 +455,7 @@ var NameplatePhotoUpload = {
     state.configLoaded = false;
     state.formCollapsed = false;
     state.orderInfoCollapsed = false;
+    state.orderInfoCollapsedByUser = false;
     state.orderInfo = { machineCode: "", vin: "", templates: [] };
     state.selectedTemplateId = "";
     state.selectedTemplateName = "";
@@ -453,17 +519,19 @@ var NameplatePhotoUpload = {
     state.stationCode = stationCode;
     state.orderNo = orderNo;
 
+    NameplatePhotoUpload.dismissTemplatePicker();
     NameplatePhotoUpload.showLoading("查询中...");
+    var querySessionSnapshot = ++state.sessionId; // 换单/换工位会自增：丢弃过期查询回调，防止旧结果覆盖新单
     console.log("[API] getPhotoConfig", { stationCode: stationCode, orderNo: orderNo });
     NameplatePhotoUpload.apiCall(window.getPhotoConfig, [{ stationCode: stationCode, orderNo: orderNo }], function (res) {
       console.log("[API] getPhotoConfig 返回", res);
       NameplatePhotoUpload.hideLoading();
+      if (querySessionSnapshot !== NameplatePhotoUpload.state.sessionId) return; // 已有更新的查询，丢弃
       if (res.code !== 0) {
         NameplatePhotoUpload.showToast("查询失败", res.msg || "获取照片配置失败", "error");
         return;
       }
 
-      state.sessionId++; // 新会话：丢弃在途上传回调
       state.photoTypes = res.data.photoTypes || [];
       state.orderInfo = res.data.orderInfo || { machineCode: "", vin: "", templates: [] };
       state.photos = {};
@@ -484,9 +552,12 @@ var NameplatePhotoUpload = {
         state.photos[state.photoTypes[i].typeCode] = [];
       }
 
-      // 查询成功：查询条件区自动收起（卡片头显示工位/订单摘要），订单信息保持展开
+      // 查询成功：查询条件区自动收起（卡片头显示工位/订单摘要）
       state.formCollapsed = true;
+      state.orderInfoCollapsedByUser = false; // 新订单：重置用户折叠意图
       state.orderInfoCollapsed = false;
+      // 紧凑视口（矮弹窗）下订单信息卡片（含模板参考图）会占满可视区，交由统一逻辑收起
+      NameplatePhotoUpload.applyCompactLayout();
       NameplatePhotoUpload.renderForm();
       NameplatePhotoUpload.renderOrderInfo();
       NameplatePhotoUpload.renderPhotoTypeCards();
@@ -531,17 +602,21 @@ var NameplatePhotoUpload = {
     }
     $area.removeClass("hidden");
 
+    // 订单未查到铭牌记录：展开订单信息，保证提示可见（用户手动折叠时尊重其意图）
+    var noTemplateTip = !((state.orderInfo.templates || []).length);
+    if (noTemplateTip && state.orderInfoCollapsed && !state.orderInfoCollapsedByUser) {
+      state.orderInfoCollapsed = false;
+    }
+
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
-    // 订单未查到铭牌记录：展开订单信息，保证提示可见（默认状态本就展开，此处兜住手动折叠）
-    if (!((state.orderInfo.templates || []).length) && state.orderInfoCollapsed) {
-      state.orderInfoCollapsed = false;
-      $(".order-info-arrow .arrow-down").removeClass("hidden");
-      $(".order-info-arrow .arrow-up").addClass("hidden");
-    }
-
     $(".order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
+
+    // 收起时卡片头显示主机编码/VIN 摘要（展开时不需要，body 里已有）
+    $(".order-info-summary-code").text(state.orderInfoCollapsed ? state.orderInfo.machineCode || "-" : "");
+    $(".order-info-summary-vin").text(state.orderInfoCollapsed ? state.orderInfo.vin || "" : "");
+
     if (state.orderInfoCollapsed) return;
 
     // 态A：主机编码 + VIN
@@ -1065,6 +1140,7 @@ var NameplatePhotoUpload = {
     state.configLoaded = false;
     state.formCollapsed = false;
     state.orderInfoCollapsed = false;
+    state.orderInfoCollapsedByUser = false;
     state.orderInfo = { machineCode: "", vin: "", templates: [] };
     state.selectedTemplateId = "";
     state.selectedTemplateName = "";
@@ -1216,6 +1292,8 @@ var NameplatePhotoUpload = {
     });
     $(".order-info-area").on("click", ".btn-toggle-order-info", function () {
       NameplatePhotoUpload.state.orderInfoCollapsed = !NameplatePhotoUpload.state.orderInfoCollapsed;
+      // 记录用户意图：此后紧凑视口的自动收起/展开不再覆盖
+      NameplatePhotoUpload.state.orderInfoCollapsedByUser = true;
       NameplatePhotoUpload.renderOrderInfo();
     });
 
@@ -1266,6 +1344,17 @@ var NameplatePhotoUpload = {
 
     // 渲染初始表单状态（按钮文案按入口切换、查询前置灰）
     NameplatePhotoUpload.renderForm();
+
+    // 高度链兜底（宿主没给高度链时才生效）与紧凑视口布局，并在尺寸变化时重算
+    NameplatePhotoUpload.fitPageHeight();
+    NameplatePhotoUpload.applyCompactLayout();
+    $(window).on(
+      "resize",
+      NameplatePhotoUpload.debounce(CONFIG.RESIZE_DEBOUNCE, function () {
+        NameplatePhotoUpload.fitPageHeight();
+        NameplatePhotoUpload.applyCompactLayout();
+      }),
+    );
 
     NameplatePhotoUpload.loadStationList();
 
