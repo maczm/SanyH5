@@ -370,6 +370,25 @@ body {
   cursor: pointer;
   margin-top: 0;
 }
+/* 有模板但没图（或图加载失败）：缩略图位改显示说明文字，不留空位、不露破图 */
+.mom-photo-upload .order-info-header-thumb.is-empty .template-header-image {
+  display: none;
+}
+.mom-photo-upload .order-info-header-thumb.is-empty::before {
+  content: "无模板图";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  border: 1px dashed var(--border-color);
+  border-radius: 5px;
+  background: #fafbfc;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+}
 /* 收起态箭头仍要贴右（缩略图已占 margin-left:auto） */
 .mom-photo-upload .order-info-card.is-collapsed .order-info-arrow {
   margin-left: 6px;

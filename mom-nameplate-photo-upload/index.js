@@ -643,26 +643,54 @@ var NameplatePhotoUpload = {
     }
     $area.removeClass("hidden");
 
-    // 订单未查到铭牌记录：展开订单信息，保证提示可见（用户手动折叠时尊重其意图）
-    var noTemplateTip = !((state.orderInfo.templates || []).length);
-    if (noTemplateTip && state.orderInfoCollapsed && !state.orderInfoCollapsedByUser) {
-      state.orderInfoCollapsed = false;
-    }
-
     $(".order-info-arrow .arrow-down").toggleClass("hidden", !state.orderInfoCollapsed);
     $(".order-info-arrow .arrow-up").toggleClass("hidden", state.orderInfoCollapsed);
 
     $(".order-info-body").toggleClass("hidden", state.orderInfoCollapsed);
 
     // 收起时卡片头显示「主机编码 · VIN · 模板名」摘要 + 模板缩略图（展开时不需要，body 里已有）
+    // 有模板名却没有图（未选模板 / 模板无图 / 图加载失败）：缩略图位改显示说明文字，不留空图框
     var summaryTemplates = state.orderInfo.templates || [];
     var summaryTemplateName = state.selectedTemplateName || (summaryTemplates.length === 1 ? summaryTemplates[0].templateName || "" : "");
     var summaryTemplateUrl = state.selectedTemplateUrl || (summaryTemplates.length === 1 ? summaryTemplates[0].templateImageUrl || "" : "");
-    $(".order-info-summary-template").text(state.orderInfoCollapsed ? summaryTemplateName : "");
+    var summaryText = summaryTemplateName;
+    if (!summaryTemplateName) {
+      if (!summaryTemplates.length) {
+        summaryText = "未查到铭牌模板";
+      } else if (summaryTemplates.length > 1) {
+        summaryText = "请选择铭牌模板";
+      }
+    }
+    $(".order-info-summary-template").text(state.orderInfoCollapsed ? summaryText : "");
     $(".order-info-summary-code").text(state.orderInfoCollapsed ? state.orderInfo.machineCode || "-" : "");
     $(".order-info-summary-vin").text(state.orderInfoCollapsed ? state.orderInfo.vin || "" : "");
     $(".order-info-card").toggleClass("is-collapsed", state.orderInfoCollapsed);
-    $(".template-header-image").attr("src", state.orderInfoCollapsed && summaryTemplateUrl ? summaryTemplateUrl : "");
+
+    /**
+     * 缩略图位三态：有图→显示图；有模板名没图→占位说明「无模板图」；没查到/未选模板→整位收起
+     * 目的：收起态卡片头不留空图框、也不露浏览器的破图图标
+     */
+    function updateTemplateThumb() {
+      var hasName = !!summaryTemplateName;
+      var hasUrl = !!summaryTemplateUrl;
+      if (!hasName) {
+        $(".order-info-header-thumb").addClass("hidden").removeClass("is-empty");
+        return;
+      }
+      $(".order-info-header-thumb").removeClass("hidden").toggleClass("is-empty", !hasUrl);
+    }
+    updateTemplateThumb();
+
+    var $headerImage = $(".template-header-image");
+    $headerImage.off("error.templateThumb").on("error.templateThumb", function () {
+      $(".order-info-header-thumb").addClass("is-empty");
+    });
+    if (state.orderInfoCollapsed && summaryTemplateUrl) {
+      $headerImage.attr("src", summaryTemplateUrl);
+    } else {
+      // 展开态 / 无模板 / 无图：清空 src，避免残留上一单的图或空白请求
+      $headerImage.removeAttr("src");
+    }
 
     if (state.orderInfoCollapsed) return;
 
