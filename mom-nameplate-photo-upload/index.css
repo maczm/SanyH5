@@ -1193,3 +1193,15 @@ body {
     max-height: 96px;
   }
 }
+
+/* 矮视口把两个折叠区各自限高：同时展开时也不至于把底部按钮挤出可视区（超出部分自身滚动） */
+@media (max-height: 700px) {
+  .mom-photo-upload .form-area {
+    max-height: 34vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mom-photo-upload .order-info-area {
+    max-height: 24vh;
+  }
+}

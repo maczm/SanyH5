@@ -304,12 +304,14 @@ var NameplatePhotoUpload = {
   },
 
   /**
-   * 页面尺寸兜底：表单宿主没有高度链时 height:100% 解析不到，会出现整页滚动条把底部按钮推出可视区。
+   * 页面尺寸（钉住高度，避免宿主跟着内容变高变矮）。
    *
-   * 关键点（实测踩坑）：**不能用 `offset().top` 判断/计算**。宿主容器带 padding、或根容器上方有宿主
-   * 不可见占位时，offset().top 会 > 0，于是这里把高度写死成"窗口高 − offset"，页面被压矮且不再
-   * 随宿主布局变化（实测线上被压成 340px）。改为：偏移只取父层 padding/border 与自身 margin-top，
-   * 每次调用都实时重算，宿主布局稳定后重新计算即可得到正确高度。
+   * 背景：宿主弹层（如 Apriso 的 .apr-popup）会按内容自适应高度，页面若把"内容高度"透给宿主，
+   * 查询条件/订单信息一折叠展开，弹窗就跟着变高变矮。所以这里**始终**把根容器钉在视口高度，
+   * 让文档高度恒定：折叠展开只在页面内部重新分配空间（照片卡片区自身滚动），宿主量到的尺寸不变。
+   *
+   * 偏移只取父层 padding-top / border-top 与自身 margin-top（**不能用 offset().top**：
+   * 宿主 padding 会让 offset().top > 0，从而把高度算小并写死，实测线上被压成 340px）。
    */
   fitPageHeight: function () {
     var $root = $(".mom-photo-upload");
@@ -319,13 +321,8 @@ var NameplatePhotoUpload = {
     var hostBorderTop = parseFloat($host.css("border-top-width")) || 0;
     var rootMarginTop = parseFloat($root.css("margin-top")) || 0;
     var topOffset = Math.round(hostPaddingTop + hostBorderTop + rootMarginTop);
-    // 高度链正常（父层无 padding/border、自身无 margin）时交给纯 CSS height:100%，清掉兜底内联高度
-    if (topOffset <= 0) {
-      if ($root[0].style.height) $root.css("height", "");
-    } else {
-      var availableHeight = $(window).height() - topOffset;
-      $root.css("height", Math.max(240, availableHeight) + "px");
-    }
+    var availableHeight = Math.max(240, $(window).height() - topOffset);
+    $root.css("height", availableHeight + "px");
     // 记录偏移，便于现场核查（不参与逻辑）
     $root.attr("data-host-top-offset", topOffset);
   },
