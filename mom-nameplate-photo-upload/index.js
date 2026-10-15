@@ -7,6 +7,8 @@ var CONFIG = {
   RETURN_DELAY: 600, // 关重件绑定入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
   COMPACT_VIEWPORT_HEIGHT: 560, // 可视高度低于此值视为紧凑视口（弹窗/矮屏宿主）
   RESIZE_DEBOUNCE: 150, // resize 去抖（弹窗尺寸变化、软键盘弹出/收起）
+  MIN_PAGE_HEIGHT: 400, // 页面高度下限：宿主给得再矮也按 400px 渲染（超出部分内部滚动）
+  MAX_PAGE_HEIGHT: 600, // 页面高度上限：宿主给得再高也按 600px 渲染（不允许超出区间）
 };
 
 /*
@@ -304,11 +306,15 @@ var NameplatePhotoUpload = {
   },
 
   /**
-   * 页面尺寸（钉住高度，避免宿主跟着内容变高变矮）。
+   * 页面尺寸（钉住高度并限制在约定区间内，避免宿主跟着内容变高变矮）。
    *
    * 背景：宿主弹层（如 Apriso 的 .apr-popup）会按内容自适应高度，页面若把"内容高度"透给宿主，
    * 查询条件/订单信息一折叠展开，弹窗就跟着变高变矮。所以这里**始终**把根容器钉在视口高度，
    * 让文档高度恒定：折叠展开只在页面内部重新分配空间（照片卡片区自身滚动），宿主量到的尺寸不变。
+   *
+   * 同时把高度**钳制在 [MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT]** 区间（默认 400~600px）：
+   * 宿主给得再高也不超过上限（不撑大弹窗），给得再矮也不低于下限（按 400px 渲染、内部滚动），
+   * 即页面自高度不允许超出约定区间。
    *
    * 偏移只取父层 padding-top / border-top 与自身 margin-top（**不能用 offset().top**：
    * 宿主 padding 会让 offset().top > 0，从而把高度算小并写死，实测线上被压成 340px）。
@@ -321,10 +327,13 @@ var NameplatePhotoUpload = {
     var hostBorderTop = parseFloat($host.css("border-top-width")) || 0;
     var rootMarginTop = parseFloat($root.css("margin-top")) || 0;
     var topOffset = Math.round(hostPaddingTop + hostBorderTop + rootMarginTop);
-    var availableHeight = Math.max(240, $(window).height() - topOffset);
-    $root.css("height", availableHeight + "px");
-    // 记录偏移，便于现场核查（不参与逻辑）
+    var rawHeight = $(window).height() - topOffset;
+    var clamped = Math.min(CONFIG.MAX_PAGE_HEIGHT, Math.max(CONFIG.MIN_PAGE_HEIGHT, rawHeight));
+    $root.css("height", clamped + "px");
+    // 记录本次计算，便于现场核查（不参与逻辑）
     $root.attr("data-host-top-offset", topOffset);
+    $root.attr("data-page-height", clamped);
+    $root.attr("data-page-height-clamped", clamped === rawHeight ? "0" : "1");
   },
 
   /**
