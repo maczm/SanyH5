@@ -693,6 +693,8 @@ body {
   /* 按内容高度伸展（flex-grow 关闭），多余纵向空间交给下方弹性留白推到页面底部，
      避免照片较少时卡片区把空白留在自己内部形成大片空档；内容超出时自身滚动 */
   flex: 0 1 auto;
+  /* 宿主给的高度再矮也保住一张卡的可见高度，不把拍照区压成一条缝 */
+  min-height: 120px;
   margin-bottom: auto;
   overflow-y: auto;
   overflow-x: hidden;

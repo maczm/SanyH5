@@ -304,20 +304,30 @@ var NameplatePhotoUpload = {
   },
 
   /**
-   * 页面尺寸兜底：表单宿主没有高度链时，height:100% 解析不到，会出现整页滚动条把底部按钮推出可视区。
-   * 仅在根容器有顶部偏移（height:100% 未生效）时才显式设高；高度链正常时 top=0，本函数是 no-op。
+   * 页面尺寸兜底：表单宿主没有高度链时 height:100% 解析不到，会出现整页滚动条把底部按钮推出可视区。
+   *
+   * 关键点（实测踩坑）：**不能用 `offset().top` 判断/计算**。宿主容器带 padding、或根容器上方有宿主
+   * 不可见占位时，offset().top 会 > 0，于是这里把高度写死成"窗口高 − offset"，页面被压矮且不再
+   * 随宿主布局变化（实测线上被压成 340px）。改为：偏移只取父层 padding/border 与自身 margin-top，
+   * 每次调用都实时重算，宿主布局稳定后重新计算即可得到正确高度。
    */
   fitPageHeight: function () {
     var $root = $(".mom-photo-upload");
     if (!$root.length) return;
-    var topOffset = Math.round($root.offset().top);
+    var $host = $root.parent();
+    var hostPaddingTop = parseFloat($host.css("padding-top")) || 0;
+    var hostBorderTop = parseFloat($host.css("border-top-width")) || 0;
+    var rootMarginTop = parseFloat($root.css("margin-top")) || 0;
+    var topOffset = Math.round(hostPaddingTop + hostBorderTop + rootMarginTop);
+    // 高度链正常（父层无 padding/border、自身无 margin）时交给纯 CSS height:100%，清掉兜底内联高度
     if (topOffset <= 0) {
-      // 高度链恢复（如宿主补齐高度）：清掉兜底高度，交回纯 CSS height:100%
       if ($root[0].style.height) $root.css("height", "");
-      return;
+    } else {
+      var availableHeight = $(window).height() - topOffset;
+      $root.css("height", Math.max(240, availableHeight) + "px");
     }
-    var availableHeight = $(window).height() - topOffset;
-    $root.css("height", Math.max(240, availableHeight) + "px");
+    // 记录偏移，便于现场核查（不参与逻辑）
+    $root.attr("data-host-top-offset", topOffset);
   },
 
   /**
