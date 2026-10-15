@@ -5,7 +5,6 @@ var CONFIG = {
   JPEG_QUALITY: 0.8,
   API_TIMEOUT: 10000, // API 超时兜底（毫秒）
   RETURN_DELAY: 600, // 关重件绑定入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
-  COMPACT_VIEWPORT_HEIGHT: 560, // 可视高度低于此值视为紧凑视口（弹窗/矮屏宿主）
   RESIZE_DEBOUNCE: 150, // resize 去抖（弹窗尺寸变化、软键盘弹出/收起）
   MIN_USABLE_HEIGHT: 680, // 可视高度低于此值即认为高度受限：两个折叠区各自限高并自身滚动，保住底部按钮
   MIN_PAGE_HEIGHT: 400, // 弹窗形态页面高度下限：宿主给得再矮也按 400px 渲染（超出部分内部滚动）
@@ -309,10 +308,14 @@ var NameplatePhotoUpload = {
     return !!NameplatePhotoUpload.state.fromKeyPart;
   },
 
-  /** 紧凑视口：仅弹窗形态下按高度判定（普通入口不因窗口矮而进入紧凑布局） */
+  /**
+   * 是否按"紧凑布局"呈现（查询条件区与订单信息区默认收起）。
+   * - 弹窗形态（关重件绑定跳转）：**无条件收起**（不论弹窗多高，都把纵向空间留给拍照）；
+   * - 普通入口：仅当高度受限（视口 < CONFIG.MIN_USABLE_HEIGHT）时才收起，否则保持展开（原有行为）。
+   */
   isCompactViewport: function () {
-    if (!NameplatePhotoUpload.isPopupMode()) return false;
-    return $(window).height() < CONFIG.COMPACT_VIEWPORT_HEIGHT;
+    if (NameplatePhotoUpload.isPopupMode()) return true;
+    return $(window).height() < CONFIG.MIN_USABLE_HEIGHT;
   },
 
   /**
