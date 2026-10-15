@@ -7,7 +7,8 @@ var CONFIG = {
   RETURN_DELAY: 600, // 关重件绑定入口：保存成功后延迟多久调用返回方法（先让成功提示渲染出来）
   COMPACT_VIEWPORT_HEIGHT: 560, // 可视高度低于此值视为紧凑视口（弹窗/矮屏宿主）
   RESIZE_DEBOUNCE: 150, // resize 去抖（弹窗尺寸变化、软键盘弹出/收起）
-  MIN_PAGE_HEIGHT: 400, // 页面高度下限：宿主给得再矮也按 400px 渲染（超出部分内部滚动）
+  MIN_USABLE_HEIGHT: 680, // 可视高度低于此值即认为高度受限：两个折叠区各自限高并自身滚动，保住底部按钮
+  MIN_PAGE_HEIGHT: 400, // 弹窗形态页面高度下限：宿主给得再矮也按 400px 渲染（超出部分内部滚动）
   MAX_PAGE_HEIGHT: 600, // 页面高度上限：宿主给得再高也按 600px 渲染（不允许超出区间）
 };
 
@@ -300,21 +301,29 @@ var NameplatePhotoUpload = {
   },
 
   // ============== 视口适配（弹窗/矮屏宿主） ==============
-  /** 可视高度低于阈值即视为紧凑视口（弹窗高度由宿主 iframe 决定，故按高度判定） */
+  /**
+   * 是否处于「关重件绑定跳转进来的弹窗」形态。
+   * 只有这种形态才做高度钳制与矮屏折叠；从普通入口/整屏打开时保持铺满视口的常规行为。
+   */
+  isPopupMode: function () {
+    return !!NameplatePhotoUpload.state.fromKeyPart;
+  },
+
+  /** 紧凑视口：仅弹窗形态下按高度判定（普通入口不因窗口矮而进入紧凑布局） */
   isCompactViewport: function () {
+    if (!NameplatePhotoUpload.isPopupMode()) return false;
     return $(window).height() < CONFIG.COMPACT_VIEWPORT_HEIGHT;
   },
 
   /**
-   * 页面尺寸（钉住高度并限制在约定区间内，避免宿主跟着内容变高变矮）。
+   * 页面尺寸。
    *
-   * 背景：宿主弹层（如 Apriso 的 .apr-popup）会按内容自适应高度，页面若把"内容高度"透给宿主，
-   * 查询条件/订单信息一折叠展开，弹窗就跟着变高变矮。所以这里**始终**把根容器钉在视口高度，
-   * 让文档高度恒定：折叠展开只在页面内部重新分配空间（照片卡片区自身滚动），宿主量到的尺寸不变。
+   * 弹窗形态（关重件绑定跳转）：钉住高度并**钳制在 [MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT]**（默认 400~600px）。
+   *   背景：宿主弹层（如 Apriso 的 .apr-popup）按内容自适应高度，页面若把内容高度透给宿主，
+   *   查询条件/订单信息一折叠展开弹窗就跟着变高变矮；钉住后文档高度恒定，折叠展开只在页面内部
+   *   重新分配空间（照片卡片区自身滚动），宿主量到的尺寸不变。钳制则保证不超出约定区间。
    *
-   * 同时把高度**钳制在 [MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT]** 区间（默认 400~600px）：
-   * 宿主给得再高也不超过上限（不撑大弹窗），给得再矮也不低于下限（按 400px 渲染、内部滚动），
-   * 即页面自高度不允许超出约定区间。
+   * 普通形态（非关重件入口）：不钳制，按视口铺满（保持原来的整屏行为）。
    *
    * 偏移只取父层 padding-top / border-top 与自身 margin-top（**不能用 offset().top**：
    * 宿主 padding 会让 offset().top > 0，从而把高度算小并写死，实测线上被压成 340px）。
@@ -322,32 +331,42 @@ var NameplatePhotoUpload = {
   fitPageHeight: function () {
     var $root = $(".mom-photo-upload");
     if (!$root.length) return;
+    var popupMode = NameplatePhotoUpload.isPopupMode();
     var $host = $root.parent();
     var hostPaddingTop = parseFloat($host.css("padding-top")) || 0;
     var hostBorderTop = parseFloat($host.css("border-top-width")) || 0;
     var rootMarginTop = parseFloat($root.css("margin-top")) || 0;
     var topOffset = Math.round(hostPaddingTop + hostBorderTop + rootMarginTop);
     var rawHeight = $(window).height() - topOffset;
-    var clamped = Math.min(CONFIG.MAX_PAGE_HEIGHT, Math.max(CONFIG.MIN_PAGE_HEIGHT, rawHeight));
-    $root.css("height", clamped + "px");
+    var finalHeight = popupMode
+      ? Math.min(CONFIG.MAX_PAGE_HEIGHT, Math.max(CONFIG.MIN_PAGE_HEIGHT, rawHeight))
+      : rawHeight;
+    // 高度受限（矮弹窗或矮嵌入式宿主）时给折叠区限高，保证底部按钮不被挤出可视区
+    var constrained = popupMode || $(window).height() < CONFIG.MIN_USABLE_HEIGHT;
+    $root.toggleClass("is-popup-mode", popupMode).toggleClass("page-compact", constrained).css("height", finalHeight + "px");
     // 记录本次计算，便于现场核查（不参与逻辑）
     $root.attr("data-host-top-offset", topOffset);
-    $root.attr("data-page-height", clamped);
-    $root.attr("data-page-height-clamped", clamped === rawHeight ? "0" : "1");
+    $root.attr("data-page-height", finalHeight);
+    $root.attr("data-page-height-clamped", finalHeight === rawHeight ? "0" : "1");
   },
 
   /**
-   * 紧凑视口布局：矮弹窗里订单信息卡片（含 200px 模板参考图）会占满可视区，把照片区挤到只剩一条缝。
-   * 紧凑时默认收起订单信息（卡片头显示主机编码/VIN 摘要），用户手动操作过则尊重其意图。
-   * 注意：未查到铭牌模板时 renderOrderInfo 会强制展开提示，该优先级不受本函数影响。
+   * 紧凑布局：**仅弹窗形态（关重件绑定跳转）**下，矮屏时把查询条件区与订单信息区都收起，
+   * 把纵向空间留给拍照（卡片头仍显示工位/订单/模板摘要与模板缩略图）；用户手动操作过折叠则尊重其意图。
+   * 普通入口 / 整屏：保持展开，与原有行为一致。
    */
   applyCompactLayout: function () {
     var state = NameplatePhotoUpload.state;
-    if (!state.configLoaded || state.orderInfoCollapsedByUser) return;
+    if (!state.configLoaded) return;
     var compact = NameplatePhotoUpload.isCompactViewport();
-    if (state.orderInfoCollapsed === compact) return;
-    state.orderInfoCollapsed = compact;
-    NameplatePhotoUpload.renderOrderInfo();
+    if (!state.orderInfoCollapsedByUser && state.orderInfoCollapsed !== compact) {
+      state.orderInfoCollapsed = compact;
+      NameplatePhotoUpload.renderOrderInfo();
+    }
+    if (state.formCollapsed !== compact) {
+      state.formCollapsed = compact;
+      NameplatePhotoUpload.renderForm();
+    }
   },
 
   /**
@@ -610,11 +629,12 @@ var NameplatePhotoUpload = {
         }
       }
 
-      // 查询成功：查询条件区与订单信息区都默认收起（卡片头显示工位/订单、模板名、主机编码/VIN 与模板缩略图），
-      // 把纵向空间留给拍照；需要看模板大图或更换模板时点卡片头展开
-      state.formCollapsed = true;
+      // 查询成功：先保持展开，再由 applyCompactLayout 按形态决定是否收起
+      // （弹窗形态：两区收起腾出拍照空间；普通入口：保持展开，与原有整屏行为一致）
+      state.formCollapsed = false;
       state.orderInfoCollapsedByUser = false; // 新订单：重置用户折叠意图
-      state.orderInfoCollapsed = true;
+      state.orderInfoCollapsed = false;
+      NameplatePhotoUpload.applyCompactLayout();
       NameplatePhotoUpload.renderForm();
       NameplatePhotoUpload.renderOrderInfo();
       NameplatePhotoUpload.renderPhotoTypeCards();

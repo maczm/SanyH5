@@ -1185,23 +1185,23 @@ body {
   background: var(--primary-dark);
 }
 
-/* ==================== 紧凑视口（弹窗/矮屏宿主） ==================== */
-/* 容器高度由宿主（弹窗 iframe）决定，故按高度而非宽度收敛；订单信息默认收起由 JS 负责 */
+/* ==================== 高度受限场景的矮屏收敛 ==================== */
+/* 仅 .page-compact 生效（弹窗形态，或视口高度 < CONFIG.MIN_USABLE_HEIGHT 的矮嵌入式宿主）；按高度而非宽度收敛 */
 @media (max-height: 560px) {
   /* 模板参考图原上限 200px 会占满矮弹窗，收一档保证照片卡片区可拍 */
-  .mom-photo-upload .template-image {
+  .mom-photo-upload.page-compact .template-image {
     max-height: 96px;
   }
 }
 
-/* 矮视口把两个折叠区各自限高：同时展开时也不至于把底部按钮挤出可视区（超出部分自身滚动） */
+/* 矮弹窗里把两个折叠区各自限高：同时展开时也不至于把底部按钮挤出可视区（超出部分自身滚动） */
 @media (max-height: 700px) {
-  .mom-photo-upload .form-area {
-    max-height: 34vh;
+  .mom-photo-upload.page-compact .form-area {
+    max-height: 30vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .mom-photo-upload .order-info-area {
-    max-height: 24vh;
+  .mom-photo-upload.page-compact .order-info-area {
+    max-height: 20vh;
   }
 }
