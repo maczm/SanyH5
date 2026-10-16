@@ -419,7 +419,9 @@ var NameplatePhotoUpload = {
     if (NameplatePhotoUpload.state.saving) return;
     var label = "保存";
     if (NameplatePhotoUpload.state.fromKeyPart) {
-      label = NameplatePhotoUpload.isKeyPartDirty() ? "保存并返回" : "返回";
+      // 没有需要保存的新内容（含"一张都没拍却选了模板"、含"回显照片原样未动"）→ 按钮是「返回」，
+      // 绝不能显示成点不动的「保存并返回」
+      label = NameplatePhotoUpload.isKeyPartReturnAction() ? "返回" : "保存并返回";
     }
     $(".btn-save").text(label);
   },
@@ -465,6 +467,35 @@ var NameplatePhotoUpload = {
       if (current[keys[i]] !== (baseline.photos[keys[i]] || 0)) return true;
     }
     return false;
+  },
+
+  /** 当前是否已有任意照片（决定主按钮是「保存并返回」还是「返回」：没照片就没东西可存） */
+  hasAnyPhoto: function () {
+    var state = NameplatePhotoUpload.state;
+    for (var i = 0; i < state.photoTypes.length; i++) {
+      if ((state.photos[state.photoTypes[i].typeCode] || []).length > 0) return true;
+    }
+    return false;
+  },
+
+  /**
+   * 关重件入口：是否有"需要保存的新内容"（决定按钮是「返回」还是「保存并返回」）。
+   * 注意不是简单看"有没有照片"：回显的历史照片若未被增删、也没换模板，就不需要保存，按钮应为「返回」——
+   * 否则"什么都没做"却显示「保存并返回」，操作员会以为必须提交一次。
+   */
+  hasKeyPartSaveWork: function () {
+    // 有待选择的模板（多模板未选）：按钮必须还能点，点击时拉起选择弹窗，不能被「返回」吞掉
+    if (NameplatePhotoUpload.hasTemplateMismatch()) return true;
+    if (NameplatePhotoUpload.isKeyPartDirty()) return true;
+    // 基线里的照片被清空后又重新拍：张数相同但内容已换，属需要保存
+    if (NameplatePhotoUpload.hasAnyPhoto() && NameplatePhotoUpload.hasPhotoChanges()) return true;
+    return false;
+  },
+
+  /** 关重件入口：主按钮是否只是「返回」（不写记录） */
+  isKeyPartReturnAction: function () {
+    if (!NameplatePhotoUpload.state.fromKeyPart) return false;
+    return !NameplatePhotoUpload.hasKeyPartSaveWork();
   },
 
   /** 关重件入口：本次是否有过改动（主动换模板 / 照片张数变化 / 模板选择变化） */
@@ -1255,9 +1286,10 @@ var NameplatePhotoUpload = {
       return;
     }
 
-    // 关重件入口且本次没有任何改动：主按钮是「返回」（点了直接回关重件页、不写记录），
-    // 因此一张照片都没有时也必须可点——现场照片没拍成时也要能退回去
-    if (state.fromKeyPart && !NameplatePhotoUpload.isKeyPartDirty()) {
+    // 关重件入口且没有需要保存的新内容：主按钮是「返回」（点了直接回关重件页、不写记录），必须可点。
+    // 注意不能只看 isKeyPartDirty() 或"有没有照片"：0 张照片时若选了模板会 dirty=true、
+    // 落到下面"0 张置灰"分支 → 按钮显示「保存并返回」又点不动，直接卡死
+    if (NameplatePhotoUpload.isKeyPartReturnAction()) {
       $saveButton.prop("disabled", false).removeAttr("aria-disabled").removeClass("btn-disabled");
       return;
     }
@@ -1273,15 +1305,14 @@ var NameplatePhotoUpload = {
       return;
     }
 
-    // 有照片但多模板未选：保留占位、置灰外观但可点击，点击给「请先选择铭牌模板」提示
-    // （原生 disabled 不派发 click，提示无从触发，故用 aria-disabled + .btn-disabled）
+    // 有照片但多模板未选：普通入口保留「可点置灰 + 提示」；关重件入口不用置灰（工位/订单不可改，
+    // 置灰又不放行会让操作员无路可走），点击时直接拉起模板选择弹窗
     var templateMismatch = NameplatePhotoUpload.hasTemplateMismatch();
     $saveButton.prop("disabled", false);
-    $saveButton.toggleClass("btn-disabled", templateMismatch);
-    if (templateMismatch) {
-      $saveButton.attr("aria-disabled", "true");
+    if (templateMismatch && !state.fromKeyPart) {
+      $saveButton.addClass("btn-disabled").attr("aria-disabled", "true");
     } else {
-      $saveButton.removeAttr("aria-disabled");
+      $saveButton.removeClass("btn-disabled").removeAttr("aria-disabled");
     }
   },
 
@@ -1294,9 +1325,24 @@ var NameplatePhotoUpload = {
 
   /** 保存前拦截：多模板未选时提示并给出选择入口 */
   ensureTemplateSelected: function () {
+    var state = NameplatePhotoUpload.state;
     if (!NameplatePhotoUpload.hasTemplateMismatch()) return true;
     NameplatePhotoUpload.showToast("提示", "请先选择铭牌模板", "error");
     NameplatePhotoUpload.renderOrderInfo();
+    // 关重件入口：工位/订单不可改，只弹提示会让操作员"出不去"（保存不放行、又没有别的路）。
+    // 这里直接把模板选择弹窗拉起来，选完即可继续保存
+    if (state.fromKeyPart) {
+      NameplatePhotoUpload.showTemplatePicker(state.orderInfo.templates || [], function (templateId, templateName, templateUrl) {
+        if (!templateId) return;
+        state.selectedTemplateId = templateId;
+        state.selectedTemplateName = templateName;
+        state.selectedTemplateUrl = templateUrl;
+        state.modified = true;
+        NameplatePhotoUpload.renderOrderInfo();
+        NameplatePhotoUpload.updateButtons();
+        NameplatePhotoUpload.applySaveButtonLabel();
+      });
+    }
     return false;
   },
 
@@ -1304,8 +1350,8 @@ var NameplatePhotoUpload = {
   handlePrimaryAction: function () {
     var state = NameplatePhotoUpload.state;
     if (state.saving) return;
-    // 无任何操作（没拍/没删照片、没换模板）→ 直接返回关重件绑定页，不写任何记录
-    if (state.fromKeyPart && !NameplatePhotoUpload.isKeyPartDirty()) {
+    // 没有需要保存的新内容 → 直接返回关重件绑定页，不写任何记录
+    if (NameplatePhotoUpload.isKeyPartReturnAction()) {
       NameplatePhotoUpload.returnToKeyPartPage();
       return;
     }
