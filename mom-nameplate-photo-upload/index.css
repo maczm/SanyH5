@@ -241,6 +241,18 @@ body {
   color: #c4c7cc;
 }
 
+/* 关重件入口：工位/订单号为 Portal 带入值，只读展示（不参与编辑） */
+.mom-photo-upload.is-keypart-mode .form-area input[readonly] {
+  background: #f5f6f7;
+  color: var(--text-secondary);
+  cursor: default;
+}
+.mom-photo-upload.is-keypart-mode .form-area .combobox-arrow,
+.mom-photo-upload.is-keypart-mode .form-area .btn-scan-order[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .mom-photo-upload .icon-btn {
   width: 46px;
   height: 46px;

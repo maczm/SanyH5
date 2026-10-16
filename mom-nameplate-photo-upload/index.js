@@ -31,10 +31,13 @@ var CONFIG = {
  *   window.Operator  : 当前操作员姓名（Portal 注入）
  *
  * 入口模式（关重件绑定 KeyPart 页面进入）：
- *   window.fromKeyPart === "KeyPart" 时按钮文案为「保存并返回」，并读取
- *   window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
- *   保存成功后调用 window.KeyPart_ReturnFromPhotoUpload() 交回关重件绑定页面
- *   （Portal 注入并实现，页面不自行做任何导航/关闭）
+ *   window.fromKeyPart === "KeyPart" 时：
+ *     · 工位与订单号为 Portal 带入值，置只读（不可编辑、不弹工位下拉、扫码禁用）；
+ *     · 主按钮按"本次有没有改动"切换：没拍/没删照片、没换模板 → 「返回」（点了直接回关重件页、不写记录）；
+ *       有任何改动 → 「保存并返回」（保存成功后调用 window.KeyPart_ReturnFromPhotoUpload() 交回关重件绑定页面）；
+ *     · 读取 window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
+ *   后端回显的照片与查询时自动选中的模板都算"改动基线"，不算操作员改动。
+ *   （返回由 Portal 注入的 window.KeyPart_ReturnFromPhotoUpload() 实现，页面不自行做任何导航/关闭）
  *
  * Portal 必须注入以下 4 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
@@ -71,6 +74,9 @@ var NameplatePhotoUpload = {
     stations: [],
     stationsLoaded: false, // 工位列表是否已返回（区分「加载中」与「无匹配」）
     sessionId: 0, // 会话标识：查询/清空/换工位时递增，用于丢弃过期异步回调（防串单）
+    // 关重件入口专用：判断"本次有没有改动过"（无改动时主按钮是「返回」而不是「保存并返回」）
+    modified: false, // 用户是否主动改过（换模板）
+    idKeyPartBaseline: null, // 查询成功后的基线快照 { photos: {typeCode: 张数}, templateId }
   },
 
   _toastTimer: null,
@@ -318,6 +324,24 @@ var NameplatePhotoUpload = {
     return $(window).height() < CONFIG.MIN_USABLE_HEIGHT;
   },
 
+  // ============== 关重件入口：工位/订单号只读（只作为接收值展示） ==============
+  /** 工位与订单号是否锁为只读（关重件入口下为 Portal 带入值，现场不允许修改） */
+  isFieldLocked: function () {
+    return !!NameplatePhotoUpload.state.fromKeyPart;
+  },
+
+  /**
+   * 应用工位/订单只读：关重件入口下置 readonly + disabled（disabled 使输入框无法聚焦，
+   * 键盘/粘贴都不生效），并禁用扫码按钮；普通入口恢复可编辑。
+   * 交互处理器里另有 isFieldLocked() 守卫（委托绑定不需要增删事件）。
+   */
+  applyKeyPartFieldLock: function () {
+    var locked = NameplatePhotoUpload.isFieldLocked();
+    $(".mom-photo-upload").toggleClass("is-keypart-mode", locked);
+    $(".input-station, .input-order").prop("readonly", locked).prop("disabled", locked);
+    $(".btn-scan-order").prop("disabled", locked);
+  },
+
   /**
    * 页面尺寸。
    *
@@ -385,9 +409,73 @@ var NameplatePhotoUpload = {
     }, CONFIG.RETURN_DELAY);
   },
 
-  /** 按钮文案随入口切换：关重件绑定进入为「保存并返回」（返回动作由 Portal 处理），否则为「保存」 */
+  /**
+   * 按钮文案随入口与改动状态切换：
+   * - 关重件入口：无改动 → 「返回」（点了直接回关重件页、不写记录）；有改动 → 「保存并返回」
+   * - 普通入口：恒为「保存」
+   * 提交中由 doSubmit() 自己控制「保存中...」，此处不覆盖
+   */
   applySaveButtonLabel: function () {
-    $(".btn-save").text(NameplatePhotoUpload.state.fromKeyPart ? "保存并返回" : "保存");
+    if (NameplatePhotoUpload.state.saving) return;
+    var label = "保存";
+    if (NameplatePhotoUpload.state.fromKeyPart) {
+      label = NameplatePhotoUpload.isKeyPartDirty() ? "保存并返回" : "返回";
+    }
+    $(".btn-save").text(label);
+  },
+
+  // ============== 关重件入口：改动基线 ==============
+  /** 当前各照片类型的张数快照（只比张数，不比 URL，避免回显顺序差异造成误判） */
+  snapshotPhotos: function () {
+    var state = NameplatePhotoUpload.state;
+    var snapshot = {};
+    for (var i = 0; i < state.photoTypes.length; i++) {
+      var typeCode = state.photoTypes[i].typeCode;
+      snapshot[typeCode] = (state.photos[typeCode] || []).length;
+    }
+    return snapshot;
+  },
+
+  /**
+   * 记录改动基线：**必须在查询成功、后端照片回填完成之后**调用（放早了会与静默回显竞态）。
+   * 后端回显的照片与查询时自动选中的模板都算基线，不算"操作员改动"。
+   */
+  captureBaseline: function () {
+    var state = NameplatePhotoUpload.state;
+    state.modified = false;
+    state.idKeyPartBaseline = {
+      photos: NameplatePhotoUpload.snapshotPhotos(),
+      templateId: state.selectedTemplateId || "",
+    };
+  },
+
+  clearBaseline: function () {
+    var state = NameplatePhotoUpload.state;
+    state.modified = false;
+    state.idKeyPartBaseline = null;
+  },
+
+  /** 照片张数相对基线是否变化（删补一张即算改动） */
+  hasPhotoChanges: function () {
+    var baseline = NameplatePhotoUpload.state.idKeyPartBaseline;
+    if (!baseline) return false;
+    var current = NameplatePhotoUpload.snapshotPhotos();
+    var keys = Object.keys(current);
+    for (var i = 0; i < keys.length; i++) {
+      if (current[keys[i]] !== (baseline.photos[keys[i]] || 0)) return true;
+    }
+    return false;
+  },
+
+  /** 关重件入口：本次是否有过改动（主动换模板 / 照片张数变化 / 模板选择变化） */
+  isKeyPartDirty: function () {
+    var state = NameplatePhotoUpload.state;
+    if (!state.fromKeyPart) return false;
+    if (state.modified) return true;
+    if (NameplatePhotoUpload.hasPhotoChanges()) return true;
+    var baseline = state.idKeyPartBaseline;
+    if (baseline && (state.selectedTemplateId || "") !== baseline.templateId) return true;
+    return false;
   },
 
   getStationDisplay: function (stationCode) {
@@ -498,6 +586,8 @@ var NameplatePhotoUpload = {
     state.selectedTemplateId = "";
     state.selectedTemplateName = "";
     state.selectedTemplateUrl = "";
+
+    NameplatePhotoUpload.clearBaseline(); // 关重件入口：清空改动基线，按钮回到「返回」
 
     NameplatePhotoUpload.hideResultAreas();
     NameplatePhotoUpload.renderForm();
@@ -632,6 +722,10 @@ var NameplatePhotoUpload = {
         }
       }
 
+      // 改动基线：此刻的照片（含刚回显的后端照片）与自动选中的模板都算"未改动"起点。
+      // 必须放在回填之后：放早了会把回显照片误判成操作员改动
+      NameplatePhotoUpload.captureBaseline();
+
       // 查询成功：先保持展开，再由 applyCompactLayout 按形态决定是否收起
       // （弹窗形态：两区收起腾出拍照空间；普通入口：保持展开，与原有整屏行为一致）
       state.formCollapsed = false;
@@ -663,8 +757,11 @@ var NameplatePhotoUpload = {
           state.selectedTemplateId = templateId;
           state.selectedTemplateName = templateName;
           state.selectedTemplateUrl = templateUrl;
+          // 操作员主动选模板 = 改动（关重件入口据此把按钮从「返回」切成「保存并返回」）
+          state.modified = true;
           NameplatePhotoUpload.renderOrderInfo();
           NameplatePhotoUpload.updateButtons();
+          NameplatePhotoUpload.applySaveButtonLabel();
         });
       }
     });
@@ -838,6 +935,8 @@ var NameplatePhotoUpload = {
     });
 
     NameplatePhotoUpload.updateButtons();
+    // 照片增删会改变"是否有改动"，同步刷新主按钮文案（关重件入口：返回 ↔ 保存并返回）
+    NameplatePhotoUpload.applySaveButtonLabel();
   },
 
   // ============== 拍照处理 ==============
@@ -1156,6 +1255,13 @@ var NameplatePhotoUpload = {
       return;
     }
 
+    // 关重件入口且本次没有任何改动：主按钮是「返回」（点了直接回关重件页、不写记录），
+    // 因此一张照片都没有时也必须可点——现场照片没拍成时也要能退回去
+    if (state.fromKeyPart && !NameplatePhotoUpload.isKeyPartDirty()) {
+      $saveButton.prop("disabled", false).removeAttr("aria-disabled").removeClass("btn-disabled");
+      return;
+    }
+
     var totalTaken = 0;
     for (var i = 0; i < state.photoTypes.length; i++) {
       totalTaken += (state.photos[state.photoTypes[i].typeCode] || []).length;
@@ -1192,6 +1298,18 @@ var NameplatePhotoUpload = {
     NameplatePhotoUpload.showToast("提示", "请先选择铭牌模板", "error");
     NameplatePhotoUpload.renderOrderInfo();
     return false;
+  },
+
+  // ============== 主按钮动作：关重件入口无改动时是「返回」，否则「保存（并返回）」 ==============
+  handlePrimaryAction: function () {
+    var state = NameplatePhotoUpload.state;
+    if (state.saving) return;
+    // 无任何操作（没拍/没删照片、没换模板）→ 直接返回关重件绑定页，不写任何记录
+    if (state.fromKeyPart && !NameplatePhotoUpload.isKeyPartDirty()) {
+      NameplatePhotoUpload.returnToKeyPartPage();
+      return;
+    }
+    NameplatePhotoUpload.handleSave();
   },
 
   // ============== 保存（未达最少数也可存：草稿保存） ==============
@@ -1284,6 +1402,8 @@ var NameplatePhotoUpload = {
     state.selectedTemplateName = "";
     state.selectedTemplateUrl = "";
 
+    NameplatePhotoUpload.clearBaseline(); // 关重件入口：清空改动基线，按钮回到「返回」
+
     NameplatePhotoUpload.hideResultAreas();
     NameplatePhotoUpload.renderForm();
     NameplatePhotoUpload.loadStationList();
@@ -1292,11 +1412,13 @@ var NameplatePhotoUpload = {
 
   // ============== 事件绑定（一次性委托，页面加载时执行） ==============
   initEvents: function () {
-    // 工位输入框
+    // 工位输入框（关重件入口为带入值，只读：不弹下拉、不因输入清空工位编码）
     $(".form-area").on("focus input click", ".input-station", function () {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       NameplatePhotoUpload.showStationDropdown();
     });
     $(".form-area").on("input", ".input-station", function () {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       $(".input-station-code").val("");
       NameplatePhotoUpload.state.stationCode = "";
       if (NameplatePhotoUpload.state.configLoaded) {
@@ -1312,6 +1434,7 @@ var NameplatePhotoUpload = {
 
     // 下拉箭头点击
     $(".form-area").on("click", ".combobox-arrow", function () {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       var $dropdown = $(".dropdown-station");
       if (!$dropdown.hasClass("hidden")) {
         $dropdown.addClass("hidden");
@@ -1322,6 +1445,7 @@ var NameplatePhotoUpload = {
 
     // 点击页面其他地方关闭下拉
     $(document).on("mousedown", function (e) {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       if (!$(e.target).closest(".combobox-station").length) {
         $(".dropdown-station").addClass("hidden");
         if (NameplatePhotoUpload.state.stationCode) {
@@ -1332,6 +1456,7 @@ var NameplatePhotoUpload = {
 
     // 工位输入框回车
     $(".form-area").on("keypress", ".input-station", function (e) {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       if (e.which !== 13) {
         $(".dropdown-station").addClass("hidden");
         return;
@@ -1369,11 +1494,13 @@ var NameplatePhotoUpload = {
 
     // 扫码按钮
     $(".form-area").on("click", ".btn-scan-order", function () {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       NameplatePhotoUpload.doScan(".input-order", NameplatePhotoUpload.doQueryPhotoConfig);
     });
 
     // 订单号回车
     $(".form-area").on("keypress", ".input-order", function (e) {
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       if (e.which !== 13) return;
       NameplatePhotoUpload.doQueryPhotoConfig();
     });
@@ -1405,9 +1532,9 @@ var NameplatePhotoUpload = {
     });
 
     // 底部按钮区
-    // 保存按钮（文案由入口决定：保存 / 保存并返回）
+    // 主按钮（文案由入口与改动状态决定：保存 / 返回 / 保存并返回）
     $(".confirm-section").on("click", ".btn-save", function () {
-      NameplatePhotoUpload.handleSave();
+      NameplatePhotoUpload.handlePrimaryAction();
     });
 
     // 订单信息区：模板选择/预览/折叠
@@ -1419,8 +1546,11 @@ var NameplatePhotoUpload = {
           state.selectedTemplateId = templateId;
           state.selectedTemplateName = templateName;
           state.selectedTemplateUrl = templateUrl;
+          // 操作员主动换模板 = 改动（关重件入口据此把按钮从「返回」切成「保存并返回」）
+          state.modified = true;
           NameplatePhotoUpload.renderOrderInfo();
           NameplatePhotoUpload.updateButtons();
+          NameplatePhotoUpload.applySaveButtonLabel();
         }
       });
     });
@@ -1479,6 +1609,9 @@ var NameplatePhotoUpload = {
     $(".btn-save").data("label", $(".btn-save").text());
 
     NameplatePhotoUpload.state.fromKeyPart = NameplatePhotoUpload.isKeyPartEntry();
+
+    // 关重件入口：工位/订单号为 Portal 带入值，置只读（普通入口保持可编辑）
+    NameplatePhotoUpload.applyKeyPartFieldLock();
 
     NameplatePhotoUpload.initEvents();
 
