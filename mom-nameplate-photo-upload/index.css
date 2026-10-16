@@ -465,6 +465,10 @@ body {
   height: 18px;
   color: var(--text-muted);
 }
+/* 关重件入口：工位/订单为带入值且不可改，清空按钮一并隐藏（防误触清掉带入的查询条件） */
+.mom-photo-upload.is-keypart-mode .form-card-header .btn-clear-form {
+  display: none;
+}
 .mom-photo-upload .form-card-header .form-clear-btn {
   display: flex;
   align-items: center;

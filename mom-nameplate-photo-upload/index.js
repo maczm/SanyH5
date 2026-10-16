@@ -1495,6 +1495,8 @@ var NameplatePhotoUpload = {
     // 清空按钮在卡片头内部，必须阻止冒泡，否则会连带触发卡片头的折叠切换
     $(".form-area").on("click", ".btn-clear-form", function (e) {
       e.stopPropagation();
+      // 关重件入口：查询条件为带入值且不可修改，不允许清空（按钮已隐藏，这里再兜一层）
+      if (NameplatePhotoUpload.isFieldLocked()) return;
       NameplatePhotoUpload.clearForm();
     });
 
