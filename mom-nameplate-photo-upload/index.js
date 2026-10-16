@@ -353,6 +353,11 @@ var NameplatePhotoUpload = {
     $(".mom-photo-upload").attr("data-entry", locked ? "keypart" : "normal").attr("data-entry-flag", String(window.fromKeyPart));
     // 双按钮显隐：初始化时也要按入口显一次（否则查询前「返回」不会出现）
     $(".btn-back").toggleClass("hidden", !locked);
+    if (locked) {
+      // 关重件入口：「返回」是逃生通道，弹窗一打开就要能看到（不必等查询成功）
+      $(".confirm-section").removeClass("hidden");
+      NameplatePhotoUpload.updateButtons();
+    }
   },
 
   /**
@@ -754,9 +759,13 @@ var NameplatePhotoUpload = {
       NameplatePhotoUpload.renderPhotoTypeCards();
       NameplatePhotoUpload.updateButtons();
       $(".photo-cards-area").removeClass("hidden");
-      // 无照片类型（无需拍照工位）：不显示保存按钮
+      // 无照片类型（无需拍照工位）：不显示保存按钮；关重件入口仅保留「返回」按钮
       if (state.photoTypes.length) {
         $(".confirm-section").removeClass("hidden");
+        $(".btn-save").removeClass("hidden");
+      } else if (state.fromKeyPart) {
+        $(".confirm-section").removeClass("hidden");
+        $(".btn-save").addClass("hidden");
       } else {
         $(".confirm-section").addClass("hidden");
       }
@@ -888,11 +897,17 @@ var NameplatePhotoUpload = {
     $(".empty-no-photo").addClass("hidden");
 
     if (!state.photoTypes.length) {
-      // 空态提示：骨架在 index.html；无照片类型不显示保存按钮
+      // 空态提示：骨架在 index.html；无照片类型不显示保存按钮（关重件入口仍保留「返回」）
       $(".empty-no-photo").removeClass("hidden");
-      $(".confirm-section").addClass("hidden");
+      if (state.fromKeyPart) {
+        $(".confirm-section").removeClass("hidden");
+        $(".btn-save").addClass("hidden");
+      } else {
+        $(".confirm-section").addClass("hidden");
+      }
       return;
     }
+    $(".btn-save").removeClass("hidden");
 
     state.photoTypes.forEach(function (photoType) {
       var $card = NameplatePhotoUpload.cloneTemplate("template-photo-card");
