@@ -140,9 +140,11 @@
         </div>
       </div>
 
-      <!-- ==================== 底部保存按钮区 ==================== -->
-      <!-- 按钮文案按入口切换：正常进入为「保存」，由关重件绑定（KeyPart）页面进入为「保存并返回」（JS 依 window.fromKeyPart 判定） -->
+      <!-- ==================== 底部按钮区 ==================== -->
+      <!-- 主按钮文案按入口切换：正常进入为「保存」，由关重件绑定（KeyPart）页面进入为「保存并返回」（JS 依 window.fromKeyPart 判定）；
+           关重件入口额外显示独立的「返回」按钮（不保存、直接回关重件绑定页），普通入口隐藏 -->
       <div class="confirm-section hidden">
+        <button type="button" class="btn-back hidden">返回</button>
         <button type="button" class="btn-save">保存</button>
       </div>
 

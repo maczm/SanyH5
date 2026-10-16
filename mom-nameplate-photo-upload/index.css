@@ -992,6 +992,23 @@ body {
   box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
   display: flex;
 }
+/* 关重件入口的独立返回按钮（次要样式，与主按钮并排） */
+.mom-photo-upload .btn-back {
+  flex: 0 0 34%;
+  margin-right: 8px;
+  padding: 9px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: var(--text-secondary);
+  transition: background 0.15s, opacity 0.15s;
+}
+.mom-photo-upload .btn-back:active {
+  background: #f2f3f5;
+}
 .mom-photo-upload .btn-save {
   flex: 1;
   padding: 9px;

@@ -33,11 +33,10 @@ var CONFIG = {
  * 入口模式（关重件绑定 KeyPart 页面进入）：
  *   window.fromKeyPart === "KeyPart" 时：
  *     · 工位与订单号为 Portal 带入值，置只读（不可编辑、不弹工位下拉、扫码禁用）；
- *     · 主按钮按"本次有没有改动"切换：没拍/没删照片、没换模板 → 「返回」（点了直接回关重件页、不写记录）；
- *       有任何改动 → 「保存并返回」（保存成功后调用 window.KeyPart_ReturnFromPhotoUpload() 交回关重件绑定页面）；
- *     · 读取 window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）；
- *   后端回显的照片与查询时自动选中的模板都算"改动基线"，不算操作员改动。
- *   （返回由 Portal 注入的 window.KeyPart_ReturnFromPhotoUpload() 实现，页面不自行做任何导航/关闭）
+ *     · 底部显示两个按钮：独立的「返回」（不做任何校验、不写记录，直接交回关重件绑定页面）
+ *       + 主按钮「保存并返回」（完全走原保存逻辑，保存成功后交回关重件绑定页面）；
+ *     · 读取 window.KeyPartStationCode / window.KeyPartOrderNo 预填工位与订单号（齐备则自动查询）。
+ *   （两个按钮的返回动作都由 Portal 注入的 window.KeyPart_ReturnFromPhotoUpload() 实现，页面不自行导航/关闭）
  *
  * Portal 必须注入以下 4 个 window 属性：
  *   window.getStationList     — API 1：获取工位列表
@@ -410,20 +409,13 @@ var NameplatePhotoUpload = {
   },
 
   /**
-   * 按钮文案随入口与改动状态切换：
-   * - 关重件入口：无改动 → 「返回」（点了直接回关重件页、不写记录）；有改动 → 「保存并返回」
-   * - 普通入口：恒为「保存」
+   * 主按钮文案随入口切换：关重件绑定额外配一个独立「返回」按钮（见 .btn-back），
+   * 主按钮本身始终是「保存 / 保存并返回」，动作与校验完全走原逻辑。
    * 提交中由 doSubmit() 自己控制「保存中...」，此处不覆盖
    */
   applySaveButtonLabel: function () {
     if (NameplatePhotoUpload.state.saving) return;
-    var label = "保存";
-    if (NameplatePhotoUpload.state.fromKeyPart) {
-      // 没有需要保存的新内容（含"一张都没拍却选了模板"、含"回显照片原样未动"）→ 按钮是「返回」，
-      // 绝不能显示成点不动的「保存并返回」
-      label = NameplatePhotoUpload.isKeyPartReturnAction() ? "返回" : "保存并返回";
-    }
-    $(".btn-save").text(label);
+    $(".btn-save").text(NameplatePhotoUpload.state.fromKeyPart ? "保存并返回" : "保存");
   },
 
   // ============== 关重件入口：改动基线 ==============
@@ -476,26 +468,6 @@ var NameplatePhotoUpload = {
       if ((state.photos[state.photoTypes[i].typeCode] || []).length > 0) return true;
     }
     return false;
-  },
-
-  /**
-   * 关重件入口：是否有"需要保存的新内容"（决定按钮是「返回」还是「保存并返回」）。
-   * 注意不是简单看"有没有照片"：回显的历史照片若未被增删、也没换模板，就不需要保存，按钮应为「返回」——
-   * 否则"什么都没做"却显示「保存并返回」，操作员会以为必须提交一次。
-   */
-  hasKeyPartSaveWork: function () {
-    // 有待选择的模板（多模板未选）：按钮必须还能点，点击时拉起选择弹窗，不能被「返回」吞掉
-    if (NameplatePhotoUpload.hasTemplateMismatch()) return true;
-    if (NameplatePhotoUpload.isKeyPartDirty()) return true;
-    // 基线里的照片被清空后又重新拍：张数相同但内容已换，属需要保存
-    if (NameplatePhotoUpload.hasAnyPhoto() && NameplatePhotoUpload.hasPhotoChanges()) return true;
-    return false;
-  },
-
-  /** 关重件入口：主按钮是否只是「返回」（不写记录） */
-  isKeyPartReturnAction: function () {
-    if (!NameplatePhotoUpload.state.fromKeyPart) return false;
-    return !NameplatePhotoUpload.hasKeyPartSaveWork();
   },
 
   /** 关重件入口：本次是否有过改动（主动换模板 / 照片张数变化 / 模板选择变化） */
@@ -1286,14 +1258,6 @@ var NameplatePhotoUpload = {
       return;
     }
 
-    // 关重件入口且没有需要保存的新内容：主按钮是「返回」（点了直接回关重件页、不写记录），必须可点。
-    // 注意不能只看 isKeyPartDirty() 或"有没有照片"：0 张照片时若选了模板会 dirty=true、
-    // 落到下面"0 张置灰"分支 → 按钮显示「保存并返回」又点不动，直接卡死
-    if (NameplatePhotoUpload.isKeyPartReturnAction()) {
-      $saveButton.prop("disabled", false).removeAttr("aria-disabled").removeClass("btn-disabled");
-      return;
-    }
-
     var totalTaken = 0;
     for (var i = 0; i < state.photoTypes.length; i++) {
       totalTaken += (state.photos[state.photoTypes[i].typeCode] || []).length;
@@ -1305,15 +1269,18 @@ var NameplatePhotoUpload = {
       return;
     }
 
-    // 有照片但多模板未选：普通入口保留「可点置灰 + 提示」；关重件入口不用置灰（工位/订单不可改，
-    // 置灰又不放行会让操作员无路可走），点击时直接拉起模板选择弹窗
+    // 有照片但多模板未选：保留占位、置灰外观但可点击，点击给「请先选择铭牌模板」提示
+    // （原生 disabled 不派发 click，提示无从触发，故用 aria-disabled + .btn-disabled）
     var templateMismatch = NameplatePhotoUpload.hasTemplateMismatch();
     $saveButton.prop("disabled", false);
-    if (templateMismatch && !state.fromKeyPart) {
-      $saveButton.addClass("btn-disabled").attr("aria-disabled", "true");
+    $saveButton.toggleClass("btn-disabled", templateMismatch);
+    if (templateMismatch) {
+      $saveButton.attr("aria-disabled", "true");
     } else {
-      $saveButton.removeClass("btn-disabled").removeAttr("aria-disabled");
+      $saveButton.removeAttr("aria-disabled");
     }
+    // 关重件入口：多显示的「返回」按钮独立于主按钮状态，恒可点
+    $(".btn-back").toggleClass("hidden", !state.fromKeyPart);
   },
 
   /** 多个铭牌模板但未选择：不允许保存（订单未查到模板时不拦） */
@@ -1346,15 +1313,8 @@ var NameplatePhotoUpload = {
     return false;
   },
 
-  // ============== 主按钮动作：关重件入口无改动时是「返回」，否则「保存（并返回）」 ==============
+  // ============== 主按钮动作：保存（关重件入口保存成功后由 doSubmit 触发返回） ==============
   handlePrimaryAction: function () {
-    var state = NameplatePhotoUpload.state;
-    if (state.saving) return;
-    // 没有需要保存的新内容 → 直接返回关重件绑定页，不写任何记录
-    if (NameplatePhotoUpload.isKeyPartReturnAction()) {
-      NameplatePhotoUpload.returnToKeyPartPage();
-      return;
-    }
     NameplatePhotoUpload.handleSave();
   },
 
@@ -1578,9 +1538,17 @@ var NameplatePhotoUpload = {
     });
 
     // 底部按钮区
-    // 主按钮（文案由入口与改动状态决定：保存 / 返回 / 保存并返回）
+    // 主按钮：保存（关重件入口为「保存并返回」，保存成功后由 doSubmit 触发返回）
     $(".confirm-section").on("click", ".btn-save", function () {
       NameplatePhotoUpload.handlePrimaryAction();
+    });
+
+    // 关重件入口的独立「返回」按钮：不保存、不校验，直接回关重件绑定页（防重复点击）
+    $(".confirm-section").on("click", ".btn-back", function () {
+      var $btn = $(this);
+      if ($btn.prop("disabled")) return;
+      $btn.prop("disabled", true).text("返回中...");
+      NameplatePhotoUpload.returnToKeyPartPage();
     });
 
     // 订单信息区：模板选择/预览/折叠
