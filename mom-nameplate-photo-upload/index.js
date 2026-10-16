@@ -285,9 +285,19 @@ var NameplatePhotoUpload = {
     NameplatePhotoUpload.updateButtons();
   },
 
-  /** 关重件绑定（KeyPart）页面入口标识：Portal 注入 window.fromKeyPart === "KeyPart" */
+  /**
+   * 关重件绑定（KeyPart）页面入口标识。
+   * 主判据是 Portal 注入的 `window.fromKeyPart === "KeyPart"`；但现场实测该值有可能是布尔 true
+   * 之类的非字符串，导致整条关重件分支（只读、双按钮、传入工位/订单）不生效。
+   * 因此再做两层兜底：真值型标记，或与 KeyPartStationCode/KeyPartOrderNo 成对出现（这两个只有
+   * 关重件绑定页面会注入且必然成对）。判定结果记到 data-entry 便于现场核查。
+   */
   isKeyPartEntry: function () {
-    return window.fromKeyPart === "KeyPart";
+    var flag = window.fromKeyPart;
+    var hasPair = !!window.KeyPartStationCode && !!window.KeyPartOrderNo;
+    if (flag === "KeyPart") return true;
+    if (flag === true || flag === 1 || flag === "true") return true;
+    return hasPair;
   },
 
   /** 延迟执行包装（resize 等高频事件用，只保留最后一次） */
@@ -339,6 +349,10 @@ var NameplatePhotoUpload = {
     $(".mom-photo-upload").toggleClass("is-keypart-mode", locked);
     $(".input-station, .input-order").prop("readonly", locked).prop("disabled", locked);
     $(".btn-scan-order").prop("disabled", locked);
+    // 现场排查用：记录是否识别为关重件入口与原始注入值（不参与逻辑）
+    $(".mom-photo-upload").attr("data-entry", locked ? "keypart" : "normal").attr("data-entry-flag", String(window.fromKeyPart));
+    // 双按钮显隐：初始化时也要按入口显一次（否则查询前「返回」不会出现）
+    $(".btn-back").toggleClass("hidden", !locked);
   },
 
   /**
