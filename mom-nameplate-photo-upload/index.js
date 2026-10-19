@@ -9,6 +9,7 @@ var CONFIG = {
   MIN_USABLE_HEIGHT: 680, // 可视高度低于此值即认为高度受限：两个折叠区各自限高并自身滚动，保住底部按钮
   MIN_PAGE_HEIGHT: 400, // 弹窗形态页面高度下限：宿主给得再矮也按 400px 渲染（超出部分内部滚动）
   MAX_PAGE_HEIGHT: 600, // 页面高度上限：宿主给得再高也按 600px 渲染（不允许超出区间）
+  SCREEN_BASELINE_HEIGHT: 835, // 屏幕高基准：屏幕 ≥835px 时弹窗按 600px；低于时"矮多少减多少"
 };
 
 /*
@@ -389,8 +390,21 @@ var NameplatePhotoUpload = {
     var rootMarginTop = parseFloat($root.css("margin-top")) || 0;
     var topOffset = Math.round(hostPaddingTop + hostBorderTop + rootMarginTop);
     var rawHeight = $(window).height() - topOffset;
+
+    /**
+     * 屏幕偏矮时弹窗跟着缩：屏幕高 < SCREEN_BASELINE_HEIGHT(835) 时按"矮多少减多少"
+     *   target = MAX_PAGE_HEIGHT − (SCREEN_BASELINE_HEIGHT − screenHeight)
+     * 例：屏幕 835→600、800→565、700→465，再低由 MIN_PAGE_HEIGHT(400) 兜底；
+     * 同时不超过宿主实际给的可用高度（矮 iframe 里仍按可用高度渲染），最后统一钳制到区间。
+     */
+    var screenHeight = Math.round((window.screen && window.screen.height) || 0);
+    var targetHeight = rawHeight;
+    if (popupMode && screenHeight > 0) {
+      var screenTarget = CONFIG.MAX_PAGE_HEIGHT - Math.max(0, CONFIG.SCREEN_BASELINE_HEIGHT - screenHeight);
+      targetHeight = Math.min(rawHeight, screenTarget);
+    }
     var finalHeight = popupMode
-      ? Math.min(CONFIG.MAX_PAGE_HEIGHT, Math.max(CONFIG.MIN_PAGE_HEIGHT, rawHeight))
+      ? Math.min(CONFIG.MAX_PAGE_HEIGHT, Math.max(CONFIG.MIN_PAGE_HEIGHT, targetHeight))
       : rawHeight;
     // 高度受限（矮弹窗或矮嵌入式宿主）时给折叠区限高，保证底部按钮不被挤出可视区
     var constrained = popupMode || $(window).height() < CONFIG.MIN_USABLE_HEIGHT;
@@ -399,6 +413,7 @@ var NameplatePhotoUpload = {
     $root.attr("data-host-top-offset", topOffset);
     $root.attr("data-page-height", finalHeight);
     $root.attr("data-page-height-clamped", finalHeight === rawHeight ? "0" : "1");
+    $root.attr("data-screen-height", screenHeight || "");
   },
 
   /**
