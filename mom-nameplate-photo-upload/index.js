@@ -59,6 +59,7 @@ var NameplatePhotoUpload = {
     photos: {}, // { typeCode: [{ url: 字符串 }] }
     saving: false,
     configLoaded: false,
+    queryAttempted: false, // 是否已发起过查询（失败时 configLoaded 仍为 false，但仍需支持"查询条件默认收起"）
     formCollapsed: false,
     orderInfoCollapsed: false,
     orderInfoCollapsedByUser: false, // 用户手动操作过订单信息折叠：自动紧凑/展开逻辑不再覆盖其意图
@@ -260,7 +261,10 @@ var NameplatePhotoUpload = {
     var $header = $(".btn-toggle-form");
     var $body = $(".form-card-body");
 
-    if (state.configLoaded) {
+    // 查询成功（configLoaded）或至少发起过查询（失败也算）时才有收起能力：
+    // 失败后同样要能默认收起，否则失败一次就退回展开态，白占纵向空间
+    var collapsible = state.configLoaded || state.queryAttempted;
+    if (collapsible) {
       $header.removeClass("hidden");
       $(".form-arrow .arrow-down").toggleClass("hidden", !state.formCollapsed);
       $(".form-arrow .arrow-up").toggleClass("hidden", state.formCollapsed);
@@ -271,7 +275,7 @@ var NameplatePhotoUpload = {
     }
 
     // 收起时卡片头显示当前工位/订单摘要（展开时不需要，输入框里已有）
-    var collapsed = state.configLoaded && state.formCollapsed;
+    var collapsed = collapsible && state.formCollapsed;
     $(".form-summary-station").text(collapsed ? state.stationCode : "");
     $(".form-summary-order").text(collapsed ? state.orderNo : "");
 
@@ -402,7 +406,7 @@ var NameplatePhotoUpload = {
    */
   applyCompactLayout: function () {
     var state = NameplatePhotoUpload.state;
-    if (!state.configLoaded) return;
+    if (!state.configLoaded && !state.queryAttempted) return;
     var compact = NameplatePhotoUpload.isCompactViewport();
     if (!state.orderInfoCollapsedByUser && state.orderInfoCollapsed !== compact) {
       state.orderInfoCollapsed = compact;
@@ -588,6 +592,39 @@ var NameplatePhotoUpload = {
     $(".confirm-section").addClass("hidden");
   },
 
+  /**
+   * 查询失败后的收尾：**不论成功还是失败，查询条件都默认收起**。
+   * 失败时 configLoaded 仍为 false，靠 queryAttempted 让表单具备收起能力；
+   * 同时清掉上一次的查询结果，避免"新单号 + 旧照片卡片"这种错位。
+   */
+  handleQueryFailure: function () {
+    var state = NameplatePhotoUpload.state;
+    state.queryAttempted = true;
+    state.configLoaded = false;
+    state.photoTypes = [];
+    state.photos = {};
+    state.orderInfo = { machineCode: "", vin: "", templates: [] };
+    state.selectedTemplateId = "";
+    state.selectedTemplateName = "";
+    state.selectedTemplateUrl = "";
+    NameplatePhotoUpload.clearBaseline(); // 关重件入口：改动基线一并作废
+    NameplatePhotoUpload.hideResultAreas();
+
+    // 默认收起：弹窗/矮屏收起，整屏（普通入口）仍保持展开，与成功时的规则一致
+    state.formCollapsed = false;
+    state.orderInfoCollapsedByUser = false;
+    state.orderInfoCollapsed = false;
+    NameplatePhotoUpload.applyCompactLayout();
+
+    // 关重件入口：失败也不能丢掉「返回」（hideResultAreas 会整条藏掉底部区）
+    if (state.fromKeyPart) {
+      $(".confirm-section").removeClass("hidden");
+      $(".btn-save").addClass("hidden");
+    }
+    NameplatePhotoUpload.renderForm();
+    NameplatePhotoUpload.renderOrderInfo();
+  },
+
   // ============== 表单折叠/清空（折叠交互与订单信息一致：点卡片头切换） ==============
   toggleForm: function () {
     NameplatePhotoUpload.state.formCollapsed = !NameplatePhotoUpload.state.formCollapsed;
@@ -601,6 +638,7 @@ var NameplatePhotoUpload = {
     state.photoTypes = [];
     state.photos = {};
     state.configLoaded = false;
+    state.queryAttempted = false;
     state.formCollapsed = false;
     state.orderInfoCollapsed = false;
     state.orderInfoCollapsedByUser = false;
@@ -715,6 +753,7 @@ var NameplatePhotoUpload = {
       if (querySessionSnapshot !== NameplatePhotoUpload.state.sessionId) return; // 已有更新的查询，丢弃
       if (res.code !== 0) {
         NameplatePhotoUpload.showToast("查询失败", res.msg || "获取照片配置失败", "error");
+        NameplatePhotoUpload.handleQueryFailure();
         return;
       }
 
@@ -722,6 +761,7 @@ var NameplatePhotoUpload = {
       state.orderInfo = res.data.orderInfo || { machineCode: "", vin: "", templates: [] };
       state.photos = {};
       state.configLoaded = true;
+      state.queryAttempted = true;
 
       var templates = state.orderInfo.templates || [];
       NameplatePhotoUpload.applyTemplateSelection(templates);
@@ -1429,6 +1469,7 @@ var NameplatePhotoUpload = {
     state.photos = {};
     state.saving = false;
     state.configLoaded = false;
+    state.queryAttempted = false;
     state.formCollapsed = false;
     state.orderInfoCollapsed = false;
     state.orderInfoCollapsedByUser = false;
