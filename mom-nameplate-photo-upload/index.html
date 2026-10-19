@@ -74,6 +74,8 @@
             <span>订单信息</span>
             <!-- 收起时显示模板名 + 主机编码/VIN 摘要 + 模板缩略图（订单信息默认收起，摘要保证不丢关键信息） -->
             <span class="order-info-collapsed-summary">
+              <!-- 订单号：关重件入口不显示查询条件区，这里承担"核对单号"的职责 -->
+              <span class="order-info-summary-order"></span>
               <span class="order-info-summary-code"></span>
               <span class="order-info-summary-vin"></span>
               <span class="order-info-summary-template"></span>

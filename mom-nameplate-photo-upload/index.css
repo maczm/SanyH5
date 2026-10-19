@@ -345,6 +345,7 @@ body {
 }
 .mom-photo-upload .order-info-summary-template,
 .mom-photo-upload .order-info-summary-code,
+.mom-photo-upload .order-info-summary-order,
 .mom-photo-upload .order-info-summary-vin {
   font-size: 12px;
   font-weight: 400;
@@ -352,6 +353,22 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 订单号排在最前：非空时与左侧标签留出间距；为空时不占位（分隔点由后面元素的 ::before 提供）。
+   核对单号是第一需求，所以它不参与压缩（其余摘要项让位），过长时最多占 55% 再省略 */
+.mom-photo-upload .order-info-summary-order:not(:empty) {
+  margin-left: 6px;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+/* 空摘要项直接不显示：避免"· -"这类无意义占位 */
+.mom-photo-upload .order-info-collapsed-summary > span.is-blank {
+  display: none;
+}
+/* 卡头空间不够时让位的次要项（顺序：VIN → 主机编码 → 模板名），保证订单号完整 */
+.mom-photo-upload .order-info-collapsed-summary > span.is-fit-hidden {
+  display: none;
 }
 .mom-photo-upload .order-info-summary-code::before,
 .mom-photo-upload .order-info-summary-vin::before {

@@ -843,8 +843,11 @@ var NameplatePhotoUpload = {
     var state = NameplatePhotoUpload.state;
     var $area = $(".order-info-area");
 
-    // 无订单信息：整区隐藏
-    if (!state.orderInfo || (!state.orderInfo.machineCode && (!state.orderInfo.templates || !state.orderInfo.templates.length))) {
+    // 无订单信息：整区隐藏。但关重件入口不显示查询条件区，卡片头是唯一能核对单号的地方，
+    // 因此只要知道订单号就保留（查询失败时也能看到本次查的是哪一单）
+    var hasOrderInfo = !!state.orderInfo && !!(state.orderInfo.machineCode || (state.orderInfo.templates || []).length);
+    var keepForOrderNo = state.fromKeyPart && !!state.orderNo;
+    if (!hasOrderInfo && !keepForOrderNo) {
       $area.addClass("hidden");
       return;
     }
@@ -868,9 +871,43 @@ var NameplatePhotoUpload = {
         summaryText = "请选择铭牌模板";
       }
     }
+    // 订单号只在关重件入口展示（普通入口的查询条件区里已有，避免重复占位）
+    $(".order-info-summary-order").text(state.orderInfoCollapsed && state.fromKeyPart ? state.orderNo || "" : "");
     $(".order-info-summary-template").text(state.orderInfoCollapsed ? summaryText : "");
-    $(".order-info-summary-code").text(state.orderInfoCollapsed ? state.orderInfo.machineCode || "-" : "");
+    // 有订单信息但没有主机编码时才用 "-" 表示未知；查询失败等无信息场景直接留空（不留占位）
+    $(".order-info-summary-code").text(state.orderInfoCollapsed ? state.orderInfo.machineCode || (hasOrderInfo ? "-" : "") : "");
     $(".order-info-summary-vin").text(state.orderInfoCollapsed ? state.orderInfo.vin || "" : "");
+    // 空摘要项不显示（否则会出现 "·  · " 这类无意义分隔）
+    $(".order-info-collapsed-summary > span").removeClass("is-fit-hidden").each(function () {
+      var $item = $(this);
+      $item.toggleClass("is-blank", $.trim($item.text()) === "");
+    });
+
+    // 关重件入口：卡头很窄，**订单号优先完整显示**，放不下时依次让位次要项（VIN → 主机编码 → 模板名）
+    if (state.orderInfoCollapsed && state.fromKeyPart) {
+      var $orderSpan = $(".order-info-summary-order");
+      var yieldList = ["vin", "code", "template"];
+      for (var y = 0; y < yieldList.length; y++) {
+        if ($orderSpan[0].scrollWidth <= $orderSpan[0].clientWidth + 1) break;
+        var $yield = $(".order-info-summary-" + yieldList[y]);
+        if (!$yield.length || $yield.hasClass("is-blank")) continue;
+        $yield.addClass("is-fit-hidden");
+      }
+      // 太窄的摘要项整项隐藏：否则会留下"·屮"这种半个字 + 孤零零分隔点的残片
+      var minReadableWidth = 28;
+      for (var pass = 0; pass < 3; pass++) {
+        var hidAny = false;
+        $(".order-info-collapsed-summary > span").each(function () {
+          var $item = $(this);
+          if ($item.hasClass("order-info-summary-order") || $item.hasClass("is-blank") || $item.hasClass("is-fit-hidden")) return;
+          if ($item[0].clientWidth < minReadableWidth) {
+            $item.addClass("is-fit-hidden");
+            hidAny = true;
+          }
+        });
+        if (!hidAny) break;
+      }
+    }
     $(".order-info-card").toggleClass("is-collapsed", state.orderInfoCollapsed);
 
     /**
