@@ -351,6 +351,8 @@ var NameplatePhotoUpload = {
   applyKeyPartFieldLock: function () {
     var locked = NameplatePhotoUpload.isFieldLocked();
     $(".mom-photo-upload").toggleClass("is-keypart-mode", locked);
+    // 关重件入口：工位/订单都是 Portal 带入值且不可改，整块查询条件区直接不显示（省出纵向空间给拍照）
+    $(".form-area").toggleClass("hidden", locked);
     $(".input-station, .input-order").prop("readonly", locked).prop("disabled", locked);
     $(".btn-scan-order").prop("disabled", locked);
     // 现场排查用：记录是否识别为关重件入口与原始注入值（不参与逻辑）
@@ -616,13 +618,16 @@ var NameplatePhotoUpload = {
     state.orderInfoCollapsed = false;
     NameplatePhotoUpload.applyCompactLayout();
 
-    // 关重件入口：失败也不能丢掉「返回」（hideResultAreas 会整条藏掉底部区）
-    if (state.fromKeyPart) {
-      $(".confirm-section").removeClass("hidden");
-      $(".btn-save").addClass("hidden");
-    }
+    // 关重件入口：失败也不能丢掉操作入口（hideResultAreas 会整条藏掉底部区，而查询条件区本来就隐藏）
+    // 这里保留「返回」，并把主按钮切换成「重试」用于重新查询
+    // 注意：必须放在 renderForm() 之后，否则文案会被 applySaveButtonLabel() 覆盖回「保存并返回」
     NameplatePhotoUpload.renderForm();
     NameplatePhotoUpload.renderOrderInfo();
+    if (state.fromKeyPart) {
+      $(".confirm-section").removeClass("hidden");
+      $(".btn-save").removeClass("hidden").prop("disabled", false)
+        .removeAttr("aria-disabled").removeClass("btn-disabled").text("重试");
+    }
   },
 
   // ============== 表单折叠/清空（折叠交互与订单信息一致：点卡片头切换） ==============
@@ -1384,6 +1389,13 @@ var NameplatePhotoUpload = {
 
   // ============== 主按钮动作：保存（关重件入口保存成功后由 doSubmit 触发返回） ==============
   handlePrimaryAction: function () {
+    var state = NameplatePhotoUpload.state;
+    if (state.saving) return;
+    // 关重件入口查询失败后主按钮是「重试」：工位/订单为带入值，直接按原参数重查
+    if (state.fromKeyPart && !state.configLoaded) {
+      NameplatePhotoUpload.doQueryPhotoConfig();
+      return;
+    }
     NameplatePhotoUpload.handleSave();
   },
 
