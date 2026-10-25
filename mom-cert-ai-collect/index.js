@@ -499,6 +499,15 @@ var CertificateAiCollect = {
     $resetData.toggleClass("hidden", !showReset).prop("disabled", showPending);
     $actionRow.toggleClass("hidden", !(showPending || showReRecognize || showReset));
 
+    var aiStatusClass = "status-none";
+    if (subcategory.maxCount === 0) aiStatusClass = "status-none";
+    else if (subcategory.status === "pending") aiStatusClass = "status-pending";
+    else if (subcategory.status === "success") aiStatusClass = "status-success";
+    else if (subcategory.status === "fail") aiStatusClass = "status-fail";
+    $card
+      .find(".ai-result-row")
+      .removeClass("status-success status-fail status-pending status-none")
+      .addClass(aiStatusClass);
     $card.find(".ai-result-value").text(this.getAiResultText(subcategory));
     return $card;
   },

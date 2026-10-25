@@ -628,8 +628,24 @@ body {
 }
 
 .mom-cert-ai-collect .ai-result-row span {
-  color: #181818;
+  color: inherit;
   font-weight: 600;
+}
+
+.mom-cert-ai-collect .ai-result-row.status-success {
+  color: #00a870;
+}
+
+.mom-cert-ai-collect .ai-result-row.status-fail {
+  color: #d54941;
+}
+
+.mom-cert-ai-collect .ai-result-row.status-pending {
+  color: #ff8f1f;
+}
+
+.mom-cert-ai-collect .ai-result-row.status-none {
+  color: #8a8a8a;
 }
 
 /* ==================== 底部 ==================== */
