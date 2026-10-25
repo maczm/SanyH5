@@ -5,28 +5,9 @@ var CONFIG = {
   JPEG_QUALITY: 0.8,
   MAX_SOURCE_FILE_SIZE: 20 * 1024 * 1024,
   API_TIMEOUT: 10000,
-  RESIZE_DEBOUNCE: 150,
-  TOAST_DURATION: 3000,
+  TOAST_ERROR_DURATION: 4000,
+  TOAST_SUCCESS_DURATION: 2000,
 };
-
-/*
- * ============== 生产对接说明 ==============
- *
- * Mock 机制：
- *   本地开发：同目录 mock.js 提供全部 Mock API 兜底（生产不部署该文件，
- *             Portal 只取 index.html / index.js / index.css 三个文件）
- *   Portal 生产：iframe 加载前向 window 注入同名真实函数，
- *   JS 通过 typeof window.xxx 非 function 类型判断自动使用真实函数
- *
- * 页面结构：全部骨架在 index.html（含弹窗预埋与 template 标签循环模板），
- *          JS 只负责克隆模板、赋值（text/val/attr）与显隐切换，不拼接 HTML。
- *
- * 各 API 说明：
- *   API 1 (查询任务) : 获取订单信息 + 子类别采集配置
- *   API 2 (图片识别) : 提交某子类别的图片，返回 pass/fail 与 AI 结论
- *   window.CertificateAiCollectOrderNo : 可选预置订单号（Portal 注入）
- *   window.parent.OpenCamera          : 扫码（Portal 父窗口注入）
- */
 
 var BUTTON_SWITCH = {
   searchOrder: { visible: true, permitted: true, deniedMessage: "" },
@@ -38,20 +19,13 @@ var BUTTON_SELECTOR = {
   scanOrder: ".btn-scan-order",
 };
 
-// ============== 应用命名空间 ==============
-// 所有页面逻辑挂在 CertificateAiCollect 下，避免全局函数互相覆盖（Portal 同 iframe 切页场景）
 var CertificateAiCollect = {
   state: {
-    orderInfo: {
-      orderNo: "",
-      hostCode: "",
-      vin: "",
-      monthSequence: "",
-    },
+    orderInfo: { orderNo: "", hostCode: "", vin: "", monthSequence: "" },
     mainCategories: [],
     currentMainIndex: 0,
     view: "detail",
-    orderCollapsed: true,
+    orderCollapsed: false,
     querying: false,
     submitting: false,
     readingImage: false,
@@ -64,15 +38,8 @@ var CertificateAiCollect = {
     initialized: false,
   },
 
-  _toastTimer: null,
-  _loadingCount: 0,
   _initRetryCount: 0,
 
-  // ============== 模板克隆 ==============
-  /**
-   * 克隆 template 标签骨架并返回 jQuery 对象（取根元素，保证 .data() 落在真实 DOM 节点上）
-   * @param {string} templateClassName - template 元素的 class 名（不含点）
-   */
   cloneTemplate: function (templateClassName) {
     var template = document.querySelector("." + templateClassName);
     if (!template) return $();
@@ -80,24 +47,6 @@ var CertificateAiCollect = {
     return $(fragment.firstElementChild);
   },
 
-  // ============== 工具函数 ==============
-  debounce: function (wait, callback) {
-    var timer = null;
-    return function () {
-      var context = this;
-      var args = arguments;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(function () {
-        timer = null;
-        callback.apply(context, args);
-      }, wait);
-    };
-  },
-
-  /**
-   * API 调用包装：统一加超时兜底，防止 Portal 函数永不回调时页面卡死。
-   * fn 为 window 注入的函数（callback 风格），args 为除 callback 外的参数数组。
-   */
   apiCall: function (fn, args, callback, timeout) {
     if (typeof fn !== "function") {
       callback({ code: -1, msg: "接口未接入，请稍后重试" });
@@ -150,47 +99,32 @@ var CertificateAiCollect = {
     return value === true || value === 1 || value === "1" || value === "true";
   },
 
-  // ============== 加载动画（骨架预埋，仅显隐+填值；引用计数支持并发） ==============
-  showLoading: function (text) {
-    this._loadingCount++;
-    $(".loading-text").text(text || "加载中...");
-    $(".loading-mask").removeClass("hidden");
-  },
-
-  hideLoading: function () {
-    this._loadingCount = Math.max(0, this._loadingCount - 1);
-    if (this._loadingCount === 0) {
-      $(".loading-mask").addClass("hidden");
+  // ============== 顶部 Toast（可堆叠，不阻断操作） ==============
+  showToast: function (message, type, duration) {
+    var $toast = this.cloneTemplate("template-cert-ai-toast");
+    if (!$toast.length) return $toast;
+    var iconMap = { loading: "⏳", success: "✅", error: "❌" };
+    $toast.addClass(type || "loading");
+    $toast.find(".toast-icon").text(iconMap[type] || "");
+    $toast.find(".toast-message").text(message || "");
+    $(".toast-container").append($toast);
+    if (duration > 0) {
+      var self = this;
+      setTimeout(function () {
+        self.removeToast($toast);
+      }, duration);
     }
+    return $toast;
   },
 
-  // ============== Toast（骨架预埋，3s 自动关闭） ==============
-  showToast: function (title, content, type) {
-    var self = this;
-    if (this._toastTimer) {
-      clearTimeout(this._toastTimer);
-      this._toastTimer = null;
-    }
-    var isSuccess = type === "success";
-    $(".toast-icon-success").toggleClass("hidden", !isSuccess);
-    $(".toast-icon-error").toggleClass("hidden", isSuccess);
-    $(".toast-title").text(title || "提示");
-    $(".toast-content").text(content || "");
-    $(".toast-mask").removeClass("hidden");
-    this._toastTimer = setTimeout(function () {
-      self.hideToast();
-    }, CONFIG.TOAST_DURATION);
+  removeToast: function ($toast) {
+    if (!$toast || !$toast.length) return;
+    $toast.addClass("is-hiding");
+    setTimeout(function () {
+      $toast.remove();
+    }, 300);
   },
 
-  hideToast: function () {
-    if (this._toastTimer) {
-      clearTimeout(this._toastTimer);
-      this._toastTimer = null;
-    }
-    $(".toast-mask").addClass("hidden");
-  },
-
-  // ============== 更新数据确认 ==============
   showConfirm: function (subcategoryKey) {
     this.state.pendingResetKey = subcategoryKey;
     $(".confirm-mask").removeClass("hidden");
@@ -202,10 +136,6 @@ var CertificateAiCollect = {
   },
 
   // ============== 数据归一化 ==============
-  /**
-   * 将接口返回的平铺 subcategories 归并为主类别 / 子类别两层。
-   * maxCount=0 优先判定为无需采集；required=true 时最少 1 张。
-   */
   normalizeTaskData: function (data) {
     var source = data || {};
     var orderSource = source.orderInfo || {};
@@ -353,71 +283,40 @@ var CertificateAiCollect = {
     return "uncollected";
   },
 
-  getSubcategoryBadgeInfo: function (subcategory) {
-    if (subcategory.maxCount === 0) {
-      return { text: "无需采集", className: "no-need" };
-    }
-    if (subcategory.status === "pending") {
-      return { text: "识别中", className: "waiting" };
-    }
-    if (subcategory.status === "fail") {
-      return { text: "未通过", className: "fail" };
-    }
-    if (subcategory.status === "success") {
-      return { text: "已完成", className: "done" };
-    }
-    var count = subcategory.images.length;
-    if (!this.checkSubcategoryCountValid(subcategory)) {
-      var minimum = this.getMinimumImageCount(subcategory);
-      var need = Math.max(0, minimum - count);
-      return {
-        text: "还需 " + need + " 张（已拍 " + count + "/" + minimum + "）",
-        className: "pending",
-      };
-    }
-    if (count === 0) {
-      return subcategory.required
-        ? { text: "还需 1 张（已拍 0/1）", className: "pending" }
-        : { text: "选填", className: "optional" };
-    }
-    return { text: "待提交（已拍 " + count + "）", className: "pending" };
+  getSubcategoryStatusTag: function (subcategory) {
+    if (subcategory.maxCount === 0) return { text: "无需采集", className: "tag-gray" };
+    if (subcategory.status === "pending") return { text: "识别中", className: "tag-warning" };
+    if (subcategory.status === "success") return { text: "已完成", className: "tag-green" };
+    if (subcategory.status === "fail") return { text: "失败", className: "tag-red" };
+    return { text: "未采集", className: "tag-blue" };
   },
 
-  getMainCategoryStatusBadge: function (status) {
-    if (status === "pending") return { text: "识别中", className: "waiting" };
-    if (status === "success") return { text: "已完成", className: "done" };
-    if (status === "fail") return { text: "失败", className: "fail" };
-    return { text: "采集中", className: "pending" };
+  getMainCategoryStatusTag: function (status) {
+    if (status === "pending") return { text: "识别中", className: "tag-warning" };
+    if (status === "success") return { text: "已完成", className: "tag-green" };
+    if (status === "fail") return { text: "失败", className: "tag-red" };
+    return { text: "采集中", className: "tag-blue" };
   },
 
-  getOrderStatusBadge: function (overallStatus) {
-    if (overallStatus === "empty") {
-      return {
-        text: this.state.orderInfo.orderNo ? "暂无采集项" : "待查询",
-        className: "optional",
-      };
+  getCountText: function (subcategory) {
+    if (subcategory.maxCount === 0) return "无需采集";
+    if (subcategory.required) {
+      if (subcategory.minCount === subcategory.maxCount) return "需 " + subcategory.minCount + " 张";
+      return "需 " + subcategory.minCount + "-" + subcategory.maxCount + " 张";
     }
-    if (overallStatus === "pending") return { text: "识别中", className: "waiting" };
-    if (overallStatus === "success") return { text: "已完成", className: "done" };
-    if (overallStatus === "fail") return { text: "存在异常", className: "fail" };
-    return { text: "采集中", className: "pending" };
+    if (subcategory.minCount === 0) return "选填(0张即可)";
+    if (subcategory.minCount === subcategory.maxCount) return "选填(如上传需 " + subcategory.minCount + " 张)";
+    return "选填(如上传需 " + subcategory.minCount + "-" + subcategory.maxCount + " 张)";
   },
 
-  getOverallConclusionText: function (overallStatus) {
-    if (overallStatus === "empty") {
-      return this.state.orderInfo.orderNo ? "暂无采集项" : "待查询";
-    }
-    if (overallStatus === "pending") return "识别中";
-    if (overallStatus === "success") return "全部通过";
-    if (overallStatus === "fail") return "存在异常（不通过）";
-    return "采集中";
+  getAiResultText: function (subcategory) {
+    if (subcategory.maxCount === 0) return "无需识别";
+    if (subcategory.status === "pending") return "识别中...";
+    if (subcategory.status === "success") return subcategory.aiResult || "照片清晰，校验通过";
+    if (subcategory.status === "fail") return subcategory.aiResult || "图片模糊，无法识别";
+    return "待识别";
   },
 
-  setBadge: function ($element, baseClassName, badgeInfo) {
-    $element.attr("class", baseClassName + " " + badgeInfo.className).text(badgeInfo.text);
-  },
-
-  // ============== 数据查找 ==============
   findSubcategory: function (mainCategoryCode, subcategoryCode) {
     var mainCategories = this.state.mainCategories;
     for (var i = 0; i < mainCategories.length; i++) {
@@ -447,78 +346,61 @@ var CertificateAiCollect = {
 
   getSubcategoryFromCard: function ($card) {
     if (!$card || !$card.length) return null;
-    return this.findSubcategory(
-      $card.attr("data-main-category-code"),
-      $card.attr("data-subcategory-code"),
-    );
+    return this.findSubcategory($card.attr("data-main-category-code"), $card.attr("data-subcategory-code"));
   },
 
-  // ============== 渲染入口 ==============
+  // ============== 渲染 ==============
   renderAll: function () {
     var overallStatus = this.computeOverallStatus();
     this.state.overallStatus = overallStatus;
-    this.renderOrderInfo(overallStatus);
+    this.renderHeader(overallStatus);
     this.renderDetail();
     this.renderList(overallStatus);
+    this.renderPageIndicator();
     this.updateActionButtons();
     this.applyButtonSwitch();
   },
 
-  renderOrderInfo: function (overallStatus) {
+  renderHeader: function (overallStatus) {
     var orderInfo = this.state.orderInfo;
     $(".order-no-value").text(orderInfo.orderNo || "-").attr("title", orderInfo.orderNo || "");
     $(".host-code-value").text(orderInfo.hostCode || "-").attr("title", orderInfo.hostCode || "");
     $(".vin-value").text(orderInfo.vin || "-").attr("title", orderInfo.vin || "");
-    $(".month-sequence-value")
-      .text(orderInfo.monthSequence || "-")
-      .attr("title", orderInfo.monthSequence || "");
+    $(".month-sequence-value").text(orderInfo.monthSequence || "-").attr("title", orderInfo.monthSequence || "");
 
-    var summaryParts = [];
-    if (orderInfo.orderNo) summaryParts.push(orderInfo.orderNo);
-    if (orderInfo.hostCode) summaryParts.push(orderInfo.hostCode);
-    if (orderInfo.vin) summaryParts.push(orderInfo.vin);
-    $(".order-info-summary").text(summaryParts.join(" · ")).attr("title", summaryParts.join(" · "));
+    var $orderBox = $(".header-row-primary .order-box");
+    $orderBox.removeClass("status-success status-fail");
+    if (overallStatus === "success") $orderBox.addClass("status-success");
+    if (overallStatus === "fail") $orderBox.addClass("status-fail");
 
-    this.setBadge(
-      $(".order-status-badge"),
-      "card-badge order-status-badge",
-      this.getOrderStatusBadge(overallStatus),
-    );
-
-    $(".order-info-card")
-      .removeClass("status-empty status-uncollected status-pending status-success status-fail")
-      .addClass("status-" + overallStatus);
-    this.renderOrderCollapsedState();
+    this.renderCollapsedState();
   },
 
-  renderOrderCollapsedState: function () {
+  renderCollapsedState: function () {
     var collapsed = this.state.orderCollapsed;
-    $(".order-info-card").toggleClass("is-collapsed", collapsed);
-    $(".order-info-header").attr("aria-expanded", collapsed ? "false" : "true");
-    $(".order-info-arrow .arrow-down").toggleClass("hidden", !collapsed);
-    $(".order-info-arrow .arrow-up").toggleClass("hidden", collapsed);
+    $(".page-header").toggleClass("is-collapsed", collapsed);
+    $(".header-toggle-icon").toggleClass("collapsed", collapsed);
+    $(".header-toggle").attr("aria-expanded", collapsed ? "false" : "true");
+    $(".btn-collapse-header").attr("aria-expanded", collapsed ? "false" : "true");
   },
 
   renderDetail: function () {
     var mainCategories = this.state.mainCategories;
-    var $categoryBar = $(".category-bar");
-    var $cardList = $(".category-card-list");
+    var $content = $(".content");
+    var $subList = $(".subcategory-list");
     var $empty = $(".empty-task");
-    var scrollTop = $cardList.scrollTop();
+    var scrollTop = $content.scrollTop();
 
-    $cardList.find(".category-card").remove();
+    $subList.find(".sub-item-card").remove();
 
     if (!mainCategories.length) {
-      this.state.currentMainIndex = 0;
-      $categoryBar.addClass("hidden");
-      $(".page-indicator").text("0/0");
+      $(".main-category-header").addClass("hidden");
+      $subList.addClass("hidden");
       $empty.find("p").text(
-        this.state.orderInfo.orderNo
-          ? "该订单暂无采集项"
-          : "请输入单号/VIN/月顺序号查询采集任务",
+        this.state.orderInfo.orderNo ? "该订单暂无采集项" : "请输入单号/VIN/月顺序号查询采集任务",
       );
       $empty.removeClass("hidden");
-      $cardList.scrollTop(0);
+      $content.scrollTop(0);
       return;
     }
 
@@ -526,79 +408,61 @@ var CertificateAiCollect = {
       this.state.currentMainIndex = 0;
     }
     var mainCategory = mainCategories[this.state.currentMainIndex];
-    $categoryBar.removeClass("hidden");
-    $(".category-name").text(mainCategory.name || "-");
-    this.setBadge(
-      $(".category-status-badge"),
-      "card-badge category-status-badge",
-      this.getMainCategoryStatusBadge(mainCategory.status),
-    );
-    $(".page-indicator").text(this.state.currentMainIndex + 1 + "/" + mainCategories.length);
+    $(".main-category-header").removeClass("hidden");
+    $subList.removeClass("hidden");
     $empty.addClass("hidden");
+    $(".category-title").text("主类别：" + (mainCategory.name || "-"));
+
+    var mainTag = this.getMainCategoryStatusTag(mainCategory.status);
+    $(".category-status-tag").attr("class", "category-status-tag " + mainTag.className).text(mainTag.text);
 
     for (var i = 0; i < mainCategory.subs.length; i++) {
-      $cardList.append(this.renderCategoryCard(mainCategory, mainCategory.subs[i]));
+      $subList.append(this.renderSubCard(mainCategory, mainCategory.subs[i]));
     }
-    $cardList.scrollTop(scrollTop);
+    $content.scrollTop(scrollTop);
   },
 
-  renderCategoryCard: function (mainCategory, subcategory) {
-    var $card = this.cloneTemplate("template-cert-ai-category-card");
+  renderSubCard: function (mainCategory, subcategory) {
+    var $card = this.cloneTemplate("template-cert-ai-sub-card");
     if (!$card.length) return $card;
-
     $card
       .attr("data-main-category-code", mainCategory.code)
       .attr("data-subcategory-code", subcategory.subcategoryCode);
 
-    if (subcategory.maxCount === 0) {
-      $card.addClass("no-need");
-    } else if (subcategory.status === "success") {
-      $card.addClass("complete");
-    } else if (subcategory.status === "fail") {
-      $card.addClass("fail");
-    } else if (subcategory.status === "pending") {
-      $card.addClass("pending");
-    }
+    $card.find(".sub-name").text(subcategory.subcategoryName);
 
-    $card.find(".category-card-title").text(subcategory.subcategoryName);
-
-    var $requirementBadge = $card.find(".requirement-badge");
+    var $reqTag = $card.find(".req-tag");
     if (subcategory.maxCount === 0) {
-      $requirementBadge.addClass("hidden");
+      $reqTag.attr("class", "req-tag no-need").text("无需采集");
+    } else if (subcategory.required) {
+      $reqTag.attr("class", "req-tag").text("必采");
     } else {
-      $requirementBadge
-        .removeClass("hidden")
-        .attr("class", "requirement-badge" + (subcategory.required ? "" : " optional"))
-        .text(subcategory.required ? "必采" : "选采");
+      $reqTag.attr("class", "req-tag optional").text("选采");
     }
 
-    this.setBadge(
-      $card.find(".status-badge"),
-      "card-badge status-badge",
-      this.getSubcategoryBadgeInfo(subcategory),
-    );
+    var $countTag = $card.find(".count-tag");
+    var countText = this.getCountText(subcategory);
+    if (subcategory.maxCount > 0) countText += " (已拍 " + subcategory.images.length + ")";
+    var countClass =
+      subcategory.maxCount > 0 && this.checkSubcategoryCountValid(subcategory) ? "met" : "unmet";
+    $countTag
+      .attr("class", "count-tag " + countClass)
+      .text(countText)
+      .toggleClass("hidden", subcategory.maxCount === 0);
 
-    var percent = 0;
-    if (subcategory.maxCount > 0) {
-      percent =
-        subcategory.status === "success"
-          ? 100
-          : Math.round((subcategory.images.length / subcategory.maxCount) * 100);
-    }
-    percent = Math.max(0, Math.min(100, percent));
-    $card.find(".progress-fill").css("width", percent + "%");
+    var statusTag = this.getSubcategoryStatusTag(subcategory);
+    $card.find(".status-tag").attr("class", "status-tag " + statusTag.className).text(statusTag.text);
 
-    var $requirementNote = $card.find(".requirement-note");
+    var $reqText = $card.find(".sub-req-text");
     if (subcategory.requirementDescription) {
-      $requirementNote.removeClass("hidden").text(subcategory.requirementDescription);
+      $reqText.removeClass("hidden").text("采集要求：" + subcategory.requirementDescription);
     } else {
-      $requirementNote.addClass("hidden");
+      $reqText.addClass("hidden");
     }
 
-    var $photoList = $card.find(".photo-thumb-list");
-    var $addPhoto = $photoList.find(".photo-add");
-    var $fullTip = $photoList.find(".photo-full-tip");
-    var $noNeedNote = $photoList.find(".no-need-note");
+    var $uploadArea = $card.find(".img-upload-area");
+    var $uploadBox = $uploadArea.find(".upload-box");
+    var $noNeed = $uploadArea.find(".no-need-collect");
     var canDelete = subcategory.status === "uncollected" || subcategory.status === "fail";
 
     for (var i = 0; i < subcategory.images.length; i++) {
@@ -607,162 +471,135 @@ var CertificateAiCollect = {
         .find("img")
         .attr("src", subcategory.images[i])
         .attr("alt", subcategory.subcategoryName + " 采集照片 " + (i + 1));
-      $photo.find(".photo-delete").attr("data-index", i).toggleClass("hidden", !canDelete);
-      $photo.find(".photo-processing").toggleClass("hidden", subcategory.status !== "pending");
-      $addPhoto.before($photo);
+      $photo.find(".img-del-bar").attr("data-index", i).toggleClass("hidden", !canDelete);
+      $photo.find(".loading-mask").toggleClass("hidden", subcategory.status !== "pending");
+      $uploadBox.before($photo);
     }
 
     if (subcategory.maxCount === 0) {
-      $addPhoto.addClass("hidden");
-      $fullTip.addClass("hidden");
-      $noNeedNote.removeClass("hidden");
-    } else if (subcategory.images.length >= subcategory.maxCount) {
-      $addPhoto.addClass("hidden");
-      $fullTip.removeClass("hidden");
-      $noNeedNote.addClass("hidden");
+      $uploadBox.addClass("hidden");
+      $noNeed.removeClass("hidden");
+    } else if (subcategory.images.length >= subcategory.maxCount || subcategory.status === "pending") {
+      $uploadBox.addClass("hidden");
+      $noNeed.addClass("hidden");
     } else {
-      $addPhoto.removeClass("hidden");
-      $fullTip.addClass("hidden");
-      $noNeedNote.addClass("hidden");
+      $uploadBox.removeClass("hidden");
+      $noNeed.addClass("hidden");
     }
 
+    var $actionRow = $card.find(".action-btns");
+    var $pendingButton = $card.find(".btn-pending");
+    var $reRecognize = $card.find(".btn-re-recognize");
+    var $resetData = $card.find(".btn-reset-data");
+    var showPending = subcategory.status === "pending";
     var showReRecognize = subcategory.status === "fail";
-    var showReset = subcategory.status === "success" || subcategory.status === "fail";
-    $card.find(".btn-re-recognize").toggleClass("hidden", !showReRecognize);
-    $card.find(".btn-reset-data").toggleClass("hidden", !showReset);
-    $card.find(".card-action-row").toggleClass("hidden", !(showReRecognize || showReset));
+    var showReset = subcategory.status === "success" || subcategory.status === "fail" || showPending;
+    $pendingButton.toggleClass("hidden", !showPending);
+    $reRecognize.toggleClass("hidden", !showReRecognize);
+    $resetData.toggleClass("hidden", !showReset).prop("disabled", showPending);
+    $actionRow.toggleClass("hidden", !(showPending || showReRecognize || showReset));
 
-    var showAi =
-      subcategory.maxCount > 0 &&
-      !(subcategory.images.length === 0 && !subcategory.required && subcategory.status === "uncollected");
-    var $aiResult = $card.find(".ai-result");
-    if (!showAi) {
-      $aiResult.addClass("hidden");
-    } else {
-      var aiText = "待识别";
-      var aiClass = "";
-      if (subcategory.status === "pending") {
-        aiText = "识别中...";
-        aiClass = "pending";
-      } else if (subcategory.status === "success") {
-        aiText = subcategory.aiResult || "照片清晰，校验通过";
-        aiClass = "success";
-      } else if (subcategory.status === "fail") {
-        aiText = subcategory.aiResult || "图片模糊，无法识别";
-        aiClass = "fail";
-      }
-      $aiResult
-        .removeClass("hidden pending success fail")
-        .addClass(aiClass)
-        .find(".ai-result-text")
-        .text("AI：" + aiText);
-    }
-
+    $card.find(".ai-result-value").text(this.getAiResultText(subcategory));
     return $card;
   },
 
   renderList: function (overallStatus) {
     var mainCategories = this.state.mainCategories;
-    var $summary = $(".overall-summary-card");
-    var $value = $(".overall-conclusion");
-    var $progressText = $(".overall-progress-text");
-    var $progressFill = $(".overall-progress-fill");
-    var $rowList = $(".category-row-list");
-    var $empty = $(".empty-task-list");
-    var scrollTop = $rowList.scrollTop();
+    var $body = $(".list-table-body");
+    var $table = $(".list-table");
+    var $empty = $(".empty-task-table");
+    var $conclusion = $(".list-conclusion");
+    var $container = $(".table-container");
+    var scrollTop = $container.scrollTop();
 
-    $rowList.find(".category-row").remove();
-    $summary.removeClass("status-success status-fail status-pending");
-    $value.removeClass("success fail pending");
+    $body.find(".list-row").remove();
+    $conclusion.removeClass("status-success status-fail status-pending");
 
-    var completedCount = 0;
-    for (var i = 0; i < mainCategories.length; i++) {
-      if (mainCategories[i].status === "success") completedCount++;
-    }
-
-    $value.text(this.getOverallConclusionText(overallStatus));
-    if (overallStatus === "success") {
-      $summary.addClass("status-success");
-      $value.addClass("success");
+    var conclusionText = "";
+    if (overallStatus === "empty") {
+      conclusionText = this.state.orderInfo.orderNo ? "暂无采集项" : "待查询";
+    } else if (overallStatus === "success") {
+      conclusionText = "全部通过";
+      $conclusion.addClass("status-success");
     } else if (overallStatus === "fail") {
-      $summary.addClass("status-fail");
-      $value.addClass("fail");
+      conclusionText = "存在异常（不通过）";
+      $conclusion.addClass("status-fail");
     } else if (overallStatus === "pending") {
-      $summary.addClass("status-pending");
-      $value.addClass("pending");
-    }
-
-    if (mainCategories.length) {
-      $progressText.text("已完成 " + completedCount + "/" + mainCategories.length + " 个主类别");
+      conclusionText = "识别中";
+      $conclusion.addClass("status-pending");
     } else {
-      $progressText.text("");
+      conclusionText = "采集中";
     }
-    var overallPercent = mainCategories.length
-      ? Math.round((completedCount / mainCategories.length) * 100)
-      : 0;
-    $progressFill.css("width", overallPercent + "%");
+    $conclusion.text(conclusionText);
 
     if (!mainCategories.length) {
-      $empty.find("p").text(
-        this.state.orderInfo.orderNo ? "该订单暂无采集项" : "暂无采集任务",
-      );
+      $table.addClass("hidden");
+      $empty.find("p").text(this.state.orderInfo.orderNo ? "该订单暂无采集项" : "暂无采集任务");
       $empty.removeClass("hidden");
-      $rowList.scrollTop(0);
+      $container.scrollTop(0);
       return;
     }
 
+    $table.removeClass("hidden");
     $empty.addClass("hidden");
-    for (var j = 0; j < mainCategories.length; j++) {
-      $rowList.append(this.renderCategoryRow(mainCategories[j], j));
+    for (var i = 0; i < mainCategories.length; i++) {
+      $body.append(this.renderListRow(mainCategories[i], i));
     }
-    $rowList.scrollTop(scrollTop);
+    $container.scrollTop(scrollTop);
   },
 
-  renderCategoryRow: function (mainCategory, index) {
-    var $row = this.cloneTemplate("template-cert-ai-category-row");
+  renderListRow: function (mainCategory, index) {
+    var $row = this.cloneTemplate("template-cert-ai-list-row");
     if (!$row.length) return $row;
     $row.attr("data-main-index", index).attr("tabindex", "0");
+    $row.find(".list-index").text(index + 1);
+    $row.find(".list-main-name").text(mainCategory.name || "-");
 
-    if (mainCategory.status === "success") {
-      $row.addClass("complete");
+    var statusText = "未采集";
+    var statusClass = "status-none";
+    if (mainCategory.status === "pending") {
+      statusText = "识别中";
+      statusClass = "status-waiting";
+    } else if (mainCategory.status === "success") {
+      statusText = "已完成";
+      statusClass = "status-pass";
     } else if (mainCategory.status === "fail") {
-      $row.addClass("fail");
-    } else if (mainCategory.status === "pending") {
-      $row.addClass("pending");
+      statusText = "失败";
+      statusClass = "status-fail";
     }
-
-    $row.find(".category-index").text(index + 1);
-    $row.find(".category-row-name").text(mainCategory.name || "-");
-    this.setBadge(
-      $row.find(".row-status-badge"),
-      "card-badge row-status-badge",
-      this.getMainCategoryStatusBadge(mainCategory.status),
-    );
+    $row.find(".list-status").attr("class", "list-status " + statusClass).text(statusText);
 
     var resultText = "-";
-    var resultClass = "";
+    var resultClass = "status-none";
     if (mainCategory.status === "success") {
       resultText = "通过";
-      resultClass = "success";
+      resultClass = "status-pass";
     } else if (mainCategory.status === "fail") {
       resultText = "不通过";
-      resultClass = "fail";
+      resultClass = "status-fail";
     }
-    var $result = $row.find(".category-row-result").text(resultText);
-    if (resultClass) $result.addClass(resultClass);
-
+    $row.find(".list-result").attr("class", "list-result " + resultClass).text(resultText);
     return $row;
+  },
+
+  renderPageIndicator: function () {
+    var mainCategories = this.state.mainCategories;
+    if (!mainCategories.length) {
+      $(".page-indicator").text("0/0");
+      return;
+    }
+    if (this.state.view === "list") {
+      $(".page-indicator").text("共 " + mainCategories.length + " 项");
+    } else {
+      $(".page-indicator").text(this.state.currentMainIndex + 1 + "/" + mainCategories.length);
+    }
   },
 
   updateActionButtons: function () {
     var hasData = this.state.mainCategories.length > 0;
-    this.setButtonDisabled($(".btn-open-list"), !hasData);
-    this.setButtonDisabled($(".btn-save"), !hasData);
-    this.setButtonDisabled($(".btn-back-detail"), !hasData);
-  },
-
-  setButtonDisabled: function ($button, disabled) {
-    $button.toggleClass("disabled", disabled).attr("aria-disabled", disabled ? "true" : "false");
+    $(".btn-open-list").toggleClass("disabled", !hasData).attr("aria-disabled", hasData ? "false" : "true");
+    $(".btn-save").toggleClass("disabled", !hasData).attr("aria-disabled", hasData ? "false" : "true");
+    $(".btn-back-detail").toggleClass("disabled", !hasData).attr("aria-disabled", hasData ? "false" : "true");
   },
 
   applyButtonSwitch: function () {
@@ -776,11 +613,7 @@ var CertificateAiCollect = {
         $button.removeClass("disabled").attr("aria-disabled", "false").prop("disabled", false);
       } else {
         $button.addClass("disabled").attr("aria-disabled", "true");
-        if (!config.deniedMessage) {
-          $button.prop("disabled", true);
-        } else {
-          $button.prop("disabled", false);
-        }
+        $button.prop("disabled", !config.deniedMessage);
       }
     }
   },
@@ -789,30 +622,25 @@ var CertificateAiCollect = {
     var config = BUTTON_SWITCH[buttonName];
     if (!config) return true;
     if (config.permitted) return true;
-    if (config.deniedMessage) {
-      this.showToast("提示", config.deniedMessage, "error");
-    }
+    if (config.deniedMessage) this.showToast(config.deniedMessage, "error", CONFIG.TOAST_ERROR_DURATION);
     return false;
   },
 
   // ============== 视图切换 ==============
   switchView: function (viewName) {
     this.state.view = viewName;
-    $(".view-detail").toggleClass("hidden", viewName !== "detail");
-    $(".view-list").toggleClass("hidden", viewName !== "list");
+    $(".view-detail").toggleClass("active", viewName === "detail");
+    $(".view-list").toggleClass("active", viewName === "list");
   },
 
   scrollActiveViewTop: function () {
-    if (this.state.view === "list") {
-      $(".category-row-list").scrollTop(0);
-    } else {
-      $(".category-card-list").scrollTop(0);
-    }
+    if (this.state.view === "list") $(".table-container").scrollTop(0);
+    else $(".content").scrollTop(0);
   },
 
   openList: function () {
     if (!this.state.mainCategories.length) {
-      this.showToast("提示", "请先查询订单", "error");
+      this.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     this.switchView("list");
@@ -822,7 +650,7 @@ var CertificateAiCollect = {
 
   backDetail: function () {
     if (!this.state.mainCategories.length) {
-      this.showToast("提示", "请先查询订单", "error");
+      this.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     this.switchView("detail");
@@ -843,37 +671,37 @@ var CertificateAiCollect = {
 
   toggleOrderInfo: function () {
     this.state.orderCollapsed = !this.state.orderCollapsed;
-    this.renderOrderCollapsedState();
+    this.renderCollapsedState();
   },
 
   // ============== 查询与扫码 ==============
   queryOrder: function (searchKey) {
     var keyword = this.toText(searchKey).trim();
     if (!keyword) {
-      this.showToast("提示", "请输入单号/VIN/月顺序号", "error");
+      this.showToast("请输入单号/VIN/月顺序号", "error", CONFIG.TOAST_ERROR_DURATION);
       $(".input-search").trigger("focus");
       return;
     }
     if (this.state.querying) return;
     if (typeof window.getCertificateAiCollectTask !== "function") {
-      this.showToast("查询失败", "查询接口未接入，请稍后重试", "error");
+      this.showToast("查询接口未接入，请稍后重试", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
     var self = this;
     this.state.querying = true;
-    this.showLoading("查询中...");
+    var $loadingToast = this.showToast("查询中...", "loading", 0);
     this.apiCall(
       window.getCertificateAiCollectTask,
       [{ searchKey: keyword }],
       function (response) {
         self.state.querying = false;
-        self.hideLoading();
+        self.removeToast($loadingToast);
         if (!response || response.code !== 0) {
           self.showToast(
-            "查询失败",
             response && response.msg ? response.msg : "未查询到订单，请重试",
             "error",
+            CONFIG.TOAST_ERROR_DURATION,
           );
           return;
         }
@@ -894,10 +722,8 @@ var CertificateAiCollect = {
     this.state.orderInfo = normalized.orderInfo;
     this.state.mainCategories = normalized.mainCategories;
     this.state.currentMainIndex = 0;
-    this.state.orderCollapsed = true;
-    if (normalized.orderInfo.orderNo) {
-      $(".input-search").val(normalized.orderInfo.orderNo);
-    }
+    this.state.orderCollapsed = false;
+    if (normalized.orderInfo.orderNo) $(".input-search").val(normalized.orderInfo.orderNo);
     this.switchView("detail");
     this.renderAll();
     this.scrollActiveViewTop();
@@ -910,17 +736,13 @@ var CertificateAiCollect = {
     var self = this;
     var openCamera = null;
     try {
-      if (window.parent && typeof window.parent.OpenCamera === "function") {
-        openCamera = window.parent.OpenCamera;
-      }
+      if (window.parent && typeof window.parent.OpenCamera === "function") openCamera = window.parent.OpenCamera;
     } catch (error) {
       // 跨域访问 window.parent 会抛 SecurityError
     }
-    if (!openCamera && typeof window.OpenCamera === "function") {
-      openCamera = window.OpenCamera;
-    }
+    if (!openCamera && typeof window.OpenCamera === "function") openCamera = window.OpenCamera;
     if (!openCamera) {
-      this.showToast("提示", "扫码功能仅在移动端可用，请手动输入", "error");
+      this.showToast("扫码功能仅在移动端可用，请手动输入", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
@@ -934,14 +756,14 @@ var CertificateAiCollect = {
               : "";
         value = self.toText(value).trim();
         if (!value) {
-          self.showToast("扫码失败", "未获取到扫码结果", "error");
+          self.showToast("未获取到扫码结果", "error", CONFIG.TOAST_ERROR_DURATION);
           return;
         }
         $(".input-search").val(value);
         self.queryOrder(value);
       });
     } catch (error) {
-      this.showToast("扫码失败", "扫码功能暂不可用，请手动输入", "error");
+      this.showToast("扫码功能暂不可用，请手动输入", "error", CONFIG.TOAST_ERROR_DURATION);
     }
   },
 
@@ -952,7 +774,7 @@ var CertificateAiCollect = {
     var subcategory = found.subcategory;
     if (subcategory.maxCount === 0 || subcategory.status === "pending") return;
     if (subcategory.images.length >= subcategory.maxCount) {
-      this.showToast("提示", "该子类别已达拍摄上限", "error");
+      this.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     var $input = $(".photo-input-hidden");
@@ -970,15 +792,15 @@ var CertificateAiCollect = {
     if (!file || !uploadKey) return;
 
     if (file.type.toLowerCase().indexOf("image/") !== 0) {
-      this.showToast("图片读取失败", "请选择图片文件", "error");
+      this.showToast("请选择图片文件", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     if (!file.size) {
-      this.showToast("图片读取失败", "图片文件为空，请重新选择", "error");
+      this.showToast("图片文件为空，请重新选择", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     if (file.size > CONFIG.MAX_SOURCE_FILE_SIZE) {
-      this.showToast("图片读取失败", "图片过大，请选择 20MB 以内的照片", "error");
+      this.showToast("图片过大，请选择 20MB 以内的照片", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
@@ -986,28 +808,28 @@ var CertificateAiCollect = {
     if (!found) return;
     if (found.subcategory.maxCount === 0 || found.subcategory.status === "pending") return;
     if (found.subcategory.images.length >= found.subcategory.maxCount) {
-      this.showToast("提示", "该子类别已达拍摄上限", "error");
+      this.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     if (this.state.readingImage) {
-      this.showToast("提示", "图片处理中，请稍候", "error");
+      this.showToast("图片处理中，请稍候", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
     var self = this;
     var sessionId = this.state.taskSessionId;
     this.state.readingImage = true;
-    this.showLoading("图片处理中...");
+    var $loadingToast = this.showToast("图片处理中...", "loading", 0);
     this.compressImage(
       file,
       function (base64) {
         self.state.readingImage = false;
-        self.hideLoading();
+        self.removeToast($loadingToast);
         if (sessionId !== self.state.taskSessionId) return;
         var current = self.getSubcategoryByKey(uploadKey);
         if (!current) return;
         if (current.subcategory.images.length >= current.subcategory.maxCount) {
-          self.showToast("提示", "该子类别已达拍摄上限", "error");
+          self.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
           return;
         }
         current.subcategory.images.push(base64);
@@ -1016,9 +838,9 @@ var CertificateAiCollect = {
       },
       function (message) {
         self.state.readingImage = false;
-        self.hideLoading();
+        self.removeToast($loadingToast);
         if (sessionId !== self.state.taskSessionId) return;
-        self.showToast("图片读取失败", message || "请重试", "error");
+        self.showToast(message || "图片读取失败，请重试", "error", CONFIG.TOAST_ERROR_DURATION);
       },
     );
   },
@@ -1038,11 +860,11 @@ var CertificateAiCollect = {
   },
 
   removePhoto: function ($button) {
-    var found = this.getSubcategoryFromCard($button.closest(".category-card"));
+    var found = this.getSubcategoryFromCard($button.closest(".sub-item-card"));
     if (!found) return;
     var subcategory = found.subcategory;
     if (subcategory.status !== "uncollected" && subcategory.status !== "fail") return;
-    var index = parseInt($button.closest(".photo-item").attr("data-index"), 10);
+    var index = parseInt($button.attr("data-index"), 10);
     if (isNaN(index) || index < 0 || index >= subcategory.images.length) return;
     subcategory.images.splice(index, 1);
     this.invalidateSubcategory(subcategory);
@@ -1083,8 +905,7 @@ var CertificateAiCollect = {
         if (!response || response.code !== 0) {
           target.status = "fail";
           target.result = "fail";
-          target.aiResult =
-            response && response.msg ? response.msg : "识别超时，请重试";
+          target.aiResult = response && response.msg ? response.msg : "识别超时，请重试";
         } else {
           var data = response.data || {};
           var result = self.toText(data.result).toLowerCase();
@@ -1112,7 +933,7 @@ var CertificateAiCollect = {
     var subcategory = found.subcategory;
     if (subcategory.status !== "fail") return;
     if (!subcategory.images.length) {
-      this.showToast("提示", "该子类别还没有照片，请先拍照", "error");
+      this.showToast("该子类别还没有照片，请先拍照", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     this.startRecognition(subcategory);
@@ -1140,7 +961,7 @@ var CertificateAiCollect = {
     subcategory.result = null;
     subcategory.aiResult = "";
     this.renderAll();
-    this.showToast("已重置", "请重新拍照采集", "success");
+    this.showToast("已重置，请重新拍照", "success", CONFIG.TOAST_SUCCESS_DURATION);
   },
 
   // ============== 保存并继续 ==============
@@ -1148,12 +969,12 @@ var CertificateAiCollect = {
     if (this.state.querying || this.state.submitting) return;
     var mainCategories = this.state.mainCategories;
     if (!mainCategories.length) {
-      this.showToast("提示", "请先查询订单", "error");
+      this.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
     var mainCategory = mainCategories[this.state.currentMainIndex];
     if (!mainCategory) {
-      this.showToast("提示", "当前主类别不存在", "error");
+      this.showToast("当前主类别不存在", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
@@ -1165,29 +986,17 @@ var CertificateAiCollect = {
       var minimum = this.getMinimumImageCount(subcategory);
       if (subcategory.images.length < minimum) {
         messages.push(
-          "【" +
-            subcategory.subcategoryName +
-            "】需至少 " +
-            minimum +
-            " 张，当前 " +
-            subcategory.images.length +
-            " 张",
+          "【" + subcategory.subcategoryName + "】需至少 " + minimum + " 张，当前 " + subcategory.images.length + " 张",
         );
       } else {
         messages.push(
-          "【" +
-            subcategory.subcategoryName +
-            "】最多 " +
-            subcategory.maxCount +
-            " 张，当前 " +
-            subcategory.images.length +
-            " 张",
+          "【" + subcategory.subcategoryName + "】最多 " + subcategory.maxCount + " 张，当前 " + subcategory.images.length + " 张",
         );
       }
     }
 
     if (messages.length) {
-      this.showToast("未完成", messages.join("；"), "error");
+      this.showToast("未完成！" + messages.join("；"), "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
@@ -1304,10 +1113,6 @@ var CertificateAiCollect = {
     reader.readAsDataURL(file);
   },
 
-  /**
-   * 读取 JPEG EXIF Orientation（1-8），非 JPEG/无 EXIF 返回 1。
-   * 用于压缩时修正手机竖拍照片的旋转。
-   */
   readExifOrientation: function (dataUrl) {
     try {
       var base64 = dataUrl.split(",")[1];
@@ -1352,31 +1157,7 @@ var CertificateAiCollect = {
     return 1;
   },
 
-  // ============== 页面尺寸 ==============
-  /**
-   * 表单宿主可能在根容器上方留不可见占位；父层无 padding/border 时用等量负 margin 抵消。
-   * 必须紧接在 fitPageHeight() 之前执行。
-   */
-  compensateHostTopGap: function () {
-    var $root = $(".mom-cert-ai-collect");
-    if (!$root.length) return;
-    $root.css("margin-top", "");
-    var $host = $root.parent();
-    if ((parseFloat($host.css("padding-top")) || 0) > 0) return;
-    if ((parseFloat($host.css("border-top-width")) || 0) > 0) return;
-    var gap = Math.round($root.offset().top - $host.offset().top);
-    if (gap <= 0 || gap > 40) return;
-    $root.css("margin-top", -gap + "px");
-  },
-
-  fitPageHeight: function () {
-    var $root = $(".mom-cert-ai-collect");
-    if (!$root.length) return;
-    var availableHeight = $(window).height() - $root.offset().top;
-    $root.css("height", Math.max(240, availableHeight) + "px");
-  },
-
-  // ============== 事件绑定（一次性委托） ==============
+  // ============== 事件 ==============
   initEvents: function () {
     var self = this;
     var $root = $(".mom-cert-ai-collect");
@@ -1391,13 +1172,13 @@ var CertificateAiCollect = {
       self.doScan();
     });
 
-    $root.on("click", ".btn-toggle-order", function () {
+    $root.on("click", ".btn-collapse-header, .header-toggle", function () {
       self.toggleOrderInfo();
     });
 
     $root.on("click", ".btn-open-list", function () {
       if ($(this).hasClass("disabled")) {
-        self.showToast("提示", "请先查询订单", "error");
+        self.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
         return;
       }
       self.openList();
@@ -1405,7 +1186,7 @@ var CertificateAiCollect = {
 
     $root.on("click", ".btn-save", function () {
       if ($(this).hasClass("disabled")) {
-        self.showToast("提示", "请先查询订单", "error");
+        self.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
         return;
       }
       self.saveAndContinue();
@@ -1413,30 +1194,31 @@ var CertificateAiCollect = {
 
     $root.on("click", ".btn-back-detail", function () {
       if ($(this).hasClass("disabled")) {
-        self.showToast("提示", "请先查询订单", "error");
+        self.showToast("请先查询订单", "error", CONFIG.TOAST_ERROR_DURATION);
         return;
       }
       self.backDetail();
     });
 
-    $root.on("click", ".photo-add", function () {
-      self.openPhotoPicker($(this).closest(".category-card"));
+    $root.on("click", ".upload-box", function () {
+      self.openPhotoPicker($(this).closest(".sub-item-card"));
     });
 
-    $root.on("click", ".photo-delete", function (event) {
+    $root.on("click", ".img-del-bar", function (event) {
       event.stopPropagation();
       self.removePhoto($(this));
     });
 
     $root.on("click", ".btn-re-recognize", function () {
-      self.reRecognize($(this).closest(".category-card"));
+      self.reRecognize($(this).closest(".sub-item-card"));
     });
 
     $root.on("click", ".btn-reset-data", function () {
-      self.openResetConfirm($(this).closest(".category-card"));
+      if ($(this).prop("disabled")) return;
+      self.openResetConfirm($(this).closest(".sub-item-card"));
     });
 
-    $root.on("click", ".category-row", function () {
+    $root.on("click", ".list-row", function () {
       self.jumpToMainCategory($(this).attr("data-main-index"));
     });
 
@@ -1448,16 +1230,8 @@ var CertificateAiCollect = {
       self.confirmReset();
     });
 
-    $root.on("click", ".toast-btn", function () {
-      self.hideToast();
-    });
-
     $(".confirm-mask").on("click", function (event) {
       if (event.target === this) self.hideConfirm();
-    });
-
-    $(".toast-mask").on("click", function (event) {
-      if (event.target === this) self.hideToast();
     });
 
     $(".photo-input-hidden").on("change", function () {
@@ -1472,28 +1246,15 @@ var CertificateAiCollect = {
       self.queryOrder($(this).val());
     });
 
-    $root.on("keydown", ".btn-toggle-order", function (event) {
+    $root.on("keydown", ".list-row", function (event) {
       var originalEvent = event.originalEvent || event;
       if (originalEvent.isComposing || event.keyCode === 229) return;
-      if (event.key !== "Enter" && event.key !== " " && event.keyCode !== 13 && event.keyCode !== 32) {
-        return;
-      }
-      event.preventDefault();
-      self.toggleOrderInfo();
-    });
-
-    $root.on("keydown", ".category-row", function (event) {
-      var originalEvent = event.originalEvent || event;
-      if (originalEvent.isComposing || event.keyCode === 229) return;
-      if (event.key !== "Enter" && event.key !== " " && event.keyCode !== 13 && event.keyCode !== 32) {
-        return;
-      }
+      if (event.key !== "Enter" && event.key !== " " && event.keyCode !== 13 && event.keyCode !== 32) return;
       event.preventDefault();
       self.jumpToMainCategory($(this).attr("data-main-index"));
     });
   },
 
-  // ============== 页面初始化 ==============
   initPage: function () {
     if (!$(".mom-cert-ai-collect").length) {
       this._initRetryCount++;
@@ -1510,17 +1271,6 @@ var CertificateAiCollect = {
 
     this.initEvents();
     this.renderAll();
-    this.compensateHostTopGap();
-    this.fitPageHeight();
-
-    var self = this;
-    $(window).on(
-      "resize",
-      this.debounce(CONFIG.RESIZE_DEBOUNCE, function () {
-        self.compensateHostTopGap();
-        self.fitPageHeight();
-      }),
-    );
 
     var presetOrderNo = window.CertificateAiCollectOrderNo || "";
     if (presetOrderNo) {
@@ -1530,7 +1280,6 @@ var CertificateAiCollect = {
   },
 };
 
-// Portal 表单环境：定义空实现阻止输入框回车提交表单
 function Portal_OnDocumentKeyDown() {}
 
 $(function () {
