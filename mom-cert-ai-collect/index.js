@@ -564,9 +564,21 @@ var CertificateAiCollect = {
     $row.find(".list-index").text(index + 1);
     $row.find(".list-main-name").text(mainCategory.name || "-");
 
+    var hasCollected = false;
+    var onlyNoNeedItems = true;
+    for (var i = 0; i < mainCategory.subs.length; i++) {
+      var subcategory = mainCategory.subs[i];
+      if (subcategory.images.length > 0) hasCollected = true;
+      if (subcategory.maxCount > 0) onlyNoNeedItems = false;
+    }
+
     var statusText = "未采集";
     var statusClass = "status-none";
-    if (mainCategory.status === "pending") {
+    if (mainCategory.status === "success" && !hasCollected) {
+      // 选填项未采集、或整组均为无需采集时，列表不显示为“已完成”
+      statusText = onlyNoNeedItems ? "无需采集" : "未采集";
+      statusClass = "status-none";
+    } else if (mainCategory.status === "pending") {
       statusText = "识别中";
       statusClass = "status-waiting";
     } else if (mainCategory.status === "success") {
@@ -580,7 +592,7 @@ var CertificateAiCollect = {
 
     var resultText = "-";
     var resultClass = "status-none";
-    if (mainCategory.status === "success") {
+    if (mainCategory.status === "success" && hasCollected) {
       resultText = "通过";
       resultClass = "status-pass";
     } else if (mainCategory.status === "fail") {
