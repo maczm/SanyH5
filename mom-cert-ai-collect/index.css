@@ -109,10 +109,12 @@ body {
 
 .mom-cert-ai-collect .order-box.status-success {
   background-color: #00a870;
+  color: #fff;
 }
 
 .mom-cert-ai-collect .order-box.status-fail {
   background-color: #d54941;
+  color: #fff;
 }
 
 .mom-cert-ai-collect .host-code-box {
@@ -782,22 +784,26 @@ body {
   }
 }
 
-.mom-cert-ai-collect .status-pass {
+.mom-cert-ai-collect .list-status.status-pass,
+.mom-cert-ai-collect .list-result.status-pass {
   color: #00a870;
   font-weight: 600;
 }
 
-.mom-cert-ai-collect .status-fail {
+.mom-cert-ai-collect .list-status.status-fail,
+.mom-cert-ai-collect .list-result.status-fail {
   color: #d54941;
   font-weight: 600;
 }
 
-.mom-cert-ai-collect .status-waiting {
+.mom-cert-ai-collect .list-status.status-waiting,
+.mom-cert-ai-collect .list-result.status-waiting {
   color: #ff8f1f;
   font-weight: 600;
 }
 
-.mom-cert-ai-collect .status-none {
+.mom-cert-ai-collect .list-status.status-none,
+.mom-cert-ai-collect .list-result.status-none {
   color: #8a8a8a;
 }
 
