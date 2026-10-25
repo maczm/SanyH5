@@ -697,34 +697,38 @@ var CertificateAiCollect = {
   },
 
   resetAllData: function () {
-    this.state.queryTokenSeed++;
-    this.state.taskSessionId++;
-    this.state.recognitionTokens = {};
-    this.state.recognitionTokenSeed++;
-    this.state.querying = false;
-    this.state.submitting = false;
-    this.state.readingImage = false;
-    this.state.uploadKey = "";
-    this.state.pendingResetKey = "";
-    this.hideConfirm();
-    $(".toast-container").empty();
+    try {
+      this.state.queryTokenSeed++;
+      this.state.taskSessionId++;
+      this.state.recognitionTokens = {};
+      this.state.recognitionTokenSeed++;
+      this.state.querying = false;
+      this.state.submitting = false;
+      this.state.readingImage = false;
+      this.state.uploadKey = "";
+      this.state.pendingResetKey = "";
+      this.hideConfirm();
+      $(".toast-container").empty();
 
-    this.state.orderInfo = {
-      orderNo: "",
-      hostCode: "",
-      vin: "",
-      monthSequence: "",
-    };
-    this.state.mainCategories = [];
-    this.state.currentMainIndex = 0;
-    this.state.overallStatus = "empty";
-    this.state.orderCollapsed = false;
-    $(".input-search").val("");
+      this.state.orderInfo = {
+        orderNo: "",
+        hostCode: "",
+        vin: "",
+        monthSequence: "",
+      };
+      this.state.mainCategories = [];
+      this.state.currentMainIndex = 0;
+      this.state.overallStatus = "empty";
+      this.state.orderCollapsed = false;
+      $(".input-search").val("");
 
-    this.switchView("detail");
-    this.renderAll();
-    this.scrollActiveViewTop();
-    this.showToast("已重置，请重新查询", "success", CONFIG.TOAST_SUCCESS_DURATION);
+      this.switchView("detail");
+      this.renderAll();
+      this.scrollActiveViewTop();
+    } catch (error) {
+      this.showToast("重置失败，请重试", "error", CONFIG.TOAST_ERROR_DURATION);
+      return;
+    }
 
     var input = $(".input-search")[0];
     if (input) input.focus();
