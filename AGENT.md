@@ -6,7 +6,7 @@
 
 ## 1. 项目概览
 
-SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 本地化，根目录 `jquery.min.js` 各页 `../jquery.min.js` 引用），无构建链、无 package.json、无 CI。
+SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS（jQuery 3.4.0 本地化，根目录 `jquery.min.js` 各页 `../jquery.min.js` 引用），无构建链、无 package.json、无 CI。
 
 | 子项目 | 目录 | 架构 | API 数 |
 |---|---|---|---|
@@ -16,6 +16,7 @@ SanyH5：6 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
 | 装配物料检查 | mom-assembly-material-check/ | 骨架 + template + `AssemblyMaterialCheck` 命名空间（双视图：工位选择/物料检查） | 4（window.assemblyMaterialCheck_*） |
 | 关重件更换 | mom-key-component-change/ | 骨架 + template + `KeyComponentChange` 命名空间（四视图：更换/移除/更换确认/VIN更换） | 9（window.KeyComponentChange_*） |
+| 合格证AI图像采集 | mom-cert-ai-collect/ | 骨架 + template + `CertificateAiCollect` 命名空间（双视图：采集详情/采集列表） | 2（Mock；真实接口待确认） |
 
 所有页面嵌入 Portal iframe，通过 Portal 注入的 `window.xxx` 通信；本地开发由各页独立 `mock.js` 兜底（生产不部署）。
 
@@ -105,6 +106,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 
 - 4 个子项目：改造完成、已知 bug 全部修复、回归脚本落盘 ✅
 - 新建 mom-assembly-material-check（装配物料检查，双视图）与 mom-key-component-change（关重件更换，三视图）：均已交付 ✅
+- 新建 mom-cert-ai-collect（合格证AI图像采集，双视图 + 无需采集项 + Mock 识别）：Demo 已交付 ✅
 - 一致性证书 tab 显示矛盾（mom-cert）：**待业务确认**（确认后由 index.js 侧处理）
 
 ## 8. 编码准则
@@ -120,7 +122,7 @@ git status --porcelain | cut -c4- | grep -E '^mom-[^/]+/' | cut -d/ -f1 | sort -
 - 修改跨文件重复的公共代码后，必须 `rg` 全局搜索同模式代码，逐一确认所有副本已同步
 - 删除/重构骨架元素必须 HTML/CSS/JS 三处同步清理，`rg` 确认无残留
 - **共享参数名照抄，不做"纠错"**：`assemblyMaterialCheck_getWipOrderNoInfo` 的入参 `serachKey` 按业务提供方原文保留（疑似 `searchKey` 拼写错误，**未经 Portal 侧确认不许改名**）
-- **跨页共享常量必须同时改**：图片压缩参数（`MAX_IMAGE_WIDTH`/`MAX_IMAGE_HEIGHT`/`JPEG_QUALITY`，数值以页面代码为准）在 mom-packing 与 mom-nameplate-photo-upload 两页 `CONFIG` 中各有一份，改一处必须同步另一处
+- **跨页共享常量必须同时改**：图片压缩参数（`MAX_IMAGE_WIDTH`/`MAX_IMAGE_HEIGHT`/`JPEG_QUALITY`，数值以页面代码为准）在 mom-packing、mom-nameplate-photo-upload 与 mom-cert-ai-collect 三页 `CONFIG` 中各有一份，改一处必须同步其余各页
 
 ### 8.3 页面开发模式（项目标准）
 

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>合格证AI图像采集</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="app-container mom-cert-ai-collect">
+      <!-- ==================== 查询区 ==================== -->
+      <div class="query-area">
+        <div class="input-row">
+          <input
+            class="search-input input-search"
+            type="text"
+            placeholder="输入单号/VIN/月顺序号"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+          <button type="button" class="icon-btn btn-search btn-search-order" aria-label="搜索订单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
+          <button type="button" class="icon-btn btn-scan btn-scan-order" aria-label="扫码订单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== 订单信息（默认收起，点卡头展开） ==================== -->
+      <div class="order-info-area">
+        <div class="order-info-card">
+          <div class="order-info-header btn-toggle-order" role="button" tabindex="0" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>订单信息</span>
+            <span class="card-badge optional order-status-badge">待查询</span>
+            <span class="order-info-summary"></span>
+            <span class="order-info-arrow">
+              <svg class="arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+              <svg class="arrow-up hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+            </span>
+          </div>
+          <div class="order-info-body">
+            <div class="field-grid">
+              <div class="field">
+                <span class="field-label">订单号</span>
+                <span class="field-value primary order-no-value">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">主机编码</span>
+                <span class="field-value host-code-value">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">VIN</span>
+                <span class="field-value vin-value">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">月顺序号</span>
+                <span class="field-value month-sequence-value">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 视图1：采集详情 ==================== -->
+      <div class="view view-detail">
+        <div class="category-bar">
+          <div class="category-heading">
+            <span class="category-label">主类别</span>
+            <span class="category-name">-</span>
+          </div>
+          <span class="card-badge optional category-status-badge">待查询</span>
+          <span class="page-indicator">0/0</span>
+        </div>
+
+        <div class="category-card-list">
+          <div class="empty-state hidden empty-task">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p>请输入单号/VIN/月顺序号查询采集任务</p>
+          </div>
+        </div>
+
+        <div class="bottom-action-area">
+          <button type="button" class="btn-secondary btn-open-list disabled" aria-disabled="true">采集列表</button>
+          <button type="button" class="btn-primary btn-save disabled" aria-disabled="true">保存并继续</button>
+        </div>
+      </div>
+
+      <!-- ==================== 视图2：采集列表 ==================== -->
+      <div class="view view-list hidden">
+        <div class="overall-summary-card">
+          <div class="overall-label">整体检验结论</div>
+          <div class="overall-value overall-conclusion">待查询</div>
+          <div class="overall-sub overall-progress-text"></div>
+          <div class="progress-bar overall-progress-bar">
+            <div class="progress-fill overall-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="category-row-list">
+          <div class="empty-state hidden empty-task-list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p>暂无采集任务</p>
+          </div>
+        </div>
+
+        <div class="bottom-action-area">
+          <button type="button" class="btn-primary btn-back-detail disabled" aria-disabled="true">返回详情</button>
+        </div>
+      </div>
+
+      <!-- ==================== 隐藏文件选择 ==================== -->
+      <input type="file" class="photo-input-hidden" accept="image/*" capture="environment" />
+
+      <!-- ==================== 加载遮罩 ==================== -->
+      <div class="loading-mask hidden">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">查询中...</div>
+        </div>
+      </div>
+
+      <!-- ==================== Toast ==================== -->
+      <div class="toast-mask hidden">
+        <div class="toast-box">
+          <div class="toast-icon-area">
+            <div class="toast-icon-success hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div class="toast-icon-error hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div class="toast-title"></div>
+          <div class="toast-content"></div>
+          <button type="button" class="toast-btn">确定</button>
+        </div>
+      </div>
+
+      <!-- ==================== 更新数据确认 ==================== -->
+      <div class="confirm-mask hidden">
+        <div class="confirm-box">
+          <div class="confirm-title">确认更新数据？</div>
+          <div class="confirm-content">此操作将清空当前项已上传的所有照片，需重新采集。</div>
+          <div class="confirm-btns">
+            <button type="button" class="confirm-btn-cancel">取消</button>
+            <button type="button" class="confirm-btn-ok">确认清空</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 循环结构模板 ==================== -->
+      <template class="template-cert-ai-category-card">
+        <div class="category-card">
+          <div class="category-card-header">
+            <span class="category-card-title"></span>
+            <span class="requirement-badge"></span>
+            <span class="card-badge status-badge"></span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+          <div class="requirement-note hidden"></div>
+          <div class="photo-thumb-list">
+            <button type="button" class="photo-add" aria-label="拍照">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>拍照</span>
+            </button>
+            <div class="photo-full-tip hidden">已达上限</div>
+            <div class="no-need-note hidden">该项无需采集照片，可直接跳过</div>
+          </div>
+          <div class="card-action-row hidden">
+            <button type="button" class="btn-card-action btn-re-recognize hidden">重新识别</button>
+            <button type="button" class="btn-card-action danger btn-reset-data hidden">更新数据</button>
+          </div>
+          <div class="ai-result hidden">
+            <span class="ai-dot"></span>
+            <span class="ai-result-text"></span>
+          </div>
+        </div>
+      </template>
+
+      <template class="template-cert-ai-photo-item">
+        <div class="photo-item">
+          <img src="" alt="采集照片" />
+          <div class="photo-processing hidden">
+            <span class="spinner"></span>
+          </div>
+          <button type="button" class="photo-delete" aria-label="删除照片">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </template>
+
+      <template class="template-cert-ai-category-row">
+        <div class="category-row">
+          <span class="category-index"></span>
+          <span class="category-row-name"></span>
+          <span class="card-badge row-status-badge"></span>
+          <span class="category-row-result"></span>
+          <svg class="category-row-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </div>
+      </template>
+    </div>
+
+    <script src="../jquery.min.js"></script>
+    <script src="mock.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>
