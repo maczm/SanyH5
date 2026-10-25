@@ -411,7 +411,7 @@ var CertificateAiCollect = {
     $(".main-category-header").removeClass("hidden");
     $subList.removeClass("hidden");
     $empty.addClass("hidden");
-    $(".category-title").text("主类别：" + (mainCategory.name || "-"));
+    $(".category-title").text("采集项：" + (mainCategory.name || "-"));
 
     var mainTag = this.getMainCategoryStatusTag(mainCategory.status);
     $(".category-status-tag").attr("class", "category-status-tag " + mainTag.className).text(mainTag.text);
@@ -974,7 +974,7 @@ var CertificateAiCollect = {
     }
     var mainCategory = mainCategories[this.state.currentMainIndex];
     if (!mainCategory) {
-      this.showToast("当前主类别不存在", "error", CONFIG.TOAST_ERROR_DURATION);
+      this.showToast("当前采集项不存在", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
