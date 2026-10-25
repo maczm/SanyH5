@@ -34,6 +34,7 @@ var CertificateAiCollect = {
     recognitionTokens: {},
     recognitionTokenSeed: 0,
     taskSessionId: 0,
+    queryTokenSeed: 0,
     overallStatus: "empty",
     initialized: false,
   },
@@ -695,6 +696,40 @@ var CertificateAiCollect = {
     this.renderCollapsedState();
   },
 
+  resetAllData: function () {
+    this.state.queryTokenSeed++;
+    this.state.taskSessionId++;
+    this.state.recognitionTokens = {};
+    this.state.recognitionTokenSeed++;
+    this.state.querying = false;
+    this.state.submitting = false;
+    this.state.readingImage = false;
+    this.state.uploadKey = "";
+    this.state.pendingResetKey = "";
+    this.hideConfirm();
+    $(".toast-container").empty();
+
+    this.state.orderInfo = {
+      orderNo: "",
+      hostCode: "",
+      vin: "",
+      monthSequence: "",
+    };
+    this.state.mainCategories = [];
+    this.state.currentMainIndex = 0;
+    this.state.overallStatus = "empty";
+    this.state.orderCollapsed = false;
+    $(".input-search").val("");
+
+    this.switchView("detail");
+    this.renderAll();
+    this.scrollActiveViewTop();
+    this.showToast("已重置，请重新查询", "success", CONFIG.TOAST_SUCCESS_DURATION);
+
+    var input = $(".input-search")[0];
+    if (input) input.focus();
+  },
+
   // ============== 查询与扫码 ==============
   queryOrder: function (searchKey) {
     var keyword = this.toText(searchKey).trim();
@@ -710,12 +745,18 @@ var CertificateAiCollect = {
     }
 
     var self = this;
+    this.state.queryTokenSeed++;
+    var queryToken = this.state.queryTokenSeed;
     this.state.querying = true;
     var $loadingToast = this.showToast("查询中...", "loading", 0);
     this.apiCall(
       window.getCertificateAiCollectTask,
       [{ searchKey: keyword }],
       function (response) {
+        if (queryToken !== self.state.queryTokenSeed) {
+          self.removeToast($loadingToast);
+          return;
+        }
         self.state.querying = false;
         self.removeToast($loadingToast);
         if (!response || response.code !== 0) {
@@ -1219,6 +1260,10 @@ var CertificateAiCollect = {
         return;
       }
       self.backDetail();
+    });
+
+    $root.on("click", ".btn-reset-all", function () {
+      self.resetAllData();
     });
 
     $root.on("click", ".upload-box", function () {

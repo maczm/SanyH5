@@ -669,6 +669,26 @@ body {
   border: 1px solid transparent;
 }
 
+.mom-cert-ai-collect .btn-reset-all {
+  flex: 0 0 72px;
+  background: #fff;
+  color: #d54941;
+  border-color: #f2a6a2;
+  font-size: 15px;
+}
+
+.mom-cert-ai-collect .btn-reset-all:active {
+  background: #ffeeed;
+}
+
+.mom-cert-ai-collect .btn-open-list {
+  flex: 1;
+}
+
+.mom-cert-ai-collect .btn-save {
+  flex: 1.4;
+}
+
 .mom-cert-ai-collect .btn-outline-main {
   background-color: #fff;
   color: #5e5e5e;
@@ -1022,6 +1042,11 @@ body {
   .mom-cert-ai-collect .footer-btn {
     padding: 13px 0;
     font-size: 15px;
+  }
+
+  .mom-cert-ai-collect .btn-reset-all {
+    flex-basis: 64px;
+    font-size: 14px;
   }
 
   .mom-cert-ai-collect .list-status-bar {
