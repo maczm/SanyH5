@@ -499,10 +499,10 @@ var KeyComponentChange = {
 
   // ============== 视图1：物料二维码采集 ==============
   /**
-   * 二维码格式（两种，第三段数量可选）：
-   * - 物料编码|供应商|序列号:数量
-   * - 物料编码|供应商|序列号（无数量，按 1 件记）
-   * 任一段为空、数量段非正数、或出现多个冒号视为格式错误。
+   * 二维码格式：物料编码|供应商|序列号[:数量[:其它…]]
+   * - 第三段没有冒号：整段是序列号，数量按 1 件记
+   * - 第三段有冒号：冒号前是序列号、第二段是数量（必须为正数），数量之后的多余段忽略（业务不使用）
+   * 物料编码/供应商/序列号为空、或数量段为空/非正数视为格式错误。
    */
   parseMaterialQrCode: function (qrText) {
     var segments = qrText.split("|");
@@ -510,9 +510,8 @@ var KeyComponentChange = {
     var materialNo = segments[0].trim();
     var partner = segments[1].trim();
     var serialSegments = segments[2].split(":");
-    if (serialSegments.length > 2) return null;
     var materialSerialNo = serialSegments[0].trim();
-    var hasQuantity = serialSegments.length === 2;
+    var hasQuantity = serialSegments.length >= 2;
     var quantityText = hasQuantity ? serialSegments[1].trim() : "";
     if (!materialNo || !partner || !materialSerialNo) return null;
     var materialQty = 1;

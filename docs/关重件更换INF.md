@@ -95,7 +95,7 @@ window.KeyComponentChange_CheckAndSave(
 | `materialDesc` | string | 是 | 关重件物料描述（查询关重件信息 配置条目） |
 | `materialSeq` | string | 是 | 关重件序号（**字符串**：`"1"`=前电机，`"2"`=后电机，`""`=其它；配置值为 `null`/`undefined` 时上报 `""`） |
 | `materialSerialNo` | string | 是 | 关重件序列号（二维码第三段冒号前部分） |
-| `materialQty` | number | 是 | 关重件数量（二维码第三段 `:数量`；二维码不带数量时按 `1` 上报） |
+| `materialQty` | number | 是 | 关重件数量（二维码第三段 `:数量`；不带数量时按 `1` 上报；数量之后的多余 `:` 段忽略，不上报） |
 | `uomCode` | string | 是 | 单位（查询关重件信息 配置条目） |
 | `partner` | string | 是 | 供应商（二维码第二段） |
 | `inputType` | number | 是 | 输入方式：`0`=手输，`1`=扫码 |
