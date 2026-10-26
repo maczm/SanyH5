@@ -498,21 +498,31 @@ var KeyComponentChange = {
   },
 
   // ============== 视图1：物料二维码采集 ==============
-  /** 二维码格式：物料编码|供应商|序列号:数量；任一段为空或数量非正数视为格式错误 */
+  /**
+   * 二维码格式（两种，第三段数量可选）：
+   * - 物料编码|供应商|序列号:数量
+   * - 物料编码|供应商|序列号（无数量，按 1 件记）
+   * 任一段为空、数量段非正数、或出现多个冒号视为格式错误。
+   */
   parseMaterialQrCode: function (qrText) {
     var segments = qrText.split("|");
     if (segments.length !== 3) return null;
     var materialNo = segments[0].trim();
     var partner = segments[1].trim();
     var serialSegments = segments[2].split(":");
-    if (serialSegments.length !== 2) return null;
+    if (serialSegments.length > 2) return null;
     var materialSerialNo = serialSegments[0].trim();
-    var quantityText = serialSegments[1].trim();
-    if (!materialNo || !partner || !materialSerialNo || !quantityText) return null;
-    // 数量段必须是纯数字（parseFloat 会接受 "2x"/"1e3" 这类脏值，导致数量被静默改写）
-    if (!/^[0-9]+(\.[0-9]+)?$/.test(quantityText)) return null;
-    var materialQty = parseFloat(quantityText);
-    if (isNaN(materialQty) || materialQty <= 0) return null;
+    var hasQuantity = serialSegments.length === 2;
+    var quantityText = hasQuantity ? serialSegments[1].trim() : "";
+    if (!materialNo || !partner || !materialSerialNo) return null;
+    var materialQty = 1;
+    if (hasQuantity) {
+      // 数量段必须是纯数字（parseFloat 会接受 "2x"/"1e3" 这类脏值，导致数量被静默改写）
+      if (!quantityText) return null;
+      if (!/^[0-9]+(\.[0-9]+)?$/.test(quantityText)) return null;
+      materialQty = parseFloat(quantityText);
+      if (isNaN(materialQty) || materialQty <= 0) return null;
+    }
     return {
       materialNo: materialNo,
       partner: partner,
@@ -651,7 +661,11 @@ var KeyComponentChange = {
     }
     var parsedQrCode = KeyComponentChange.parseMaterialQrCode(qrText);
     if (!parsedQrCode) {
-      KeyComponentChange.showToast("提示", "二维码格式不正确（物料编码|供应商|序列号:数量）", "error");
+      KeyComponentChange.showToast(
+        "提示",
+        "二维码格式不正确（物料编码|供应商|序列号，或 物料编码|供应商|序列号:数量）",
+        "error"
+      );
       return;
     }
     var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
