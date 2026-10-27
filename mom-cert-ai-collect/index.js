@@ -10,6 +10,8 @@ var CONFIG = {
   TOAST_WARNING_DURATION: 1500,
   REFRESH_INTERVAL_IDLE: 30,
   REFRESH_INTERVAL_PENDING: 5,
+  REFRESH_INTERVAL_MIN: 3,
+  REFRESH_INTERVAL_MAX: 600,
 };
 
 var BUTTON_SWITCH = {
@@ -807,8 +809,34 @@ var CertificateAiCollect = {
     );
   },
 
+  toRefreshSeconds: function (value, fallback) {
+    var seconds = parseFloat(value);
+    if (isNaN(seconds) || seconds <= 0) return fallback;
+    return Math.min(CONFIG.REFRESH_INTERVAL_MAX, Math.max(CONFIG.REFRESH_INTERVAL_MIN, Math.round(seconds)));
+  },
+
+  getRefreshConfig: function () {
+    var raw = window.CertificateAiCollectRefreshConfig || {};
+    var commonSeconds = raw.seconds;
+    var idleSeconds = this.toRefreshSeconds(
+      raw.idleSeconds,
+      this.toRefreshSeconds(commonSeconds, CONFIG.REFRESH_INTERVAL_IDLE),
+    );
+    var pendingSeconds = this.toRefreshSeconds(
+      raw.pendingSeconds,
+      this.toRefreshSeconds(commonSeconds, CONFIG.REFRESH_INTERVAL_PENDING),
+    );
+    return { idleSeconds: idleSeconds, pendingSeconds: pendingSeconds };
+  },
+
   getRefreshIntervalSeconds: function () {
-    return this.hasPendingRecognition() ? CONFIG.REFRESH_INTERVAL_PENDING : CONFIG.REFRESH_INTERVAL_IDLE;
+    var refreshConfig = this.getRefreshConfig();
+    return this.hasPendingRecognition() ? refreshConfig.pendingSeconds : refreshConfig.idleSeconds;
+  },
+
+  setRefreshConfig: function (config) {
+    window.CertificateAiCollectRefreshConfig = config || {};
+    this.startRefreshTimer();
   },
 
   stopRefreshTimer: function () {
