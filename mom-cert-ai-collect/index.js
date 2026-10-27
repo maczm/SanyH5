@@ -61,18 +61,39 @@ var CertificateAiCollect = {
     return $(fragment.firstElementChild);
   },
 
-  apiCall: function (fn, args, callback, timeout) {
+  logApiJson: function (label, data) {
+    var json = "";
+    try {
+      json = JSON.stringify(data === undefined ? null : data);
+    } catch (error) {
+      json = "[JSON.stringify failed]";
+    }
+    console.log("[CertificateAiCollect][" + label + "] " + json);
+  },
+
+  apiCall: function (fn, args, callback, timeout, apiName) {
+    args = args || [];
+    var name = apiName || (fn && fn.name) || "api";
+    var self = this;
+    var requestPayload = args.length ? args[0] : null;
+    self.logApiJson(name + " request", requestPayload);
+
     if (typeof fn !== "function") {
-      callback({ code: -1, errorType: "config", msg: "接口未接入，请稍后重试" });
+      var configError = { code: -1, errorType: "config", msg: "接口未接入，请稍后重试" };
+      self.logApiJson(name + " response", configError);
+      callback(configError);
       return;
     }
+
     var done = false;
     var timer = setTimeout(function () {
       if (done) return;
       done = true;
-      callback({ code: -1, errorType: "timeout", msg: "请求超时，请重试" });
+      var timeoutError = { code: -1, errorType: "timeout", msg: "请求超时，请重试" };
+      self.logApiJson(name + " response", timeoutError);
+      callback(timeoutError);
     }, timeout || CONFIG.API_TIMEOUT);
-    args = args || [];
+
     try {
       fn.apply(
         null,
@@ -84,6 +105,7 @@ var CertificateAiCollect = {
             if (response && response.code !== 0 && !response.errorType) {
               response.errorType = "business";
             }
+            self.logApiJson(name + " response", response);
             callback(response);
           },
         ]),
@@ -92,7 +114,9 @@ var CertificateAiCollect = {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      callback({ code: -1, errorType: "network", msg: "网络异常，请重试" });
+      var networkError = { code: -1, errorType: "network", msg: "网络异常，请重试" };
+      self.logApiJson(name + " response", networkError);
+      callback(networkError);
     }
   },
 
@@ -184,7 +208,13 @@ var CertificateAiCollect = {
       callback({ code: -1, errorType: "config", msg: "图片上传接口未接入，请稍后重试" });
       return;
     }
-    this.apiCall(window.uploadCertificateAiCollectImage, [payload], callback, CONFIG.UPLOAD_TIMEOUT);
+    this.apiCall(
+      window.uploadCertificateAiCollectImage,
+      [payload],
+      callback,
+      CONFIG.UPLOAD_TIMEOUT,
+      "uploadCertificateAiCollectImage",
+    );
   },
 
   parseBoolean: function (value) {
@@ -938,6 +968,7 @@ var CertificateAiCollect = {
         self.renderRefreshChip();
       },
       CONFIG.API_TIMEOUT,
+      "getCertificateAiCollectStatus",
     );
   },
 
@@ -1204,6 +1235,7 @@ var CertificateAiCollect = {
         self.applyTaskData(response.data || {});
       },
       CONFIG.API_TIMEOUT,
+      "getCertificateAiCollectTask",
     );
   },
 
@@ -1501,6 +1533,7 @@ var CertificateAiCollect = {
         self.startRefreshTimer();
       },
       CONFIG.RECOGNITION_TIMEOUT,
+      "startCertificateAiCollectRecognition",
     );
     return true;
   },
@@ -1571,6 +1604,7 @@ var CertificateAiCollect = {
         self.showToast("已更新，请重新采集", "success", CONFIG.TOAST_SUCCESS_DURATION);
       },
       CONFIG.API_TIMEOUT,
+      "deactivateCertificateAiCollectItem",
     );
   },
 
@@ -1700,6 +1734,7 @@ var CertificateAiCollect = {
         self.startRefreshTimer();
       },
       CONFIG.API_TIMEOUT,
+      "saveCertificateAiCollectDraft",
     );
   },
 

@@ -758,7 +758,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
 
   // 1. 查询
   var task = await call(window.getCertificateAiCollectTask, [{ searchKey: "12223213" }]);
-  console.log("1 查询", task);
+  console.log("1 查询 " + JSON.stringify(task));
 
   var order = task.data.orderInfo;
   var sub = task.data.subcategories[0];
@@ -770,7 +770,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     fileName: "demo.png",
     base64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
   }]);
-  console.log("2 上传图片", upload);
+  console.log("2 上传图片 " + JSON.stringify(upload));
 
   var image = {
     fuid: upload.data.fuid,
@@ -798,7 +798,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
       status: "uncollected"
     }]
   }]);
-  console.log("3 保存草稿", draft);
+  console.log("3 保存草稿 " + JSON.stringify(draft));
 
   // 4. 发起识别（默认 Mock 直接返回最终结果）
   var recognition = await call(window.startCertificateAiCollectRecognition, [{
@@ -810,11 +810,11 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     images: [image],
     operator: window.Operator || "demo"
   }]);
-  console.log("4 发起识别", recognition);
+  console.log("4 发起识别 " + JSON.stringify(recognition));
 
   // 5. 状态查询（兜底）
   var status = await call(window.getCertificateAiCollectStatus, [{ orderNo: order.orderNo }]);
-  console.log("5 状态查询", status);
+  console.log("5 状态查询 " + JSON.stringify(status));
 
   // 6. 更新数据
   var deactivate = await call(window.deactivateCertificateAiCollectItem, [{
@@ -825,7 +825,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     businessId: "upd-" + Date.now(),
     operator: window.Operator || "demo"
   }]);
-  console.log("6 更新数据", deactivate);
+  console.log("6 更新数据 " + JSON.stringify(deactivate));
 })();
 ```
 
@@ -854,6 +854,19 @@ window.CertificateAiCollectMock.forceStatusError = "network"; // network / busin
 window.CertificateAiCollectMock.forceStartError = "network";
 window.CertificateAiCollectMock.forceSaveError = "network";
 ```
+
+### 10.4 接口日志
+
+所有接口统一经过页面 `apiCall`，请求/响应会以 **JSON 字符串**打印到控制台，不打印对象引用：
+
+```text
+[CertificateAiCollect][getCertificateAiCollectTask request] {"searchKey":"12223213"}
+[CertificateAiCollect][getCertificateAiCollectTask response] {"code":0,"msg":"success",...}
+[CertificateAiCollect][uploadCertificateAiCollectImage request] {"fuid":"...","fileName":"...","base64":"..."}
+[CertificateAiCollect][uploadCertificateAiCollectImage response] {"code":0,"data":{"fuid":"...","url":"...","oss":"..."}}
+```
+
+请求、响应、超时、网络异常、接口未接入都会打印；label 格式为 `接口名 request` / `接口名 response`。
 
 ## 11. 错误约定与重试
 
