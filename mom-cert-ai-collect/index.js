@@ -121,7 +121,11 @@ var CertificateAiCollect = {
   },
 
   formatIdTimestamp: function () {
-    var date = new Date();
+    var now = Date.now();
+    // 同一毫秒内连续生成时推进 1ms，保证 17 位时间戳本身不重复
+    if (now <= this._lastTimestampMs) now = this._lastTimestampMs + 1;
+    this._lastTimestampMs = now;
+    var date = new Date(now);
     function pad(value, length) {
       var text = String(value);
       while (text.length < length) text = "0" + text;
