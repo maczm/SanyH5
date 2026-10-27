@@ -50,6 +50,11 @@ body {
   flex-direction: column;
 }
 
+/* 通用隐藏（初始隐藏的区块用，替代内联 style="display:none"） */
+.mom-check-result .hidden {
+  display: none !important;
+}
+
 /* ==================== 顶部悬浮按钮占位 ==================== */
 /* 返回按钮固定在右上角，页面顶部留出按钮高度，避免压住结论横幅 */
 .mom-check-result {
@@ -264,12 +269,20 @@ body {
   font-size: 13px;
   color: #7a5900;
   display: flex;
+  align-items: flex-start;
   gap: 6px;
   line-height: 1.5;
 }
 .mom-check-result .reason-label {
   font-weight: 600;
   flex-shrink: 0;
+}
+.mom-check-result .reason-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* ==================== 字段明细 ==================== */
@@ -281,8 +294,9 @@ body {
 }
 .mom-check-result .field-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
   padding: 9px 12px;
   border-bottom: 1px solid #f0f0f0;
   background: #fff;
@@ -385,6 +399,30 @@ body {
 .mom-check-result .f-badge.f-retry {
   background: #e8f0fe;
   color: #1a73e8;
+}
+
+/* 字段级原因：跟在字段行下方，整行展示、长文本完整换行 */
+.mom-check-result .field-reason {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.mom-check-result .field-reason-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.mom-check-result .field-reason-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mom-check-result .field-empty {

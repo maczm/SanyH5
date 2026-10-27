@@ -7,7 +7,7 @@
 //     checkResults: [{ checkCode, checkName, conclusion, reason, fieldDetails: [...] }]
 //   }
 //   fieldDetails 项：{ fieldNameCn, fieldNameEn, conclusion: MATCH/MISMATCH/PASS/FAIL,
-//     unit（如 kW/kg）, recognizedValue, correctValue }
+//     unit（如 kW/kg）, reason（字段级原因）, recognizedValue, correctValue }
 // 本地开发：同目录 mock.js 提供演示数据（生产不部署，Portal 只取
 //           index.html / index.js / index.css 三个文件）；未注入时展示空态。
 //
@@ -301,9 +301,10 @@ var NameplateCheckResult = {
     var $badge = $card.find(".ck-badge");
     $badge.addClass(badge.cls).text(badge.text);
 
-    if (item.reason) {
+    var checkReason = String(item.reason || "").trim();
+    if (checkReason) {
       $card.find(".check-reason").removeClass("hidden");
-      $card.find(".reason-text").text(item.reason);
+      $card.find(".reason-text").text(checkReason);
     }
 
     var $fieldList = $card.find(".field-list");
@@ -348,6 +349,12 @@ var NameplateCheckResult = {
 
     var $fieldBadge = $row.find(".f-badge");
     $fieldBadge.addClass(badge.cls).text(badge.text);
+
+    var fieldReason = String(detail.reason || "").trim();
+    if (fieldReason) {
+      $row.find(".field-reason").removeClass("hidden");
+      $row.find(".field-reason-text").text(fieldReason);
+    }
 
     return $row;
   },
