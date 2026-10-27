@@ -8,6 +8,10 @@ var mockConfig = {
   startDelay: typeof providedMockConfig.startDelay === "number" ? providedMockConfig.startDelay : 120,
   recognitionDelay:
     typeof providedMockConfig.recognitionDelay === "number" ? providedMockConfig.recognitionDelay : 1200,
+  // result：识别接口回调直接返回最终状态/结果（页面优先使用返回数据）
+  // pending：识别接口只返回受理结果，最终结果由状态查询兜底
+  recognitionReturnMode:
+    providedMockConfig.recognitionReturnMode === "pending" ? "pending" : "result",
   scanDelay: typeof providedMockConfig.scanDelay === "number" ? providedMockConfig.scanDelay : 250,
   successRate: typeof providedMockConfig.successRate === "number" ? providedMockConfig.successRate : 0.85,
   // pass / fail / error / timeout；留空时按 successRate 随机
@@ -364,6 +368,27 @@ if (typeof window.saveCertificateAiCollectDraft !== "function") {
   };
 }
 
+function buildRecognitionResultResponse(record, recognitionId) {
+  return {
+    code: 0,
+    msg: "success",
+    data: {
+      recognitionId: recognitionId,
+      subcategory: {
+        mainCategoryCode: record.mainCategoryCode,
+        subcategoryCode: record.subcategoryCode,
+        requestId: record.requestId,
+        businessId: record.businessId,
+        status: record.status,
+        result: record.result,
+        failureType: record.failureType,
+        aiResult: record.aiResult,
+        recognitionTime: record.recognitionTime,
+      },
+    },
+  };
+}
+
 // -- Mock API：发起异步识别 --
 if (typeof window.startCertificateAiCollectRecognition !== "function") {
   window.startCertificateAiCollectRecognitionCount = 0;
@@ -432,11 +457,27 @@ if (typeof window.startCertificateAiCollectRecognition !== "function") {
       };
       mockRecognitionHistory.push(historyEntry);
 
+      if (mockConfig.recognitionReturnMode === "pending") {
+        setTimeout(function () {
+          applyRecognitionOutcome(record, historyEntry);
+        }, mockConfig.recognitionDelay);
+        callback({
+          code: 0,
+          msg: "success",
+          data: {
+            recognitionId: recognitionId,
+            requestId: record.requestId,
+            businessId: record.businessId,
+            status: "pending",
+          },
+        });
+        return;
+      }
+
       setTimeout(function () {
         applyRecognitionOutcome(record, historyEntry);
+        callback(buildRecognitionResultResponse(record, recognitionId));
       }, mockConfig.recognitionDelay);
-
-      callback({ code: 0, msg: "success", data: { recognitionId: recognitionId } });
     }, mockConfig.startDelay);
   };
 }

@@ -5,6 +5,7 @@ var CONFIG = {
   JPEG_QUALITY: 0.8,
   MAX_SOURCE_FILE_SIZE: 20 * 1024 * 1024,
   API_TIMEOUT: 10000,
+  RECOGNITION_TIMEOUT: 130000,
   TOAST_ERROR_DURATION: 4000,
   TOAST_SUCCESS_DURATION: 2000,
   TOAST_WARNING_DURATION: 1500,
@@ -912,33 +913,63 @@ var CertificateAiCollect = {
     );
   },
 
+  applySubcategoryStatus: function (subcategory, record) {
+    if (!subcategory || !record) return false;
+    if (subcategory.dirty) return false;
+    if (record.mainCategoryCode && record.mainCategoryCode !== subcategory.mainCategoryCode) return false;
+    if (record.subcategoryCode && record.subcategoryCode !== subcategory.subcategoryCode) return false;
+    if (record.requestId && subcategory.requestId && record.requestId !== subcategory.requestId) return false;
+    if (record.businessId && subcategory.businessId && record.businessId !== subcategory.businessId) return false;
+    // 不用“未采集”覆盖本地已产生的识别中/完成/失败状态（提交失败时后台可能还没有识别记录）
+    if (record.status === "uncollected" && subcategory.status !== "uncollected") return false;
+
+    var allowedStatuses = { uncollected: true, pending: true, success: true, fail: true };
+    var nextStatus = allowedStatuses[record.status] ? record.status : subcategory.status;
+    var nextFailureType = this.toText(record.failureType);
+    var nextResult = null;
+    if (nextStatus === "success" || record.result === "pass") {
+      nextStatus = "success";
+      nextResult = "pass";
+      nextFailureType = "";
+    } else if (nextStatus === "fail" || record.result === "fail") {
+      nextStatus = "fail";
+      nextResult = record.result === "fail" || nextFailureType === "aiRejected" ? "fail" : null;
+    }
+
+    subcategory.status = nextStatus;
+    subcategory.result = nextResult;
+    subcategory.failureType = nextFailureType;
+    subcategory.aiResult = this.toText(record.aiResult);
+    subcategory.recognitionTime = this.toText(record.recognitionTime);
+    if (record.requestId) subcategory.requestId = record.requestId;
+    return true;
+  },
+
+  extractRecognitionRecord: function (data, subcategory) {
+    var source = data || {};
+    if (source.subcategory && typeof source.subcategory === "object") return source.subcategory;
+    if (Object.prototype.toString.call(source.subcategories) === "[object Array]") {
+      for (var i = 0; i < source.subcategories.length; i++) {
+        var record = source.subcategories[i] || {};
+        if (
+          record.mainCategoryCode === subcategory.mainCategoryCode &&
+          record.subcategoryCode === subcategory.subcategoryCode
+        ) {
+          return record;
+        }
+      }
+    }
+    if (source.status || source.result || source.aiResult) return source;
+    return null;
+  },
+
   mergeStatusData: function (data) {
     var list = Object.prototype.toString.call(data.subcategories) === "[object Array]" ? data.subcategories : [];
     for (var i = 0; i < list.length; i++) {
       var record = list[i] || {};
       var found = this.findSubcategory(record.mainCategoryCode, record.subcategoryCode);
       if (!found) continue;
-      var subcategory = found.subcategory;
-      if (subcategory.dirty) continue;
-      if (record.requestId && subcategory.requestId && record.requestId !== subcategory.requestId) continue;
-      // 不用“未采集”覆盖本地已产生的识别中/完成/失败状态（提交失败时后台可能还没有识别记录）
-      if (record.status === "uncollected" && subcategory.status !== "uncollected") continue;
-      var allowedStatuses = { uncollected: true, pending: true, success: true, fail: true };
-      var nextStatus = allowedStatuses[record.status] ? record.status : subcategory.status;
-      var nextFailureType = this.toText(record.failureType);
-      var nextResult = null;
-      if (nextStatus === "success") {
-        nextResult = "pass";
-        nextFailureType = "";
-      } else if (nextStatus === "fail") {
-        nextResult = record.result === "fail" || nextFailureType === "aiRejected" ? "fail" : null;
-      }
-      subcategory.status = nextStatus;
-      subcategory.result = nextResult;
-      subcategory.failureType = nextFailureType;
-      subcategory.aiResult = this.toText(record.aiResult);
-      subcategory.recognitionTime = this.toText(record.recognitionTime);
-      if (record.requestId) subcategory.requestId = record.requestId;
+      this.applySubcategoryStatus(found.subcategory, record);
     }
   },
 
@@ -1388,12 +1419,14 @@ var CertificateAiCollect = {
           self.applyRecognitionStartFailure(current.subcategory, response);
           return;
         }
-        current.subcategory.recognitionId =
-          response.data && response.data.recognitionId ? response.data.recognitionId : businessId;
+        var data = response.data || {};
+        current.subcategory.recognitionId = data.recognitionId || businessId;
+        var record = self.extractRecognitionRecord(data, current.subcategory);
+        if (record) self.applySubcategoryStatus(current.subcategory, record);
         self.renderAll();
         self.startRefreshTimer();
       },
-      CONFIG.API_TIMEOUT,
+      CONFIG.RECOGNITION_TIMEOUT,
     );
     return true;
   },

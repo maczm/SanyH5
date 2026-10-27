@@ -149,8 +149,17 @@ window.startCertificateAiCollectRecognition({
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `recognitionId` | string | 本次识别记录 ID（建议等于 businessId） |
+| `requestId` | string | 采集子项请求 ID |
+| `businessId` | string | 本次识别请求业务 ID |
+| `status` | string | 可选：`pending` / `success` / `fail` |
+| `result` | string \| null | 可选：`pass` / `fail` / `null` |
+| `failureType` | string | 可选：`aiRejected` / `apiError` / `timeout` |
+| `aiResult` | string | 可选：最新结论文案 |
+| `recognitionTime` | string | 可选：最新识别时间 |
+| `subcategory` | object | 可选：完整子项识别结果；字段同上 + `mainCategoryCode` / `subcategoryCode` |
 
-接口只负责受理，识别结果通过状态查询接口获取。
+> 页面优先使用本次接口返回的 `status/result` 等数据立即更新；如果接口只返回 `recognitionId` 或 `status=pending`，再通过状态查询接口兜底。
+> 页面会校验返回数据中的 `requestId` / `businessId` 与本次请求一致，避免旧请求覆盖新状态。
 
 ## 查询识别状态（前台定时调用）
 
