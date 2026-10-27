@@ -442,6 +442,12 @@ body {
   flex-direction: column;
   gap: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mom-cert-ai-collect .sub-item-card.is-highlight {
+  border-color: #0052d9;
+  box-shadow: 0 0 0 2px rgba(0, 82, 217, 0.18);
 }
 
 .mom-cert-ai-collect .sub-header {
@@ -873,6 +879,20 @@ body {
 
 .mom-cert-ai-collect .list-table tbody tr {
   cursor: pointer;
+}
+
+.mom-cert-ai-collect .list-sub-name {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #181818;
+}
+
+.mom-cert-ai-collect .list-main-name {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #8a8a8a;
 }
 
 .mom-cert-ai-collect .list-table tbody tr:active td {

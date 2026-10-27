@@ -650,7 +650,8 @@ var CertificateAiCollect = {
     if (!$card.length) return $card;
     $card
       .attr("data-main-category-code", mainCategory.code)
-      .attr("data-subcategory-code", subcategory.subcategoryCode);
+      .attr("data-subcategory-code", subcategory.subcategoryCode)
+      .attr("data-sub-key", subcategory.key || "");
 
     $card.find(".sub-name").text(subcategory.subcategoryName);
 
@@ -773,9 +774,10 @@ var CertificateAiCollect = {
     }
     $conclusion.text(conclusionText);
 
-    if (!mainCategories.length) {
+    var totalSubs = this.getTotalSubcategoryCount();
+    if (!mainCategories.length || totalSubs === 0) {
       $table.addClass("hidden");
-      $empty.find("p").text(this.state.orderInfo.orderNo ? "该订单暂无采集项" : "暂无采集任务");
+      $empty.find("p").text(this.state.orderInfo.orderNo ? "该订单暂无采集子项" : "暂无采集任务");
       $empty.removeClass("hidden");
       $container.scrollTop(0);
       return;
@@ -783,32 +785,40 @@ var CertificateAiCollect = {
 
     $table.removeClass("hidden");
     $empty.addClass("hidden");
+    var rowIndex = 0;
     for (var i = 0; i < mainCategories.length; i++) {
-      $body.append(this.renderListRow(mainCategories[i], i));
+      var subs = mainCategories[i].subs || [];
+      for (var j = 0; j < subs.length; j++) {
+        $body.append(this.renderListRow(mainCategories[i], subs[j], rowIndex, i));
+        rowIndex++;
+      }
     }
     $container.scrollTop(scrollTop);
   },
 
-  renderListRow: function (mainCategory, index) {
+  renderListRow: function (mainCategory, subcategory, index, mainIndex) {
     var $row = this.cloneTemplate("template-cert-ai-list-row");
     if (!$row.length) return $row;
-    $row.attr("data-main-index", index).attr("tabindex", "0");
+    $row
+      .attr("data-main-index", mainIndex)
+      .attr("data-sub-key", subcategory.key || "")
+      .attr("tabindex", "0");
     $row.find(".list-index").text(index + 1);
+    $row.find(".list-sub-name").text(subcategory.subcategoryName || "-");
     $row.find(".list-main-name").text(mainCategory.name || "-");
 
-    var allNoNeed = this.isAllNoNeed(mainCategory);
-    var statusText = "未采集完成";
+    var statusText = "未采集";
     var statusClass = "status-uncollected";
-    if (allNoNeed) {
+    if (subcategory.maxCount === 0) {
       statusText = "无需采集";
       statusClass = "status-none";
-    } else if (mainCategory.status === "pending") {
+    } else if (subcategory.status === "pending") {
       statusText = "识别中";
       statusClass = "status-waiting";
-    } else if (mainCategory.status === "success") {
+    } else if (subcategory.status === "success") {
       statusText = "识别完成";
       statusClass = "status-pass";
-    } else if (mainCategory.status === "fail") {
+    } else if (subcategory.status === "fail") {
       statusText = "识别失败";
       statusClass = "status-fail";
     }
@@ -816,15 +826,23 @@ var CertificateAiCollect = {
 
     var resultText = "-";
     var resultClass = "status-none";
-    if (mainCategory.result === "pass") {
+    if (subcategory.result === "pass") {
       resultText = "通过";
       resultClass = "status-pass";
-    } else if (mainCategory.result === "fail") {
+    } else if (subcategory.result === "fail") {
       resultText = "不通过";
       resultClass = "status-fail";
     }
     $row.find(".list-result").attr("class", "list-result " + resultClass).text(resultText);
     return $row;
+  },
+
+  getTotalSubcategoryCount: function () {
+    var count = 0;
+    for (var i = 0; i < this.state.mainCategories.length; i++) {
+      count += (this.state.mainCategories[i].subs || []).length;
+    }
+    return count;
   },
 
   renderPageIndicator: function () {
@@ -834,7 +852,7 @@ var CertificateAiCollect = {
       return;
     }
     if (this.state.view === "list") {
-      $(".page-indicator").text("共 " + mainCategories.length + " 项");
+      $(".page-indicator").text("共 " + this.getTotalSubcategoryCount() + " 项");
     } else {
       $(".page-indicator").text(this.state.currentMainIndex + 1 + "/" + mainCategories.length);
     }
@@ -1181,15 +1199,36 @@ var CertificateAiCollect = {
     this.scrollActiveViewTop();
   },
 
-  jumpToMainCategory: function (index) {
+  jumpToSubcategory: function (mainIndex, subKey) {
     var mainCategories = this.state.mainCategories;
     if (!mainCategories.length) return;
-    var parsedIndex = parseInt(index, 10);
+    var parsedIndex = parseInt(mainIndex, 10);
     if (isNaN(parsedIndex) || parsedIndex < 0 || parsedIndex >= mainCategories.length) return;
     this.state.currentMainIndex = parsedIndex;
     this.switchView("detail");
     this.renderAll();
-    this.scrollActiveViewTop();
+
+    if (!subKey) {
+      this.scrollActiveViewTop();
+      return;
+    }
+    var $content = $(".view-detail .content");
+    var $card = $content
+      .find(".sub-item-card")
+      .filter(function () {
+        return $(this).attr("data-sub-key") === subKey;
+      })
+      .first();
+    if (!$card.length) {
+      this.scrollActiveViewTop();
+      return;
+    }
+    var top = $content.scrollTop() + $card.offset().top - $content.offset().top - 8;
+    $content.scrollTop(Math.max(0, top));
+    $card.addClass("is-highlight");
+    setTimeout(function () {
+      $card.removeClass("is-highlight");
+    }, 1500);
   },
 
   toggleOrderInfo: function () {
@@ -1977,7 +2016,7 @@ var CertificateAiCollect = {
     });
 
     $root.on("click", ".list-row", function () {
-      self.jumpToMainCategory($(this).attr("data-main-index"));
+      self.jumpToSubcategory($(this).attr("data-main-index"), $(this).attr("data-sub-key"));
     });
 
     $root.on("click", ".confirm-btn-cancel", function () {
@@ -2017,7 +2056,7 @@ var CertificateAiCollect = {
       if (originalEvent.isComposing || event.keyCode === 229) return;
       if (event.key !== "Enter" && event.key !== " " && event.keyCode !== 13 && event.keyCode !== 32) return;
       event.preventDefault();
-      self.jumpToMainCategory($(this).attr("data-main-index"));
+      self.jumpToSubcategory($(this).attr("data-main-index"), $(this).attr("data-sub-key"));
     });
   },
 
