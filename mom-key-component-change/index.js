@@ -494,6 +494,7 @@ var KeyComponentChange = {
       $(".key-component-list").append($card);
     });
 
+    KeyComponentChange.updateMaterialQrWarning();
     KeyComponentChange.applyButtonSwitch();
   },
 
@@ -643,6 +644,37 @@ var KeyComponentChange = {
     $(".template-motor-picker").data("on-pick", onPick).removeClass("hidden");
   },
 
+  /** 待移除数量 = 需解绑总数 − 已解绑数量（不小于 0） */
+  getPendingRemoveQty: function () {
+    var state = KeyComponentChange.state;
+    return Math.max(0, (Number(state.needRemoveQty) || 0) - (Number(state.removeQty) || 0));
+  },
+
+  /** 待移除数量 > 0 时禁止采集，并在物料二维码输入框下方常驻醒目提示 */
+  updateMaterialQrWarning: function () {
+    var pendingRemoveQty = KeyComponentChange.getPendingRemoveQty();
+    var hasPendingRemove = !!KeyComponentChange.state.orderInfo && pendingRemoveQty > 0;
+    $(".material-qr-warning").toggleClass("hidden", !hasPendingRemove);
+    if (!hasPendingRemove) {
+      $(".material-qr-warning").removeClass("attention");
+      return;
+    }
+    $(".material-qr-warning-text").text(
+      "还有 " + pendingRemoveQty + " 件关重件待移除，请先点「解绑」完成移除，再采集物料二维码"
+    );
+  },
+
+  /** 采集被待移除数量拦截：让提示再抖动一次，给出即时反馈 */
+  highlightMaterialQrWarning: function () {
+    KeyComponentChange.updateMaterialQrWarning();
+    var $warning = $(".material-qr-warning");
+    $warning.removeClass("attention");
+    $warning.addClass("attention");
+    setTimeout(function () {
+      $warning.removeClass("attention");
+    }, 500);
+  },
+
   handleMaterialCheck: function () {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) {
@@ -651,6 +683,11 @@ var KeyComponentChange = {
     }
     if (!state.orderInfo) {
       KeyComponentChange.showToast("提示", "请先查询订单信息", "error");
+      return;
+    }
+    // 先校验待移除数量：还有待移除关重件时禁止采集，提示在物料二维码输入框下方
+    if (KeyComponentChange.getPendingRemoveQty() > 0) {
+      KeyComponentChange.highlightMaterialQrWarning();
       return;
     }
     var qrText = ($(".input-material-qr").val() || "").trim();
@@ -860,6 +897,7 @@ var KeyComponentChange = {
     $(".remove-quantity-tag").text("");
     $(".remove-quantity-row").addClass("hidden");
     KeyComponentChange.switchView("key-component-check-view");
+    KeyComponentChange.updateMaterialQrWarning();
     KeyComponentChange.applyButtonSwitch();
     setTimeout(function () {
       $(".input-order-key").focus();
