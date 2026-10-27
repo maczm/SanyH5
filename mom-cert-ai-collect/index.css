@@ -254,28 +254,15 @@ body {
 /* ==================== 操作栏 ==================== */
 .mom-cert-ai-collect .action-bar {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
-  column-gap: 8px;
   padding: 6px 16px;
   border-bottom: 1px solid #dcdcdc;
   background-color: #fff;
 }
 
-.mom-cert-ai-collect .action-status-tag {
-  grid-column: 1;
-  justify-self: start;
-}
-
-.mom-cert-ai-collect .refresh-control {
-  grid-column: 2;
-  justify-self: center;
-}
-
 .mom-cert-ai-collect .header-toggle {
-  grid-column: 3;
-  justify-self: end;
+  margin-left: auto;
 }
 
 .mom-cert-ai-collect .toggle-control {
@@ -393,7 +380,6 @@ body {
   white-space: nowrap;
 }
 
-.mom-cert-ai-collect .category-status-tag,
 .mom-cert-ai-collect .category-result-tag {
   flex-shrink: 0;
   white-space: nowrap;
@@ -1158,7 +1144,6 @@ body {
   }
 
   .mom-cert-ai-collect .action-bar {
-    column-gap: 6px;
     padding: 6px 12px;
   }
 

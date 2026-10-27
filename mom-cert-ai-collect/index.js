@@ -520,10 +520,6 @@ var CertificateAiCollect = {
     this.renderPageIndicator();
     this.updateActionButtons();
     this.applyButtonSwitch();
-    $(".action-status-tag").toggleClass(
-      "hidden",
-      this.state.view !== "detail" || !this.state.mainCategories.length,
-    );
     this.renderRefreshChip();
   },
 
@@ -578,9 +574,6 @@ var CertificateAiCollect = {
     $empty.addClass("hidden");
     $(".category-title").text("采集项：" + (mainCategory.name || "-"));
 
-    var allNoNeed = this.isAllNoNeed(mainCategory);
-    var mainTag = this.getMainCategoryStatusTag(mainCategory.status, allNoNeed);
-    $(".category-status-tag").attr("class", "category-status-tag action-status-tag " + mainTag.className).text(mainTag.text);
     var resultTag = this.getMainResultTag(mainCategory.result);
     $(".category-result-tag").attr("class", "category-result-tag " + resultTag.className).text(resultTag.text);
 
