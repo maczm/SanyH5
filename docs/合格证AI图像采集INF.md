@@ -191,38 +191,7 @@ window.deactivateCertificateAiCollectItem({
 |---|---|---|
 | `window.CertificateAiCollectOrderNo` | string | 可选，Portal 预置订单号 |
 | `window.Operator` | string | 当前操作员 |
-| `window.CertificateAiCollectRefreshConfig` | object | 可选，自动刷新间隔配置（秒），见下表 |
 | `window.parent.OpenCamera(callback)` | function | 扫码，回调返回 `{ data }`、`{ value }` 或字符串 |
-
-**刷新间隔配置**
-
-```js
-window.CertificateAiCollectRefreshConfig = {
-  seconds: 20,         // 可选：统一设置空闲/识别中间隔
-  idleSeconds: 30,     // 可选：空闲时刷新间隔，默认 30
-  pendingSeconds: 5    // 可选：存在识别中时刷新间隔，默认 5
-};
-```
-
-- 优先级：`idleSeconds` / `pendingSeconds` > `seconds` > 页面默认值
-- 有效范围 3~600 秒；非法值回退默认
-- 页面运行中可调用 `CertificateAiCollect.setRefreshConfig({...})` 立即生效
-
-## 错误返回约定
-
-所有接口失败时建议返回：
-
-```js
-{ code: number, msg: string, errorType?: string, data?: any }
-```
-
-| `errorType` | 含义 | 页面处理 |
-|---|---|---|
-| `network` | 网络异常 | 展示网络异常文案，保留本地数据，允许重试 |
-| `timeout` | 请求超时 | 展示超时文案，允许重试 |
-| `business` | 业务失败 | 直接展示 `msg` |
-| `conflict` | 并发冲突 | 展示 `XX在xx时间已完成录入`，提供刷新最新数据 |
-| `config` | 接口未接入 | 提示接口未接入 |
 
 ## 识别超时
 
