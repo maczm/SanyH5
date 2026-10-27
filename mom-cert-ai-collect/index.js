@@ -542,7 +542,6 @@ var CertificateAiCollect = {
     $(".page-header").toggleClass("is-collapsed", collapsed);
     $(".header-toggle-icon").toggleClass("collapsed", collapsed);
     $(".header-toggle").attr("aria-expanded", collapsed ? "false" : "true");
-    $(".btn-collapse-header").attr("aria-expanded", collapsed ? "false" : "true");
   },
 
   renderDetail: function () {
@@ -1696,7 +1695,7 @@ var CertificateAiCollect = {
       self.doScan();
     });
 
-    $root.on("click", ".btn-collapse-header, .header-toggle", function () {
+    $root.on("click", ".header-toggle", function () {
       self.toggleOrderInfo();
     });
 

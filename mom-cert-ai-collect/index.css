@@ -255,28 +255,17 @@ body {
 .mom-cert-ai-collect .action-bar {
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 6px 16px;
   border-bottom: 1px solid #dcdcdc;
   background-color: #fff;
 }
 
-.mom-cert-ai-collect .btn-minus {
-  width: 32px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid #c4c4c4;
-  border-radius: 4px;
-  background: #fff;
-  color: #5e5e5e;
-  font-size: 16px;
-}
-
 .mom-cert-ai-collect .toggle-control {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
   padding: 6px;
   border: none;
   background: transparent;
