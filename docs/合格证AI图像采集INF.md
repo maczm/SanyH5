@@ -60,15 +60,15 @@
       "failureType": "",
       "aiResult": "照片清晰，校验通过",
       "recognitionTime": "2026-10-27 12:19:21",
-      "requestId": "f-4k2m-1-a1b2c3",
-      "recognitionId": "f-4k2n-2-d4e5f6",
-      "businessId": "f-4k2n-2-d4e5f6",
+      "requestId": "req_Main-Sub-001_20261027121921000",
+      "recognitionId": "biz_Main-Sub-001_20261027121921000",
+      "businessId": "biz_Main-Sub-001_20261027121921000",
       "images": [
         {
-          "fuid": "f-4k2m-1-img1",
+          "fuid": "img_Main-Sub-001_20261027121921000",
           "url": "https://cdn.example.com/cert/12223213/front.jpg",
           "oss": "oss://cert-bucket/12223213/front.jpg",
-          "fileName": "front.jpg",
+          "fileName": "file_Main-Sub-001_20261027121921000.jpg",
           "size": 182734,
           "contentType": "image/jpeg",
           "width": 1600,
@@ -93,15 +93,15 @@
       "failureType": "aiRejected",
       "aiResult": "图片模糊，无法识别",
       "recognitionTime": "2026-10-27 12:20:03",
-      "requestId": "f-4k2m-1-b2c3d4",
-      "recognitionId": "f-4k2o-3-g7h8i9",
-      "businessId": "f-4k2o-3-g7h8i9",
+      "requestId": "req_Main-Sub-002_20261027122003000",
+      "recognitionId": "biz_Main-Sub-002_20261027122003000",
+      "businessId": "biz_Main-Sub-002_20261027122003000",
       "images": [
         {
-          "fuid": "f-4k2m-1-img2",
+          "fuid": "img_Main-Sub-002_20261027122003000",
           "url": "https://cdn.example.com/cert/12223213/back-1.jpg",
           "oss": "oss://cert-bucket/12223213/back-1.jpg",
-          "fileName": "back-1.jpg",
+          "fileName": "file_Main-Sub-002_20261027122003000.jpg",
           "size": 164532,
           "contentType": "image/jpeg",
           "width": 1600,
@@ -109,10 +109,10 @@
           "sort": 0
         },
         {
-          "fuid": "f-4k2m-1-img3",
+          "fuid": "img_Main-Sub-002_20261027122003001",
           "url": "https://cdn.example.com/cert/12223213/back-2.jpg",
           "oss": "oss://cert-bucket/12223213/back-2.jpg",
-          "fileName": "back-2.jpg",
+          "fileName": "file_Main-Sub-002_20261027122003001.jpg",
           "size": 171209,
           "contentType": "image/jpeg",
           "width": 1600,
@@ -137,15 +137,15 @@
       "failureType": "apiError",
       "aiResult": "识别服务暂不可用，请重试",
       "recognitionTime": "2026-10-27 12:21:10",
-      "requestId": "f-4k2m-1-c3d4e5",
-      "recognitionId": "f-4k2p-4-j1k2l3",
-      "businessId": "f-4k2p-4-j1k2l3",
+      "requestId": "req_Main-Sub-004_20261027122110000",
+      "recognitionId": "biz_Main-Sub-004_20261027122110000",
+      "businessId": "biz_Main-Sub-004_20261027122110000",
       "images": [
         {
-          "fuid": "f-4k2m-1-img4",
+          "fuid": "img_Main-Sub-004_20261027122110000",
           "url": "https://cdn.example.com/cert/12223213/plate.jpg",
           "oss": "oss://cert-bucket/12223213/plate.jpg",
-          "fileName": "plate.jpg",
+          "fileName": "file_Main-Sub-004_20261027122110000.jpg",
           "size": 155901,
           "contentType": "image/jpeg",
           "width": 1600,
@@ -215,14 +215,29 @@
 - 订单号背景：任一采集项 `fail` → 红色；否则全部应采集项 `result=pass` → 绿色；否则蓝色。
 - “应采集子项”= 必采子项 + 有图片或已发起识别的选填子项；`maxCount=0` 的无须采集项不参与聚合。
 
-### 2.3 ID 规则
+### 2.3 ID 与文件命名规则
 
-| ID | 生成方 | 作用域 | 规则 |
+格式统一为：`前缀_采集子项code_YYYYMMDDHHmmssSSS`（本地时间，最后 3 位为毫秒/千分秒）。
+
+| 对象 | 前缀 | 规则 | 说明 |
 |---|---|---|---|
-| `requestId` | 前端 fuid | 每个采集子项 | 任务加载时生成；同一子项多次保存/识别复用；更新数据后重新生成 |
-| `businessId` | 前端 fuid | 每次请求 | 每次保存、识别、更新数据都新生成，互不相同 |
-| `recognitionId` | 后端 | 每次识别 | 建议等于该次识别的 businessId，写入识别历史表 |
-| `images[].fuid` | 前端 fuid | 每张图片 | 图片上传/保存/识别的唯一标识 |
+| `requestId` | `req` | `req_<subcategoryCode>_<timestamp>` | 每个采集子项一个；任务加载/更新数据时生成，多次保存识别复用 |
+| `businessId` | `biz` | `biz_<subcategoryCode>_<timestamp>` | 每次保存、识别、更新数据新生成；保存草稿一次覆盖多个子项时，取本次第一个待保存子项的 code |
+| `recognitionId` | 后端定义 | 建议等于本次 `businessId` | 后端识别记录 ID |
+| `images[].fuid` | `img` | `img_<subcategoryCode>_<timestamp>` | 图片上传/保存/识别的唯一标识 |
+| `images[].fileName` | `file` | `file_<subcategoryCode>_<timestamp>.<ext>` | 扩展名按实际上传的 contentType（页面压缩后通常为 `jpg`） |
+
+示例：
+
+```text
+requestId  req_Main-Sub-001_20261027183045123
+businessId biz_Main-Sub-001_20261027183045123
+images[].fuid     img_Main-Sub-001_20261027183045123
+images[].fileName file_Main-Sub-001_20261027183045123.jpg
+```
+
+- 同一毫秒内同前缀、同子项 code 发生冲突时，追加 `_2`、`_3`。
+- 接口返回的已有 `requestId` 保留，避免破坏已保存记录；新生成或更新数据后按上述格式生成。
 
 ## 3. 接口 1：查询采集任务
 
@@ -306,8 +321,8 @@ window.uploadCertificateAiCollectImage({ fuid, fileName, base64 }, callback)
 
 ```json
 {
-  "fuid": "f-4k2m-1-img1",
-  "fileName": "front.jpg",
+  "fuid": "img_Main-Sub-001_20261027121921000",
+  "fileName": "file_Main-Sub-001_20261027121921000.jpg",
   "base64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
 }
 ```
@@ -325,7 +340,7 @@ window.uploadCertificateAiCollectImage({ fuid, fileName, base64 }, callback)
   "code": 0,
   "msg": "success",
   "data": {
-    "fuid": "f-4k2m-1-img1",
+    "fuid": "img_Main-Sub-001_20261027121921000",
     "url": "https://cdn.example.com/cert/12223213/front.jpg",
     "oss": "oss://cert-bucket/12223213/front.jpg"
   }
@@ -379,18 +394,18 @@ window.saveCertificateAiCollectDraft(payload, callback)
   "orderNo": "12223213",
   "operator": "张三",
   "mainCategoryCode": "Main-001",
-  "businessId": "f-4k2m-5-m1n2o3",
+  "businessId": "biz_Main-Sub-001_20261027122500000",
   "subcategories": [
     {
       "mainCategoryCode": "Main-001",
       "subcategoryCode": "Main-Sub-001",
-      "requestId": "f-4k2m-1-a1b2c3",
+      "requestId": "req_Main-Sub-001_20261027121921000",
       "images": [
         {
-          "fuid": "f-4k2m-1-img1",
+          "fuid": "img_Main-Sub-001_20261027121921000",
           "url": "https://cdn.example.com/cert/12223213/front.jpg",
           "oss": "oss://cert-bucket/12223213/front.jpg",
-          "fileName": "front.jpg",
+          "fileName": "file_Main-Sub-001_20261027121921000.jpg",
           "size": 182734,
           "contentType": "image/jpeg",
           "width": 1600,
@@ -473,14 +488,14 @@ window.startCertificateAiCollectRecognition(payload, callback)
   "orderNo": "12223213",
   "mainCategoryCode": "Main-001",
   "subcategoryCode": "Main-Sub-001",
-  "requestId": "f-4k2m-1-a1b2c3",
-  "businessId": "f-4k2m-6-p4q5r6",
+  "requestId": "req_Main-Sub-001_20261027121921000",
+  "businessId": "biz_Main-Sub-001_20261027122600000",
   "images": [
     {
-      "fuid": "f-4k2m-1-img1",
+      "fuid": "img_Main-Sub-001_20261027121921000",
       "url": "https://cdn.example.com/cert/12223213/front.jpg",
       "oss": "oss://cert-bucket/12223213/front.jpg",
-      "fileName": "front.jpg",
+      "fileName": "file_Main-Sub-001_20261027121921000.jpg",
       "size": 182734,
       "contentType": "image/jpeg",
       "width": 1600,
@@ -499,9 +514,9 @@ window.startCertificateAiCollectRecognition(payload, callback)
   "code": 0,
   "msg": "success",
   "data": {
-    "recognitionId": "f-4k2m-6-p4q5r6",
-    "requestId": "f-4k2m-1-a1b2c3",
-    "businessId": "f-4k2m-6-p4q5r6",
+    "recognitionId": "biz_Main-Sub-001_20261027122600000",
+    "requestId": "req_Main-Sub-001_20261027121921000",
+    "businessId": "biz_Main-Sub-001_20261027122600000",
     "status": "success",
     "result": "pass",
     "failureType": "",
@@ -510,8 +525,8 @@ window.startCertificateAiCollectRecognition(payload, callback)
     "subcategory": {
       "mainCategoryCode": "Main-001",
       "subcategoryCode": "Main-Sub-001",
-      "requestId": "f-4k2m-1-a1b2c3",
-      "businessId": "f-4k2m-6-p4q5r6",
+      "requestId": "req_Main-Sub-001_20261027121921000",
+      "businessId": "biz_Main-Sub-001_20261027122600000",
       "status": "success",
       "result": "pass",
       "failureType": "",
@@ -529,9 +544,9 @@ window.startCertificateAiCollectRecognition(payload, callback)
   "code": 0,
   "msg": "success",
   "data": {
-    "recognitionId": "f-4k2m-6-p4q5r6",
-    "requestId": "f-4k2m-1-a1b2c3",
-    "businessId": "f-4k2m-6-p4q5r6",
+    "recognitionId": "biz_Main-Sub-001_20261027122600000",
+    "requestId": "req_Main-Sub-001_20261027121921000",
+    "businessId": "biz_Main-Sub-001_20261027122600000",
     "status": "pending"
   }
 }
@@ -591,7 +606,7 @@ window.getCertificateAiCollectStatus({ orderNo }, callback)
       {
         "mainCategoryCode": "Main-001",
         "subcategoryCode": "Main-Sub-001",
-        "requestId": "f-4k2m-1-a1b2c3",
+        "requestId": "req_Main-Sub-001_20261027121921000",
         "status": "success",
         "result": "pass",
         "failureType": "",
@@ -601,7 +616,7 @@ window.getCertificateAiCollectStatus({ orderNo }, callback)
       {
         "mainCategoryCode": "Main-001",
         "subcategoryCode": "Main-Sub-002",
-        "requestId": "f-4k2m-1-b2c3d4",
+        "requestId": "req_Main-Sub-002_20261027122003000",
         "status": "fail",
         "result": null,
         "failureType": "apiError",
@@ -643,8 +658,8 @@ window.deactivateCertificateAiCollectItem(payload, callback)
   "orderNo": "12223213",
   "mainCategoryCode": "Main-001",
   "subcategoryCode": "Main-Sub-001",
-  "requestId": "f-4k2m-1-a1b2c3",
-  "businessId": "f-4k2m-9-s7t8u9",
+  "requestId": "req_Main-Sub-001_20261027121921000",
+  "businessId": "biz_Main-Sub-001_20261027123000000",
   "operator": "张三"
 }
 ```
@@ -756,25 +771,32 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     });
   }
 
+  function stamp() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, "0"); }
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + String(d.getMilliseconds()).padStart(3, "0");
+  }
+
   // 1. 查询
   var task = await call(window.getCertificateAiCollectTask, [{ searchKey: "12223213" }]);
   console.log("1 查询 " + JSON.stringify(task));
 
   var order = task.data.orderInfo;
   var sub = task.data.subcategories[0];
-  var requestId = sub.requestId || "req-" + Date.now();
+  var requestId = sub.requestId || "req_" + sub.subcategoryCode + "_" + stamp();
 
   // 2. base64 上传图片
+  var imageTs = stamp();
   var upload = await call(window.uploadCertificateAiCollectImage, [{
-    fuid: "img-" + Date.now(),
-    fileName: "demo.png",
+    fuid: "img_" + sub.subcategoryCode + "_" + imageTs,
+    fileName: "file_" + sub.subcategoryCode + "_" + imageTs + ".png",
     base64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
   }]);
   console.log("2 上传图片 " + JSON.stringify(upload));
 
   var image = {
     fuid: upload.data.fuid,
-    fileName: "demo.png",
+    fileName: "file_" + sub.subcategoryCode + "_" + imageTs + ".png",
     url: upload.data.url,
     oss: upload.data.oss,
     size: 68,
@@ -789,7 +811,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     orderNo: order.orderNo,
     operator: window.Operator || "demo",
     mainCategoryCode: sub.mainCategoryCode,
-    businessId: "biz-" + Date.now(),
+    businessId: "biz_" + sub.subcategoryCode + "_" + stamp(),
     subcategories: [{
       mainCategoryCode: sub.mainCategoryCode,
       subcategoryCode: sub.subcategoryCode,
@@ -806,7 +828,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     mainCategoryCode: sub.mainCategoryCode,
     subcategoryCode: sub.subcategoryCode,
     requestId: requestId,
-    businessId: "rec-" + Date.now(),
+    businessId: "biz_" + sub.subcategoryCode + "_" + stamp(),
     images: [image],
     operator: window.Operator || "demo"
   }]);
@@ -822,7 +844,7 @@ window.deactivateCertificateAiCollectItem(payload, callback)
     mainCategoryCode: sub.mainCategoryCode,
     subcategoryCode: sub.subcategoryCode,
     requestId: requestId,
-    businessId: "upd-" + Date.now(),
+    businessId: "biz_" + sub.subcategoryCode + "_" + stamp(),
     operator: window.Operator || "demo"
   }]);
   console.log("6 更新数据 " + JSON.stringify(deactivate));
@@ -885,7 +907,7 @@ window.CertificateAiCollectMock.forceSaveError = "network";
 - `active=1`、并发唯一约束、2 分钟识别超时全部由后台处理，前端不管理 active。
 - 查询只返回 `active=1`；更新数据由后台逻辑删除（active=0），历史识别记录保留。
 - `requestId` 每个采集子项一个，多次保存/识别复用；`businessId` 每次请求新生成；图片 `fuid` 每张一个。
-- 前端 fuid 生成器在 `mom-cert-ai-collect/index.js` 的 `createFuid()`。
+- ID/文件名由 `mom-cert-ai-collect/index.js` 的 `createScopedId()` 生成：`req_`/`biz_`/`img_`/`file_` + 采集子项 code + 17 位时间戳（年月日时分秒毫秒）。
 - 图片统一对象数组；选图后先用 base64 调图片上传接口，保存/识别只传 `fuid`/`fileName`/`url`/`oss`，不再传 base64。
 - 页面展示使用 `url`，AI 识别使用 `oss`，两个字段都必须返回。
 - 识别结果优先使用接口返回数据，定时状态查询只做兜底。

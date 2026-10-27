@@ -120,9 +120,55 @@ var CertificateAiCollect = {
     }
   },
 
-  createFuid: function () {
-    this._fuidSeed++;
-    return "f" + Date.now().toString(36) + "-" + this._fuidSeed + "-" + Math.random().toString(36).slice(2, 8);
+  formatIdTimestamp: function () {
+    var date = new Date();
+    function pad(value, length) {
+      var text = String(value);
+      while (text.length < length) text = "0" + text;
+      return text;
+    }
+    return (
+      String(date.getFullYear()) +
+      pad(date.getMonth() + 1, 2) +
+      pad(date.getDate(), 2) +
+      pad(date.getHours(), 2) +
+      pad(date.getMinutes(), 2) +
+      pad(date.getSeconds(), 2) +
+      pad(date.getMilliseconds(), 3)
+    );
+  },
+
+  createScopedId: function (prefix, subcategoryCode) {
+    var base = prefix + "_" + (subcategoryCode || "SUB") + "_" + this.formatIdTimestamp();
+    if (!this._generatedIds) this._generatedIds = {};
+    var candidate = base;
+    var sequence = 1;
+    while (this._generatedIds[candidate]) {
+      sequence++;
+      candidate = base + "_" + sequence;
+    }
+    this._generatedIds[candidate] = true;
+    return candidate;
+  },
+
+  getFileExtension: function (fileName) {
+    var match = /\.([a-zA-Z0-9]+)$/.exec(fileName || "");
+    return match ? match[1].toLowerCase() : "";
+  },
+
+  getExtensionFromMime: function (mimeType) {
+    var type = String(mimeType || "").toLowerCase();
+    if (type === "image/png") return "png";
+    if (type === "image/webp") return "webp";
+    if (type === "image/gif") return "gif";
+    return "jpg";
+  },
+
+  createImageFileName: function (subcategoryCode, originalName, mimeType) {
+    var extension = mimeType
+      ? this.getExtensionFromMime(mimeType)
+      : this.getFileExtension(originalName) || "jpg";
+    return this.createScopedId("file", subcategoryCode) + "." + extension;
   },
 
   getOperator: function () {
@@ -150,17 +196,23 @@ var CertificateAiCollect = {
     return image.url || image.dataUrl || "";
   },
 
-  normalizeImage: function (image, index) {
+  normalizeImage: function (image, index, subcategoryCode) {
     if (typeof image === "string") {
-      return { fuid: this.createFuid(), dataUrl: image, url: "", sort: index };
+      return {
+        fuid: this.createScopedId("img", subcategoryCode),
+        fileName: this.createImageFileName(subcategoryCode, "", ""),
+        dataUrl: image,
+        url: "",
+        sort: index,
+      };
     }
     var source = image || {};
     return {
-      fuid: this.toText(source.fuid) || this.createFuid(),
+      fuid: this.toText(source.fuid) || this.createScopedId("img", subcategoryCode),
+      fileName: this.toText(source.fileName) || this.createImageFileName(subcategoryCode, "", ""),
       url: this.toText(source.url),
       oss: this.toText(source.oss),
       dataUrl: this.toText(source.dataUrl),
-      fileName: this.toText(source.fileName),
       size: this.toNumber(source.size, 0),
       contentType: this.toText(source.contentType),
       width: this.toNumber(source.width, 0),
@@ -322,7 +374,7 @@ var CertificateAiCollect = {
       var imageList = [];
       if (Object.prototype.toString.call(row.images) === "[object Array]") {
         for (var imageIndex = 0; imageIndex < row.images.length; imageIndex++) {
-          imageList.push(this.normalizeImage(row.images[imageIndex], imageIndex));
+          imageList.push(this.normalizeImage(row.images[imageIndex], imageIndex, subCode));
         }
       }
 
@@ -338,7 +390,7 @@ var CertificateAiCollect = {
         sort: this.toNumber(row.sort, main.subs.length),
         orderIndex: main.subs.length,
         requirementDescription: this.toText(row.requirementDescription),
-        requestId: this.toText(row.requestId) || this.createFuid(),
+        requestId: this.toText(row.requestId) || this.createScopedId("req", subCode),
         recognitionId: this.toText(row.recognitionId),
         images: imageList,
         status: status,
@@ -1414,8 +1466,14 @@ var CertificateAiCollect = {
         }
 
         $loadingToast.find(".toast-message").text("图片上传中...");
-        var imageId = self.createFuid();
-        var fileName = file.name || "";
+        var imageId = self.createScopedId("img", current.subcategory.subcategoryCode);
+        var mimeMatch = /^data:([^;]+);base64,/.exec(compressed.dataUrl || "");
+        var compressedMimeType = mimeMatch ? mimeMatch[1] : file.type || "image/jpeg";
+        var fileName = self.createImageFileName(
+          current.subcategory.subcategoryCode,
+          file.name || "",
+          compressedMimeType,
+        );
         self.uploadImage(
           {
             fuid: imageId,
@@ -1521,7 +1579,7 @@ var CertificateAiCollect = {
     if (!subcategory.images.length) return false;
     var self = this;
     var token = this.bumpRecognitionToken(subcategory.key);
-    var businessId = this.createFuid();
+    var businessId = this.createScopedId("biz", subcategory.subcategoryCode);
 
     subcategory.status = "pending";
     subcategory.result = null;
@@ -1619,7 +1677,7 @@ var CertificateAiCollect = {
           mainCategoryCode: subcategory.mainCategoryCode,
           subcategoryCode: subcategory.subcategoryCode,
           requestId: subcategory.requestId,
-          businessId: this.createFuid(),
+          businessId: this.createScopedId("biz", subcategory.subcategoryCode),
           operator: this.getOperator(),
         },
       ],
@@ -1636,7 +1694,7 @@ var CertificateAiCollect = {
         subcategory.failureType = "";
         subcategory.aiResult = "";
         subcategory.recognitionTime = "";
-        subcategory.requestId = self.createFuid();
+        subcategory.requestId = self.createScopedId("req", subcategory.subcategoryCode);
         subcategory.dirty = false;
         self.renderAll();
         self.startRefreshTimer();
@@ -1713,7 +1771,7 @@ var CertificateAiCollect = {
 
     this.state.submitting = true;
     this.renderRefreshChip();
-    var businessId = this.createFuid();
+    var businessId = this.createScopedId("biz", toSave[0].subcategoryCode);
     var payload = {
       orderNo: this.state.orderInfo.orderNo || "",
       operator: this.getOperator(),
