@@ -380,9 +380,51 @@ body {
   white-space: nowrap;
 }
 
-.mom-cert-ai-collect .category-result-tag {
+.mom-cert-ai-collect .main-status-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
-  white-space: nowrap;
+}
+
+.mom-cert-ai-collect .main-status-text {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mom-cert-ai-collect .main-status-text.status-uncollected {
+  color: #0052d9;
+}
+
+.mom-cert-ai-collect .main-status-text.status-pending {
+  color: #ff8f1f;
+}
+
+.mom-cert-ai-collect .main-status-text.status-success {
+  color: #00a870;
+}
+
+.mom-cert-ai-collect .main-status-text.status-fail {
+  color: #d54941;
+}
+
+.mom-cert-ai-collect .main-status-text.status-none {
+  color: #8a8a8a;
+}
+
+.mom-cert-ai-collect .main-result-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8a8a8a;
+}
+
+.mom-cert-ai-collect .main-result-text.result-pass {
+  color: #00a870;
+}
+
+.mom-cert-ai-collect .main-result-text.result-fail {
+  color: #d54941;
 }
 
 .mom-cert-ai-collect .subcategory-list {

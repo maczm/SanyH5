@@ -415,17 +415,17 @@ var CertificateAiCollect = {
   },
 
   getMainCategoryStatusTag: function (status, allNoNeed) {
-    if (allNoNeed) return { text: "无需采集", className: "tag-gray" };
-    if (status === "pending") return { text: "识别中", className: "tag-warning" };
-    if (status === "success") return { text: "识别完成", className: "tag-green" };
-    if (status === "fail") return { text: "识别失败", className: "tag-red" };
-    return { text: "未采集", className: "tag-blue" };
+    if (allNoNeed) return { text: "无需采集", className: "status-none" };
+    if (status === "pending") return { text: "识别中", className: "status-pending" };
+    if (status === "success") return { text: "识别完成", className: "status-success" };
+    if (status === "fail") return { text: "识别失败", className: "status-fail" };
+    return { text: "未采集完成", className: "status-uncollected" };
   },
 
   getMainResultTag: function (result) {
-    if (result === "pass") return { text: "结果：通过", className: "tag-green" };
-    if (result === "fail") return { text: "结果：不通过", className: "tag-red" };
-    return { text: "结果：-", className: "tag-gray" };
+    if (result === "pass") return { text: "结果：通过", className: "result-pass" };
+    if (result === "fail") return { text: "结果：不通过", className: "result-fail" };
+    return { text: "结果：-", className: "result-none" };
   },
 
   getCountText: function (subcategory) {
@@ -574,8 +574,11 @@ var CertificateAiCollect = {
     $empty.addClass("hidden");
     $(".category-title").text("采集项：" + (mainCategory.name || "-"));
 
+    var allNoNeed = this.isAllNoNeed(mainCategory);
+    var mainTag = this.getMainCategoryStatusTag(mainCategory.status, allNoNeed);
+    $(".main-status-text").attr("class", "main-status-text " + mainTag.className).text(mainTag.text);
     var resultTag = this.getMainResultTag(mainCategory.result);
-    $(".category-result-tag").attr("class", "category-result-tag " + resultTag.className).text(resultTag.text);
+    $(".main-result-text").attr("class", "main-result-text " + resultTag.className).text(resultTag.text);
 
     for (var i = 0; i < mainCategory.subs.length; i++) {
       $subList.append(this.renderSubCard(mainCategory, mainCategory.subs[i]));
@@ -594,18 +597,24 @@ var CertificateAiCollect = {
 
     var $reqTag = $card.find(".req-tag");
     if (subcategory.maxCount === 0) {
-      $reqTag.attr("class", "req-tag no-need").text("无需采集");
+      $reqTag.addClass("hidden");
     } else if (subcategory.required) {
-      $reqTag.attr("class", "req-tag").text("必采");
+      $reqTag.removeClass("hidden").attr("class", "req-tag").text("必采");
     } else {
-      $reqTag.attr("class", "req-tag optional").text("选采");
+      $reqTag.removeClass("hidden").attr("class", "req-tag optional").text("选采");
     }
 
     var $countTag = $card.find(".count-tag");
     var countText = this.getCountText(subcategory);
     if (subcategory.maxCount > 0) countText += " (已拍 " + subcategory.images.length + ")";
-    var countClass =
-      subcategory.maxCount > 0 && this.checkSubcategoryCountValid(subcategory) ? "met" : "unmet";
+    var countClass = "unmet";
+    if (
+      subcategory.maxCount > 0 &&
+      this.checkSubcategoryCountValid(subcategory) &&
+      !(subcategory.images.length === 0 && !subcategory.required)
+    ) {
+      countClass = "met";
+    }
     $countTag
       .attr("class", "count-tag " + countClass)
       .text(countText)
@@ -729,7 +738,7 @@ var CertificateAiCollect = {
     $row.find(".list-main-name").text(mainCategory.name || "-");
 
     var allNoNeed = this.isAllNoNeed(mainCategory);
-    var statusText = "未采集";
+    var statusText = "未采集完成";
     var statusClass = "status-uncollected";
     if (allNoNeed) {
       statusText = "无需采集";
