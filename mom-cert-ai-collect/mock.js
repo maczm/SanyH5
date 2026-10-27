@@ -13,7 +13,8 @@ var mockConfig = {
   recognitionReturnMode:
     providedMockConfig.recognitionReturnMode === "pending" ? "pending" : "result",
   scanDelay: typeof providedMockConfig.scanDelay === "number" ? providedMockConfig.scanDelay : 250,
-  successRate: typeof providedMockConfig.successRate === "number" ? providedMockConfig.successRate : 0.85,
+  // 默认 50% 通过，方便看到失败分支；可通过 window.CertificateAiCollectMock.successRate 调整
+  successRate: typeof providedMockConfig.successRate === "number" ? providedMockConfig.successRate : 0.5,
   // pass / fail / error / timeout；留空时按 successRate 随机
   forceOutcome: typeof providedMockConfig.forceOutcome === "string" ? providedMockConfig.forceOutcome : "",
   // 模拟并发冲突；保存时直接返回冲突信息
