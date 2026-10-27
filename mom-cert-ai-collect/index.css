@@ -263,15 +263,13 @@ body {
   background-color: #fff;
 }
 
-.mom-cert-ai-collect .action-status-tag {
-  justify-self: start;
-}
-
 .mom-cert-ai-collect .refresh-control {
+  grid-column: 2;
   justify-self: center;
 }
 
 .mom-cert-ai-collect .header-toggle {
+  grid-column: 3;
   justify-self: end;
 }
 
@@ -380,10 +378,11 @@ body {
 }
 
 .mom-cert-ai-collect .category-title {
+  flex: 1;
+  min-width: 0;
   font-size: 16px;
   font-weight: 600;
   color: #181818;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
