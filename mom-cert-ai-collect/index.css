@@ -33,6 +33,11 @@ body {
   box-sizing: border-box;
 }
 
+.mom-cert-ai-collect button,
+.mom-cert-ai-collect input {
+  font-family: inherit;
+}
+
 .mom-cert-ai-collect .hidden {
   display: none !important;
 }
@@ -280,6 +285,43 @@ body {
   font-weight: 500;
 }
 
+.mom-cert-ai-collect .refresh-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid #dcdcdc;
+  border-radius: 13px;
+  background: #fff;
+  color: #8a8a8a;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mom-cert-ai-collect .refresh-chip .refresh-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mom-cert-ai-collect .refresh-chip.is-pending {
+  color: #ff8f1f;
+  border-color: #ffd591;
+  background: #fff7e8;
+}
+
+.mom-cert-ai-collect .refresh-chip.is-error {
+  color: #d54941;
+  border-color: #f2a6a2;
+  background: #ffeeed;
+}
+
+.mom-cert-ai-collect .refresh-chip.is-paused {
+  color: #8a8a8a;
+  background: #f5f5f5;
+}
+
 .mom-cert-ai-collect .icon-svg {
   width: 20px;
   height: 20px;
@@ -324,8 +366,17 @@ body {
   white-space: nowrap;
 }
 
-.mom-cert-ai-collect .category-status-tag {
+.mom-cert-ai-collect .category-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.mom-cert-ai-collect .category-status-tag,
+.mom-cert-ai-collect .category-result-tag {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .mom-cert-ai-collect .subcategory-list {
@@ -634,6 +685,10 @@ body {
   font-weight: 600;
 }
 
+.mom-cert-ai-collect .ai-result-label {
+  font-weight: 400;
+}
+
 .mom-cert-ai-collect .ai-result-row.status-success {
   color: #00a870;
 }
@@ -667,26 +722,6 @@ body {
   font-size: 16px;
   font-weight: 600;
   border: 1px solid transparent;
-}
-
-.mom-cert-ai-collect .btn-reset-all {
-  flex: 0 0 72px;
-  background: #fff;
-  color: #d54941;
-  border-color: #f2a6a2;
-  font-size: 15px;
-}
-
-.mom-cert-ai-collect .btn-reset-all:active {
-  background: #ffeeed;
-}
-
-.mom-cert-ai-collect .btn-open-list {
-  flex: 1;
-}
-
-.mom-cert-ai-collect .btn-save {
-  flex: 1.4;
 }
 
 .mom-cert-ai-collect .btn-outline-main {
@@ -816,6 +851,11 @@ body {
   font-weight: 600;
 }
 
+.mom-cert-ai-collect .list-status.status-uncollected {
+  color: #0052d9;
+  font-weight: 600;
+}
+
 .mom-cert-ai-collect .list-status.status-waiting,
 .mom-cert-ai-collect .list-result.status-waiting {
   color: #ff8f1f;
@@ -906,6 +946,12 @@ body {
   background-color: #ffeeed;
 }
 
+.mom-cert-ai-collect .toast.warning {
+  color: #ff8f1f;
+  border-color: #ffd591;
+  background-color: #fff7e8;
+}
+
 /* ==================== 确认弹窗 ==================== */
 .mom-cert-ai-collect .modal-overlay {
   position: fixed;
@@ -966,6 +1012,11 @@ body {
 
 .mom-cert-ai-collect .modal-btn-confirm {
   background: #d54941;
+  color: #fff;
+}
+
+.mom-cert-ai-collect .modal-btn-primary {
+  background: #0052d9;
   color: #fff;
 }
 
@@ -1030,6 +1081,11 @@ body {
     padding: 6px 12px;
   }
 
+  .mom-cert-ai-collect .refresh-chip {
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
   .mom-cert-ai-collect .content {
     padding: 10px 12px;
   }
@@ -1042,11 +1098,6 @@ body {
   .mom-cert-ai-collect .footer-btn {
     padding: 13px 0;
     font-size: 15px;
-  }
-
-  .mom-cert-ai-collect .btn-reset-all {
-    flex-basis: 64px;
-    font-size: 14px;
   }
 
   .mom-cert-ai-collect .list-status-bar {

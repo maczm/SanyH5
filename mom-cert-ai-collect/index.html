@@ -47,6 +47,10 @@
 
       <div class="action-bar page-action-bar">
         <button type="button" class="btn-minus btn-collapse-header" aria-label="收起订单信息">-</button>
+        <button type="button" class="refresh-chip hidden" aria-label="立即刷新状态">
+          <span class="refresh-icon" aria-hidden="true">⟳</span>
+          <span class="refresh-text">30s</span>
+        </button>
         <button type="button" class="toggle-control header-toggle">
           <svg class="icon-svg header-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
@@ -60,7 +64,10 @@
         <div class="content">
           <div class="main-category-header">
             <span class="category-title">采集项：-</span>
-            <span class="category-status-tag tag-blue">待查询</span>
+            <div class="category-status-group">
+              <span class="category-status-tag tag-blue">待查询</span>
+              <span class="category-result-tag tag-gray">结果：-</span>
+            </div>
           </div>
           <div class="subcategory-list"></div>
           <div class="empty-state hidden empty-task">
@@ -68,7 +75,6 @@
           </div>
         </div>
         <div class="footer">
-          <button type="button" class="footer-btn btn-reset-all" aria-label="重置全部数据">重置</button>
           <button type="button" class="footer-btn btn-outline-main btn-open-list disabled" aria-disabled="true">采集列表</button>
           <button type="button" class="footer-btn btn-submit btn-save disabled" aria-disabled="true">保存并继续</button>
         </div>
@@ -107,10 +113,21 @@
       <div class="modal-overlay confirm-mask hidden">
         <div class="modal">
           <h3>确认更新数据？</h3>
-          <p>此操作将清空当前项已上传的所有照片，需重新采集。是否确认？</p>
+          <p>将停用当前采集记录并重新采集，历史识别记录保留。是否确认？</p>
           <div class="modal-btns">
             <button type="button" class="modal-btn modal-btn-cancel confirm-btn-cancel">取消</button>
-            <button type="button" class="modal-btn modal-btn-confirm confirm-btn-ok">确认清空</button>
+            <button type="button" class="modal-btn modal-btn-confirm confirm-btn-ok">确认更新</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay conflict-mask hidden">
+        <div class="modal">
+          <h3>无法保存</h3>
+          <p class="conflict-message"></p>
+          <div class="modal-btns">
+            <button type="button" class="modal-btn modal-btn-cancel conflict-btn-close">关闭</button>
+            <button type="button" class="modal-btn modal-btn-primary conflict-btn-refresh">刷新最新数据</button>
           </div>
         </div>
       </div>
@@ -141,7 +158,10 @@
             <button type="button" class="btn-xs btn-warning btn-re-recognize">源数据重新识别</button>
             <button type="button" class="btn-xs btn-danger-outline btn-reset-data">更新数据</button>
           </div>
-          <div class="ai-result-row">AI结论：<span class="ai-result-value">待识别</span></div>
+          <div class="ai-result-row">
+            <span class="ai-result-label">AI结论：</span>
+            <span class="ai-result-value">待识别</span>
+          </div>
         </div>
       </template>
 

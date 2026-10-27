@@ -7,6 +7,9 @@ var CONFIG = {
   API_TIMEOUT: 10000,
   TOAST_ERROR_DURATION: 4000,
   TOAST_SUCCESS_DURATION: 2000,
+  TOAST_WARNING_DURATION: 1500,
+  REFRESH_INTERVAL_IDLE: 30,
+  REFRESH_INTERVAL_PENDING: 5,
 };
 
 var BUTTON_SWITCH = {
@@ -36,10 +39,17 @@ var CertificateAiCollect = {
     taskSessionId: 0,
     queryTokenSeed: 0,
     overallStatus: "empty",
+    refreshCountdown: 0,
+    refreshInFlight: false,
+    refreshErrorType: "",
+    refreshErrorMessage: "",
+    refreshErrorNotified: false,
     initialized: false,
   },
 
   _initRetryCount: 0,
+  _fuidSeed: 0,
+  _countdownTimer: null,
 
   cloneTemplate: function (templateClassName) {
     var template = document.querySelector("." + templateClassName);
@@ -50,14 +60,14 @@ var CertificateAiCollect = {
 
   apiCall: function (fn, args, callback, timeout) {
     if (typeof fn !== "function") {
-      callback({ code: -1, msg: "接口未接入，请稍后重试" });
+      callback({ code: -1, errorType: "config", msg: "接口未接入，请稍后重试" });
       return;
     }
     var done = false;
     var timer = setTimeout(function () {
       if (done) return;
       done = true;
-      callback({ code: -1, msg: "请求超时，请重试" });
+      callback({ code: -1, errorType: "timeout", msg: "请求超时，请重试" });
     }, timeout || CONFIG.API_TIMEOUT);
     args = args || [];
     try {
@@ -68,6 +78,9 @@ var CertificateAiCollect = {
             if (done) return;
             done = true;
             clearTimeout(timer);
+            if (response && response.code !== 0 && !response.errorType) {
+              response.errorType = "business";
+            }
             callback(response);
           },
         ]),
@@ -76,8 +89,56 @@ var CertificateAiCollect = {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      callback({ code: -1, msg: "请求异常，请重试" });
+      callback({ code: -1, errorType: "network", msg: "网络异常，请重试" });
     }
+  },
+
+  createFuid: function () {
+    this._fuidSeed++;
+    return "f" + Date.now().toString(36) + "-" + this._fuidSeed + "-" + Math.random().toString(36).slice(2, 8);
+  },
+
+  getOperator: function () {
+    return window.Operator || "开发用户";
+  },
+
+  getErrorType: function (response) {
+    if (!response) return "network";
+    if (response.errorType) return response.errorType;
+    if (response.code === -2) return "network";
+    if (response.code === -1) return "timeout";
+    return "business";
+  },
+
+  getFriendlyErrorMessage: function (response, actionName) {
+    var errorType = this.getErrorType(response);
+    if (errorType === "network") return "网络异常，" + actionName + "失败，请检查网络后重试";
+    if (errorType === "timeout") return "请求超时，" + actionName + "失败，请重试";
+    if (errorType === "config") return "接口未接入，请稍后重试";
+    return response && response.msg ? response.msg : actionName + "失败，请重试";
+  },
+
+  getImageSource: function (image) {
+    if (!image) return "";
+    return image.dataUrl || image.url || "";
+  },
+
+  normalizeImage: function (image, index) {
+    if (typeof image === "string") {
+      return { fuid: this.createFuid(), dataUrl: image, url: "", sort: index };
+    }
+    var source = image || {};
+    return {
+      fuid: this.toText(source.fuid) || this.createFuid(),
+      dataUrl: this.toText(source.dataUrl),
+      url: this.toText(source.url),
+      fileName: this.toText(source.fileName),
+      size: this.toNumber(source.size, 0),
+      contentType: this.toText(source.contentType),
+      width: this.toNumber(source.width, 0),
+      height: this.toNumber(source.height, 0),
+      sort: this.toNumber(source.sort, index),
+    };
   },
 
   toText: function (value) {
@@ -104,7 +165,7 @@ var CertificateAiCollect = {
   showToast: function (message, type, duration) {
     var $toast = this.cloneTemplate("template-cert-ai-toast");
     if (!$toast.length) return $toast;
-    var iconMap = { loading: "⏳", success: "✅", error: "❌" };
+    var iconMap = { loading: "⏳", success: "✅", error: "❌", warning: "⚠️" };
     $toast.addClass(type || "loading");
     $toast.find(".toast-icon").text(iconMap[type] || "");
     $toast.find(".toast-message").text(message || "");
@@ -129,11 +190,13 @@ var CertificateAiCollect = {
   showConfirm: function (subcategoryKey) {
     this.state.pendingResetKey = subcategoryKey;
     $(".confirm-mask").removeClass("hidden");
+    this.renderRefreshChip();
   },
 
   hideConfirm: function () {
     this.state.pendingResetKey = "";
     $(".confirm-mask").addClass("hidden");
+    this.renderRefreshChip();
   },
 
   // ============== 数据归一化 ==============
@@ -186,6 +249,23 @@ var CertificateAiCollect = {
       if (required && minCount === 0) minCount = 1;
       if (minCount > maxCount) minCount = maxCount;
 
+      var allowedStatuses = { uncollected: true, pending: true, success: true, fail: true };
+      var status = allowedStatuses[row.status] ? row.status : "uncollected";
+      var result = row.result === "pass" || row.result === "fail" ? row.result : null;
+      var failureType = this.toText(row.failureType);
+      if (status === "success") {
+        result = "pass";
+        failureType = "";
+      } else if (status === "fail" && !failureType) {
+        failureType = result === "fail" ? "aiRejected" : "apiError";
+      }
+      var imageList = [];
+      if (Object.prototype.toString.call(row.images) === "[object Array]") {
+        for (var imageIndex = 0; imageIndex < row.images.length; imageIndex++) {
+          imageList.push(this.normalizeImage(row.images[imageIndex], imageIndex));
+        }
+      }
+
       main.subs.push({
         key: mainCode + "::" + subCode,
         mainCategoryCode: mainCode,
@@ -198,10 +278,15 @@ var CertificateAiCollect = {
         sort: this.toNumber(row.sort, main.subs.length),
         orderIndex: main.subs.length,
         requirementDescription: this.toText(row.requirementDescription),
-        images: [],
-        status: "uncollected",
-        result: null,
-        aiResult: "",
+        requestId: this.toText(row.requestId) || this.createFuid(),
+        recognitionId: this.toText(row.recognitionId),
+        images: imageList,
+        status: status,
+        result: result,
+        failureType: failureType,
+        aiResult: this.toText(row.aiResult),
+        recognitionTime: this.toText(row.recognitionTime),
+        dirty: false,
       });
     }
 
@@ -240,43 +325,37 @@ var CertificateAiCollect = {
     return count >= minimum && count <= subcategory.maxCount;
   },
 
-  checkSubcategoryComplete: function (subcategory) {
-    if (subcategory.maxCount === 0) return true;
-    if (!this.checkSubcategoryCountValid(subcategory)) return false;
-    if (subcategory.images.length === 0) return !subcategory.required;
-    return subcategory.status === "success";
+  getEligibleSubcategories: function (mainCategory) {
+    var result = [];
+    for (var i = 0; i < mainCategory.subs.length; i++) {
+      var subcategory = mainCategory.subs[i];
+      if (subcategory.maxCount === 0) continue;
+      if (subcategory.required || subcategory.images.length > 0 || subcategory.status !== "uncollected") {
+        result.push(subcategory);
+      }
+    }
+    return result;
+  },
+
+  isAllNoNeed: function (mainCategory) {
+    if (!mainCategory.subs.length) return false;
+    for (var i = 0; i < mainCategory.subs.length; i++) {
+      if (mainCategory.subs[i].maxCount > 0) return false;
+    }
+    return true;
   },
 
   computeMainCategoryStatus: function (mainCategory) {
-    var hasFail = false;
-    var hasPending = false;
-    var allComplete = true;
-    for (var i = 0; i < mainCategory.subs.length; i++) {
-      var subcategory = mainCategory.subs[i];
-      if (subcategory.status === "fail") hasFail = true;
-      if (subcategory.status === "pending") hasPending = true;
-      if (!this.checkSubcategoryComplete(subcategory)) allComplete = false;
-    }
-    if (hasFail) return "fail";
-    if (hasPending) return "pending";
-    if (allComplete) return "success";
-    return "uncollected";
-  },
-
-  computeOverallStatus: function () {
-    var mainCategories = this.state.mainCategories;
-    if (!mainCategories.length) return "empty";
+    var eligible = this.getEligibleSubcategories(mainCategory);
+    if (!eligible.length) return "uncollected";
     var hasFail = false;
     var hasPending = false;
     var allSuccess = true;
-    for (var i = 0; i < mainCategories.length; i++) {
-      var mainCategory = mainCategories[i];
-      var status = this.computeMainCategoryStatus(mainCategory);
-      mainCategory.status = status;
-      mainCategory.result = status === "success" ? "pass" : status === "fail" ? "fail" : null;
-      if (status === "fail") hasFail = true;
-      if (status === "pending") hasPending = true;
-      if (status !== "success") allSuccess = false;
+    for (var i = 0; i < eligible.length; i++) {
+      var subcategory = eligible[i];
+      if (subcategory.status === "fail") hasFail = true;
+      if (subcategory.status === "pending") hasPending = true;
+      if (subcategory.status !== "success") allSuccess = false;
     }
     if (hasFail) return "fail";
     if (hasPending) return "pending";
@@ -284,19 +363,68 @@ var CertificateAiCollect = {
     return "uncollected";
   },
 
+  computeMainCategoryResult: function (mainCategory) {
+    var eligible = this.getEligibleSubcategories(mainCategory);
+    if (!eligible.length) return null;
+    var hasFail = false;
+    var allPass = true;
+    for (var i = 0; i < eligible.length; i++) {
+      var subcategory = eligible[i];
+      if (subcategory.result === "fail") hasFail = true;
+      if (subcategory.result !== "pass") allPass = false;
+    }
+    if (hasFail) return "fail";
+    if (allPass) return "pass";
+    return null;
+  },
+
+  computeOverallStatus: function () {
+    var mainCategories = this.state.mainCategories;
+    if (!mainCategories.length) return "empty";
+    var hasStatusFail = false;
+    var hasPending = false;
+    var hasEligible = false;
+    var allEligiblePass = true;
+    for (var i = 0; i < mainCategories.length; i++) {
+      var mainCategory = mainCategories[i];
+      var eligible = this.getEligibleSubcategories(mainCategory);
+      var status = this.computeMainCategoryStatus(mainCategory);
+      var result = this.computeMainCategoryResult(mainCategory);
+      mainCategory.status = status;
+      mainCategory.result = result;
+      if (eligible.length) {
+        hasEligible = true;
+        if (result !== "pass") allEligiblePass = false;
+      }
+      if (status === "fail") hasStatusFail = true;
+      if (status === "pending") hasPending = true;
+    }
+    if (hasStatusFail) return "fail";
+    if (hasPending) return "pending";
+    if (hasEligible && allEligiblePass) return "success";
+    return "uncollected";
+  },
+
   getSubcategoryStatusTag: function (subcategory) {
     if (subcategory.maxCount === 0) return { text: "无需采集", className: "tag-gray" };
     if (subcategory.status === "pending") return { text: "识别中", className: "tag-warning" };
-    if (subcategory.status === "success") return { text: "已完成", className: "tag-green" };
-    if (subcategory.status === "fail") return { text: "失败", className: "tag-red" };
+    if (subcategory.status === "success") return { text: "识别完成", className: "tag-green" };
+    if (subcategory.status === "fail") return { text: "识别失败", className: "tag-red" };
     return { text: "未采集", className: "tag-blue" };
   },
 
-  getMainCategoryStatusTag: function (status) {
+  getMainCategoryStatusTag: function (status, allNoNeed) {
+    if (allNoNeed) return { text: "无需采集", className: "tag-gray" };
     if (status === "pending") return { text: "识别中", className: "tag-warning" };
-    if (status === "success") return { text: "已完成", className: "tag-green" };
-    if (status === "fail") return { text: "失败", className: "tag-red" };
-    return { text: "采集中", className: "tag-blue" };
+    if (status === "success") return { text: "识别完成", className: "tag-green" };
+    if (status === "fail") return { text: "识别失败", className: "tag-red" };
+    return { text: "未采集", className: "tag-blue" };
+  },
+
+  getMainResultTag: function (result) {
+    if (result === "pass") return { text: "结果：通过", className: "tag-green" };
+    if (result === "fail") return { text: "结果：不通过", className: "tag-red" };
+    return { text: "结果：-", className: "tag-gray" };
   },
 
   getCountText: function (subcategory) {
@@ -310,12 +438,43 @@ var CertificateAiCollect = {
     return "选填(如上传需 " + subcategory.minCount + "-" + subcategory.maxCount + " 张)";
   },
 
-  getAiResultText: function (subcategory) {
-    if (subcategory.maxCount === 0) return "无需识别";
-    if (subcategory.status === "pending") return "识别中...";
-    if (subcategory.status === "success") return subcategory.aiResult || "照片清晰，校验通过";
-    if (subcategory.status === "fail") return subcategory.aiResult || "图片模糊，无法识别";
-    return "待识别";
+  getAiResultDisplay: function (subcategory) {
+    var timeSuffix = subcategory.recognitionTime ? " · 识别时间：" + subcategory.recognitionTime : "";
+    if (subcategory.maxCount === 0) {
+      return { label: "AI结论：", text: "无需识别", className: "status-none" };
+    }
+    if (subcategory.status === "pending") {
+      return { label: "AI结论：", text: "识别中...", className: "status-pending" };
+    }
+    if (subcategory.status === "success") {
+      return {
+        label: "AI结论：",
+        text: (subcategory.aiResult || "照片清晰，校验通过") + timeSuffix,
+        className: "status-success",
+      };
+    }
+    if (subcategory.status === "fail") {
+      if (subcategory.failureType === "apiError") {
+        return {
+          label: "接口异常：",
+          text: (subcategory.aiResult || "识别接口异常") + timeSuffix,
+          className: "status-fail",
+        };
+      }
+      if (subcategory.failureType === "timeout") {
+        return {
+          label: "识别超时：",
+          text: (subcategory.aiResult || "识别超时，请重试") + timeSuffix,
+          className: "status-fail",
+        };
+      }
+      return {
+        label: "AI结论：",
+        text: (subcategory.aiResult || "图片模糊，无法识别") + timeSuffix,
+        className: "status-fail",
+      };
+    }
+    return { label: "AI结论：", text: "待识别", className: "status-none" };
   },
 
   findSubcategory: function (mainCategoryCode, subcategoryCode) {
@@ -360,6 +519,7 @@ var CertificateAiCollect = {
     this.renderPageIndicator();
     this.updateActionButtons();
     this.applyButtonSwitch();
+    this.renderRefreshChip();
   },
 
   renderHeader: function (overallStatus) {
@@ -414,8 +574,11 @@ var CertificateAiCollect = {
     $empty.addClass("hidden");
     $(".category-title").text("采集项：" + (mainCategory.name || "-"));
 
-    var mainTag = this.getMainCategoryStatusTag(mainCategory.status);
+    var allNoNeed = this.isAllNoNeed(mainCategory);
+    var mainTag = this.getMainCategoryStatusTag(mainCategory.status, allNoNeed);
     $(".category-status-tag").attr("class", "category-status-tag " + mainTag.className).text(mainTag.text);
+    var resultTag = this.getMainResultTag(mainCategory.result);
+    $(".category-result-tag").attr("class", "category-result-tag " + resultTag.className).text(resultTag.text);
 
     for (var i = 0; i < mainCategory.subs.length; i++) {
       $subList.append(this.renderSubCard(mainCategory, mainCategory.subs[i]));
@@ -464,13 +627,14 @@ var CertificateAiCollect = {
     var $uploadArea = $card.find(".img-upload-area");
     var $uploadBox = $uploadArea.find(".upload-box");
     var $noNeed = $uploadArea.find(".no-need-collect");
-    var canDelete = subcategory.status === "uncollected" || subcategory.status === "fail";
+    var canEdit = subcategory.status === "uncollected";
+    var canDelete = canEdit;
 
     for (var i = 0; i < subcategory.images.length; i++) {
       var $photo = this.cloneTemplate("template-cert-ai-photo-item");
       $photo
         .find("img")
-        .attr("src", subcategory.images[i])
+        .attr("src", this.getImageSource(subcategory.images[i]))
         .attr("alt", subcategory.subcategoryName + " 采集照片 " + (i + 1));
       $photo.find(".img-del-bar").attr("data-index", i).toggleClass("hidden", !canDelete);
       $photo.find(".loading-mask").toggleClass("hidden", subcategory.status !== "pending");
@@ -480,7 +644,7 @@ var CertificateAiCollect = {
     if (subcategory.maxCount === 0) {
       $uploadBox.addClass("hidden");
       $noNeed.removeClass("hidden");
-    } else if (subcategory.images.length >= subcategory.maxCount || subcategory.status === "pending") {
+    } else if (!canEdit || subcategory.images.length >= subcategory.maxCount) {
       $uploadBox.addClass("hidden");
       $noNeed.addClass("hidden");
     } else {
@@ -494,22 +658,19 @@ var CertificateAiCollect = {
     var $resetData = $card.find(".btn-reset-data");
     var showPending = subcategory.status === "pending";
     var showReRecognize = subcategory.status === "fail";
-    var showReset = subcategory.status === "success" || subcategory.status === "fail" || showPending;
+    var showReset = subcategory.status === "success" || subcategory.status === "fail";
     $pendingButton.toggleClass("hidden", !showPending);
     $reRecognize.toggleClass("hidden", !showReRecognize);
-    $resetData.toggleClass("hidden", !showReset).prop("disabled", showPending);
+    $resetData.toggleClass("hidden", !showReset).prop("disabled", false);
     $actionRow.toggleClass("hidden", !(showPending || showReRecognize || showReset));
 
-    var aiStatusClass = "status-none";
-    if (subcategory.maxCount === 0) aiStatusClass = "status-none";
-    else if (subcategory.status === "pending") aiStatusClass = "status-pending";
-    else if (subcategory.status === "success") aiStatusClass = "status-success";
-    else if (subcategory.status === "fail") aiStatusClass = "status-fail";
+    var aiDisplay = this.getAiResultDisplay(subcategory);
     $card
       .find(".ai-result-row")
       .removeClass("status-success status-fail status-pending status-none")
-      .addClass(aiStatusClass);
-    $card.find(".ai-result-value").text(this.getAiResultText(subcategory));
+      .addClass(aiDisplay.className);
+    $card.find(".ai-result-label").text(aiDisplay.label);
+    $card.find(".ai-result-value").text(aiDisplay.text);
     return $card;
   },
 
@@ -525,6 +686,11 @@ var CertificateAiCollect = {
     $body.find(".list-row").remove();
     $conclusion.removeClass("status-success status-fail status-pending");
 
+    var hasResultFail = false;
+    for (var index = 0; index < mainCategories.length; index++) {
+      if (mainCategories[index].result === "fail") hasResultFail = true;
+    }
+
     var conclusionText = "";
     if (overallStatus === "empty") {
       conclusionText = this.state.orderInfo.orderNo ? "暂无采集项" : "待查询";
@@ -532,7 +698,7 @@ var CertificateAiCollect = {
       conclusionText = "全部通过";
       $conclusion.addClass("status-success");
     } else if (overallStatus === "fail") {
-      conclusionText = "存在异常（不通过）";
+      conclusionText = hasResultFail ? "存在异常（不通过）" : "存在识别失败";
       $conclusion.addClass("status-fail");
     } else if (overallStatus === "pending") {
       conclusionText = "识别中";
@@ -565,38 +731,30 @@ var CertificateAiCollect = {
     $row.find(".list-index").text(index + 1);
     $row.find(".list-main-name").text(mainCategory.name || "-");
 
-    var hasCollected = false;
-    var onlyNoNeedItems = true;
-    for (var i = 0; i < mainCategory.subs.length; i++) {
-      var subcategory = mainCategory.subs[i];
-      if (subcategory.images.length > 0) hasCollected = true;
-      if (subcategory.maxCount > 0) onlyNoNeedItems = false;
-    }
-
+    var allNoNeed = this.isAllNoNeed(mainCategory);
     var statusText = "未采集";
-    var statusClass = "status-none";
-    if (mainCategory.status === "success" && !hasCollected) {
-      // 选填项未采集、或整组均为无需采集时，列表不显示为“已完成”
-      statusText = onlyNoNeedItems ? "无需采集" : "未采集";
+    var statusClass = "status-uncollected";
+    if (allNoNeed) {
+      statusText = "无需采集";
       statusClass = "status-none";
     } else if (mainCategory.status === "pending") {
       statusText = "识别中";
       statusClass = "status-waiting";
     } else if (mainCategory.status === "success") {
-      statusText = "已完成";
+      statusText = "识别完成";
       statusClass = "status-pass";
     } else if (mainCategory.status === "fail") {
-      statusText = "失败";
+      statusText = "识别失败";
       statusClass = "status-fail";
     }
     $row.find(".list-status").attr("class", "list-status " + statusClass).text(statusText);
 
     var resultText = "-";
     var resultClass = "status-none";
-    if (mainCategory.status === "success" && hasCollected) {
+    if (mainCategory.result === "pass") {
       resultText = "通过";
       resultClass = "status-pass";
-    } else if (mainCategory.status === "fail") {
+    } else if (mainCategory.result === "fail") {
       resultText = "不通过";
       resultClass = "status-fail";
     }
@@ -615,6 +773,211 @@ var CertificateAiCollect = {
     } else {
       $(".page-indicator").text(this.state.currentMainIndex + 1 + "/" + mainCategories.length);
     }
+  },
+
+  hasPendingRecognition: function () {
+    var mainCategories = this.state.mainCategories;
+    for (var i = 0; i < mainCategories.length; i++) {
+      for (var j = 0; j < mainCategories[i].subs.length; j++) {
+        if (mainCategories[i].subs[j].status === "pending") return true;
+      }
+    }
+    return false;
+  },
+
+  hasDirtyLocalData: function () {
+    var mainCategories = this.state.mainCategories;
+    for (var i = 0; i < mainCategories.length; i++) {
+      for (var j = 0; j < mainCategories[i].subs.length; j++) {
+        var subcategory = mainCategories[i].subs[j];
+        if (subcategory.dirty && subcategory.images.length > 0) return true;
+      }
+    }
+    return false;
+  },
+
+  isRefreshPaused: function () {
+    return (
+      document.hidden ||
+      this.state.querying ||
+      this.state.submitting ||
+      this.state.readingImage ||
+      this.hasDirtyLocalData() ||
+      $(".confirm-mask").not(".hidden").length > 0 ||
+      $(".conflict-mask").not(".hidden").length > 0
+    );
+  },
+
+  getRefreshIntervalSeconds: function () {
+    return this.hasPendingRecognition() ? CONFIG.REFRESH_INTERVAL_PENDING : CONFIG.REFRESH_INTERVAL_IDLE;
+  },
+
+  stopRefreshTimer: function () {
+    if (this._countdownTimer) {
+      clearInterval(this._countdownTimer);
+      this._countdownTimer = null;
+    }
+  },
+
+  startRefreshTimer: function (initialSeconds) {
+    this.stopRefreshTimer();
+    if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) {
+      this.state.refreshCountdown = 0;
+      this.renderRefreshChip();
+      return;
+    }
+    this.state.refreshCountdown =
+      typeof initialSeconds === "number" ? initialSeconds : this.getRefreshIntervalSeconds();
+    this.renderRefreshChip();
+    var self = this;
+    this._countdownTimer = setInterval(function () {
+      self.tickRefreshCountdown();
+    }, 1000);
+  },
+
+  tickRefreshCountdown: function () {
+    if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) {
+      this.stopRefreshTimer();
+      this.renderRefreshChip();
+      return;
+    }
+    if (this.state.refreshInFlight || this.isRefreshPaused()) {
+      this.renderRefreshChip();
+      return;
+    }
+    this.state.refreshCountdown--;
+    if (this.state.refreshCountdown <= 0) {
+      this.refreshSilently(false);
+      return;
+    }
+    this.renderRefreshChip();
+  },
+
+  refreshSilently: function (manual) {
+    if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) {
+      this.stopRefreshTimer();
+      this.renderRefreshChip();
+      return;
+    }
+    if (this.state.refreshInFlight) return;
+    if (!manual && this.isRefreshPaused()) {
+      this.state.refreshCountdown = this.getRefreshIntervalSeconds();
+      this.renderRefreshChip();
+      return;
+    }
+    if (typeof window.getCertificateAiCollectStatus !== "function") {
+      this.state.refreshErrorType = "config";
+      this.state.refreshErrorMessage = "状态查询接口未接入";
+      this.renderRefreshChip();
+      return;
+    }
+
+    var self = this;
+    this.state.refreshInFlight = true;
+    this.renderRefreshChip();
+    this.apiCall(
+      window.getCertificateAiCollectStatus,
+      [{ orderNo: this.state.orderInfo.orderNo }],
+      function (response) {
+        self.state.refreshInFlight = false;
+        if (!response || response.code !== 0) {
+          self.state.refreshErrorType = self.getErrorType(response);
+          self.state.refreshErrorMessage = self.getFriendlyErrorMessage(response, "刷新");
+          if (!self.state.refreshErrorNotified) {
+            self.state.refreshErrorNotified = true;
+            self.showToast(self.state.refreshErrorMessage, "error", CONFIG.TOAST_ERROR_DURATION);
+          }
+          self.state.refreshCountdown = self.getRefreshIntervalSeconds();
+          self.renderRefreshChip();
+          return;
+        }
+        self.state.refreshErrorType = "";
+        self.state.refreshErrorMessage = "";
+        self.state.refreshErrorNotified = false;
+        self.mergeStatusData(response.data || {});
+        self.renderAll();
+        self.state.refreshCountdown = self.getRefreshIntervalSeconds();
+        self.renderRefreshChip();
+      },
+      CONFIG.API_TIMEOUT,
+    );
+  },
+
+  mergeStatusData: function (data) {
+    var list = Object.prototype.toString.call(data.subcategories) === "[object Array]" ? data.subcategories : [];
+    for (var i = 0; i < list.length; i++) {
+      var record = list[i] || {};
+      var found = this.findSubcategory(record.mainCategoryCode, record.subcategoryCode);
+      if (!found) continue;
+      var subcategory = found.subcategory;
+      if (subcategory.dirty) continue;
+      if (record.requestId && subcategory.requestId && record.requestId !== subcategory.requestId) continue;
+      // 不用“未采集”覆盖本地已产生的识别中/完成/失败状态（提交失败时后台可能还没有识别记录）
+      if (record.status === "uncollected" && subcategory.status !== "uncollected") continue;
+      var allowedStatuses = { uncollected: true, pending: true, success: true, fail: true };
+      var nextStatus = allowedStatuses[record.status] ? record.status : subcategory.status;
+      var nextFailureType = this.toText(record.failureType);
+      var nextResult = null;
+      if (nextStatus === "success") {
+        nextResult = "pass";
+        nextFailureType = "";
+      } else if (nextStatus === "fail") {
+        nextResult = record.result === "fail" || nextFailureType === "aiRejected" ? "fail" : null;
+      }
+      subcategory.status = nextStatus;
+      subcategory.result = nextResult;
+      subcategory.failureType = nextFailureType;
+      subcategory.aiResult = this.toText(record.aiResult);
+      subcategory.recognitionTime = this.toText(record.recognitionTime);
+      if (record.requestId) subcategory.requestId = record.requestId;
+    }
+  },
+
+  renderRefreshChip: function () {
+    var $chip = $(".refresh-chip");
+    if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) {
+      $chip.addClass("hidden");
+      return;
+    }
+    $chip.removeClass("hidden is-error is-paused is-pending");
+    var text = "";
+    var title = "";
+    if (this.state.refreshInFlight) {
+      text = "刷新中";
+      title = "正在刷新状态";
+    } else if (this.state.refreshErrorType) {
+      $chip.addClass("is-error");
+      if (this.state.refreshErrorType === "network") text = "网络异常·重试";
+      else if (this.state.refreshErrorType === "timeout") text = "刷新超时·重试";
+      else if (this.state.refreshErrorType === "config") text = "刷新不可用";
+      else text = "刷新失败·重试";
+      title = this.state.refreshErrorMessage + "，点击重试";
+    } else if (this.isRefreshPaused()) {
+      $chip.addClass("is-paused");
+      text = "已暂停";
+      title = "有未保存数据或弹窗，刷新已暂停";
+    } else {
+      if (this.hasPendingRecognition()) $chip.addClass("is-pending");
+      text = this.state.refreshCountdown + "s";
+      title = (this.hasPendingRecognition() ? "识别中，" : "") + this.state.refreshCountdown + "秒后刷新，点击立即刷新";
+    }
+    $chip.find(".refresh-text").text(text);
+    $chip.attr("title", title).attr("aria-label", title);
+  },
+
+  handleRefreshChipClick: function () {
+    if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) return;
+    if (this.state.querying || this.state.submitting || this.state.readingImage) return;
+    if (this.hasDirtyLocalData()) {
+      this.showToast("有未保存的图片，暂不刷新", "warning", CONFIG.TOAST_WARNING_DURATION);
+      return;
+    }
+    if ($(".confirm-mask").not(".hidden").length || $(".conflict-mask").not(".hidden").length) return;
+    this.state.refreshErrorType = "";
+    this.state.refreshErrorMessage = "";
+    this.state.refreshErrorNotified = false;
+    this.state.refreshCountdown = 0;
+    this.refreshSilently(true);
   },
 
   updateActionButtons: function () {
@@ -696,44 +1059,6 @@ var CertificateAiCollect = {
     this.renderCollapsedState();
   },
 
-  resetAllData: function () {
-    try {
-      this.state.queryTokenSeed++;
-      this.state.taskSessionId++;
-      this.state.recognitionTokens = {};
-      this.state.recognitionTokenSeed++;
-      this.state.querying = false;
-      this.state.submitting = false;
-      this.state.readingImage = false;
-      this.state.uploadKey = "";
-      this.state.pendingResetKey = "";
-      this.hideConfirm();
-      $(".toast-container").empty();
-
-      this.state.orderInfo = {
-        orderNo: "",
-        hostCode: "",
-        vin: "",
-        monthSequence: "",
-      };
-      this.state.mainCategories = [];
-      this.state.currentMainIndex = 0;
-      this.state.overallStatus = "empty";
-      this.state.orderCollapsed = false;
-      $(".input-search").val("");
-
-      this.switchView("detail");
-      this.renderAll();
-      this.scrollActiveViewTop();
-    } catch (error) {
-      this.showToast("重置失败，请重试", "error", CONFIG.TOAST_ERROR_DURATION);
-      return;
-    }
-
-    var input = $(".input-search")[0];
-    if (input) input.focus();
-  },
-
   // ============== 查询与扫码 ==============
   queryOrder: function (searchKey) {
     var keyword = this.toText(searchKey).trim();
@@ -752,6 +1077,7 @@ var CertificateAiCollect = {
     this.state.queryTokenSeed++;
     var queryToken = this.state.queryTokenSeed;
     this.state.querying = true;
+    this.renderRefreshChip();
     var $loadingToast = this.showToast("查询中...", "loading", 0);
     this.apiCall(
       window.getCertificateAiCollectTask,
@@ -764,11 +1090,8 @@ var CertificateAiCollect = {
         self.state.querying = false;
         self.removeToast($loadingToast);
         if (!response || response.code !== 0) {
-          self.showToast(
-            response && response.msg ? response.msg : "未查询到订单，请重试",
-            "error",
-            CONFIG.TOAST_ERROR_DURATION,
-          );
+          self.showToast(self.getFriendlyErrorMessage(response, "查询"), "error", CONFIG.TOAST_ERROR_DURATION);
+          self.renderRefreshChip();
           return;
         }
         self.applyTaskData(response.data || {});
@@ -792,6 +1115,7 @@ var CertificateAiCollect = {
     if (normalized.orderInfo.orderNo) $(".input-search").val(normalized.orderInfo.orderNo);
     this.switchView("detail");
     this.renderAll();
+    this.startRefreshTimer();
     this.scrollActiveViewTop();
   },
 
@@ -838,7 +1162,7 @@ var CertificateAiCollect = {
     var found = this.getSubcategoryFromCard($card);
     if (!found) return;
     var subcategory = found.subcategory;
-    if (subcategory.maxCount === 0 || subcategory.status === "pending") return;
+    if (subcategory.maxCount === 0 || subcategory.status !== "uncollected") return;
     if (subcategory.images.length >= subcategory.maxCount) {
       this.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
@@ -872,7 +1196,7 @@ var CertificateAiCollect = {
 
     var found = this.getSubcategoryByKey(uploadKey);
     if (!found) return;
-    if (found.subcategory.maxCount === 0 || found.subcategory.status === "pending") return;
+    if (found.subcategory.maxCount === 0 || found.subcategory.status !== "uncollected") return;
     if (found.subcategory.images.length >= found.subcategory.maxCount) {
       this.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
@@ -885,12 +1209,14 @@ var CertificateAiCollect = {
     var self = this;
     var sessionId = this.state.taskSessionId;
     this.state.readingImage = true;
+    this.renderRefreshChip();
     var $loadingToast = this.showToast("图片处理中...", "loading", 0);
     this.compressImage(
       file,
-      function (base64) {
+      function (compressed) {
         self.state.readingImage = false;
         self.removeToast($loadingToast);
+        self.renderRefreshChip();
         if (sessionId !== self.state.taskSessionId) return;
         var current = self.getSubcategoryByKey(uploadKey);
         if (!current) return;
@@ -898,13 +1224,25 @@ var CertificateAiCollect = {
           self.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
           return;
         }
-        current.subcategory.images.push(base64);
+        current.subcategory.images.push({
+          fuid: self.createFuid(),
+          dataUrl: compressed.dataUrl,
+          url: "",
+          fileName: file.name || "",
+          size: file.size || 0,
+          contentType: file.type || "",
+          width: compressed.width || 0,
+          height: compressed.height || 0,
+          sort: current.subcategory.images.length,
+        });
         self.invalidateSubcategory(current.subcategory);
         self.renderAll();
+        self.renderRefreshChip();
       },
       function (message) {
         self.state.readingImage = false;
         self.removeToast($loadingToast);
+        self.renderRefreshChip();
         if (sessionId !== self.state.taskSessionId) return;
         self.showToast(message || "图片读取失败，请重试", "error", CONFIG.TOAST_ERROR_DURATION);
       },
@@ -914,7 +1252,10 @@ var CertificateAiCollect = {
   invalidateSubcategory: function (subcategory) {
     subcategory.status = "uncollected";
     subcategory.result = null;
+    subcategory.failureType = "";
     subcategory.aiResult = "";
+    subcategory.recognitionTime = "";
+    subcategory.dirty = true;
     this.bumpRecognitionToken(subcategory.key);
   },
 
@@ -929,64 +1270,80 @@ var CertificateAiCollect = {
     var found = this.getSubcategoryFromCard($button.closest(".sub-item-card"));
     if (!found) return;
     var subcategory = found.subcategory;
-    if (subcategory.status !== "uncollected" && subcategory.status !== "fail") return;
+    if (subcategory.status !== "uncollected") return;
     var index = parseInt($button.attr("data-index"), 10);
     if (isNaN(index) || index < 0 || index >= subcategory.images.length) return;
     subcategory.images.splice(index, 1);
     this.invalidateSubcategory(subcategory);
     this.renderAll();
+    this.renderRefreshChip();
   },
 
   // ============== 识别 ==============
+  applyRecognitionStartFailure: function (subcategory, response) {
+    var errorType = this.getErrorType(response);
+    subcategory.status = "fail";
+    subcategory.result = null;
+    subcategory.failureType = errorType === "timeout" ? "timeout" : "apiError";
+    subcategory.aiResult = this.getFriendlyErrorMessage(response, "识别提交");
+    subcategory.recognitionTime = "";
+    subcategory.dirty = false;
+    this.renderAll();
+    this.startRefreshTimer();
+    this.showToast(subcategory.aiResult, "error", CONFIG.TOAST_ERROR_DURATION);
+  },
+
   startRecognition: function (subcategory) {
     if (!subcategory.images.length) return false;
-    if (typeof window.recognizeCertificateAiCollectSubcategory !== "function") {
-      subcategory.status = "fail";
-      subcategory.result = "fail";
-      subcategory.aiResult = "识别接口未接入，请稍后重试";
-      return false;
-    }
-
     var self = this;
     var token = this.bumpRecognitionToken(subcategory.key);
+    var businessId = this.createFuid();
+
     subcategory.status = "pending";
     subcategory.result = null;
+    subcategory.failureType = "";
     subcategory.aiResult = "";
+    subcategory.recognitionTime = "";
+    subcategory.businessId = businessId;
+    subcategory.dirty = false;
+
+    this.renderAll();
+    this.startRefreshTimer();
+
+    if (typeof window.startCertificateAiCollectRecognition !== "function") {
+      this.applyRecognitionStartFailure(subcategory, {
+        code: -1,
+        errorType: "config",
+        msg: "识别接口未接入，请稍后重试",
+      });
+      return false;
+    }
 
     var payload = {
       orderNo: this.state.orderInfo.orderNo || "",
       mainCategoryCode: subcategory.mainCategoryCode,
       subcategoryCode: subcategory.subcategoryCode,
-      images: subcategory.images.slice(),
+      requestId: subcategory.requestId,
+      businessId: businessId,
+      images: subcategory.images,
+      operator: this.getOperator(),
     };
 
     this.apiCall(
-      window.recognizeCertificateAiCollectSubcategory,
+      window.startCertificateAiCollectRecognition,
       [payload],
       function (response) {
         if (self.state.recognitionTokens[subcategory.key] !== token) return;
         var current = self.getSubcategoryByKey(subcategory.key);
-        if (!current || current.subcategory.status !== "pending") return;
-        var target = current.subcategory;
+        if (!current) return;
         if (!response || response.code !== 0) {
-          target.status = "fail";
-          target.result = "fail";
-          target.aiResult = response && response.msg ? response.msg : "识别超时，请重试";
-        } else {
-          var data = response.data || {};
-          var result = self.toText(data.result).toLowerCase();
-          var aiResult = self.toText(data.aiResult);
-          if (result === "pass") {
-            target.status = "success";
-            target.result = "pass";
-            target.aiResult = aiResult || "照片清晰，校验通过";
-          } else {
-            target.status = "fail";
-            target.result = "fail";
-            target.aiResult = aiResult || "图片模糊，无法识别";
-          }
+          self.applyRecognitionStartFailure(current.subcategory, response);
+          return;
         }
+        current.subcategory.recognitionId =
+          response.data && response.data.recognitionId ? response.data.recognitionId : businessId;
         self.renderAll();
+        self.startRefreshTimer();
       },
       CONFIG.API_TIMEOUT,
     );
@@ -1003,7 +1360,6 @@ var CertificateAiCollect = {
       return;
     }
     this.startRecognition(subcategory);
-    this.renderAll();
   },
 
   openResetConfirm: function ($card) {
@@ -1020,14 +1376,74 @@ var CertificateAiCollect = {
     if (!subcategoryKey) return;
     var found = this.getSubcategoryByKey(subcategoryKey);
     if (!found) return;
+    if (typeof window.deactivateCertificateAiCollectItem !== "function") {
+      this.showToast("更新数据接口未接入，请稍后重试", "error", CONFIG.TOAST_ERROR_DURATION);
+      return;
+    }
+
+    var self = this;
     var subcategory = found.subcategory;
-    this.bumpRecognitionToken(subcategory.key);
-    subcategory.images = [];
-    subcategory.status = "uncollected";
-    subcategory.result = null;
-    subcategory.aiResult = "";
-    this.renderAll();
-    this.showToast("已重置，请重新拍照", "success", CONFIG.TOAST_SUCCESS_DURATION);
+    var $loadingToast = this.showToast("更新中...", "loading", 0);
+    this.apiCall(
+      window.deactivateCertificateAiCollectItem,
+      [
+        {
+          orderNo: this.state.orderInfo.orderNo || "",
+          mainCategoryCode: subcategory.mainCategoryCode,
+          subcategoryCode: subcategory.subcategoryCode,
+          requestId: subcategory.requestId,
+          businessId: this.createFuid(),
+          operator: this.getOperator(),
+        },
+      ],
+      function (response) {
+        self.removeToast($loadingToast);
+        if (!response || response.code !== 0) {
+          self.showToast(self.getFriendlyErrorMessage(response, "更新数据"), "error", CONFIG.TOAST_ERROR_DURATION);
+          return;
+        }
+        self.bumpRecognitionToken(subcategory.key);
+        subcategory.images = [];
+        subcategory.status = "uncollected";
+        subcategory.result = null;
+        subcategory.failureType = "";
+        subcategory.aiResult = "";
+        subcategory.recognitionTime = "";
+        subcategory.requestId = self.createFuid();
+        subcategory.dirty = false;
+        self.renderAll();
+        self.startRefreshTimer();
+        self.showToast("已更新，请重新采集", "success", CONFIG.TOAST_SUCCESS_DURATION);
+      },
+      CONFIG.API_TIMEOUT,
+    );
+  },
+
+  advanceToNextItem: function () {
+    var mainCategories = this.state.mainCategories;
+    if (this.state.currentMainIndex < mainCategories.length - 1) {
+      this.state.currentMainIndex++;
+      this.renderAll();
+      this.scrollActiveViewTop();
+    } else {
+      this.switchView("list");
+      this.renderAll();
+      this.scrollActiveViewTop();
+    }
+  },
+
+  showConflict: function (data) {
+    var operator = data && data.operator ? data.operator : "其他用户";
+    var time = data && data.time ? data.time : "";
+    var message = operator + (time ? "在" + time : "") + "已完成录入，请不要重复录入。";
+    $(".conflict-message").text(message);
+    $(".conflict-mask").removeClass("hidden");
+    this.renderRefreshChip();
+  },
+
+  hideConflict: function () {
+    $(".conflict-mask").addClass("hidden");
+    this.renderRefreshChip();
   },
 
   // ============== 保存并继续 ==============
@@ -1044,59 +1460,101 @@ var CertificateAiCollect = {
       return;
     }
 
-    var messages = [];
+    var self = this;
+    var toSave = [];
+    var hasIncomplete = false;
     for (var i = 0; i < mainCategory.subs.length; i++) {
       var subcategory = mainCategory.subs[i];
       if (subcategory.maxCount === 0) continue;
-      if (this.checkSubcategoryCountValid(subcategory)) continue;
-      var minimum = this.getMinimumImageCount(subcategory);
-      if (subcategory.images.length < minimum) {
-        messages.push(
-          "【" + subcategory.subcategoryName + "】需至少 " + minimum + " 张，当前 " + subcategory.images.length + " 张",
-        );
-      } else {
-        messages.push(
-          "【" + subcategory.subcategoryName + "】最多 " + subcategory.maxCount + " 张，当前 " + subcategory.images.length + " 张",
-        );
-      }
+      if (subcategory.status !== "uncollected") continue;
+      if (!this.checkSubcategoryCountValid(subcategory)) hasIncomplete = true;
+      if (subcategory.images.length > 0) toSave.push(subcategory);
     }
 
-    if (messages.length) {
-      this.showToast("未完成！" + messages.join("；"), "error", CONFIG.TOAST_ERROR_DURATION);
+    if (!toSave.length) {
+      if (hasIncomplete) this.showToast("采集未完成", "warning", CONFIG.TOAST_WARNING_DURATION);
+      else this.showToast("无可保存的新数据", "warning", CONFIG.TOAST_WARNING_DURATION);
+      this.advanceToNextItem();
+      return;
+    }
+
+    if (typeof window.saveCertificateAiCollectDraft !== "function") {
+      this.showToast("保存接口未接入，请稍后重试", "error", CONFIG.TOAST_ERROR_DURATION);
       return;
     }
 
     this.state.submitting = true;
-    for (var j = 0; j < mainCategory.subs.length; j++) {
-      var target = mainCategory.subs[j];
-      if (target.maxCount > 0 && target.images.length > 0 && target.status === "uncollected") {
-        this.startRecognition(target);
-      }
-    }
+    this.renderRefreshChip();
+    var businessId = this.createFuid();
+    var payload = {
+      orderNo: this.state.orderInfo.orderNo || "",
+      operator: this.getOperator(),
+      mainCategoryCode: mainCategory.code,
+      businessId: businessId,
+      subcategories: toSave.map(function (item) {
+        return {
+          mainCategoryCode: item.mainCategoryCode,
+          subcategoryCode: item.subcategoryCode,
+          requestId: item.requestId,
+          images: item.images,
+          status: "uncollected",
+        };
+      }),
+    };
 
-    if (this.state.currentMainIndex < mainCategories.length - 1) {
-      this.state.currentMainIndex++;
-      this.renderAll();
-      this.scrollActiveViewTop();
-    } else {
-      this.switchView("list");
-      this.renderAll();
-      this.scrollActiveViewTop();
-    }
+    var $loadingToast = this.showToast("保存中...", "loading", 0);
+    this.apiCall(
+      window.saveCertificateAiCollectDraft,
+      [payload],
+      function (response) {
+        self.removeToast($loadingToast);
+        self.state.submitting = false;
+        self.renderRefreshChip();
+        if (!response || response.code !== 0) {
+          if (
+            response &&
+            (response.code === 40901 || response.errorType === "conflict")
+          ) {
+            self.showConflict(response.data || {});
+            return;
+          }
+          self.showToast(self.getFriendlyErrorMessage(response, "保存"), "error", CONFIG.TOAST_ERROR_DURATION);
+          return;
+        }
 
-    var self = this;
-    setTimeout(function () {
-      self.state.submitting = false;
-    }, 300);
+        for (var a = 0; a < toSave.length; a++) {
+          var saved = toSave[a];
+          saved.dirty = false;
+          if (self.checkSubcategoryCountValid(saved)) {
+            self.startRecognition(saved);
+          }
+        }
+
+        var stillIncomplete = false;
+        for (var b = 0; b < mainCategory.subs.length; b++) {
+          var current = mainCategory.subs[b];
+          if (current.maxCount === 0) continue;
+          if (current.status === "uncollected" && !self.checkSubcategoryCountValid(current)) {
+            stillIncomplete = true;
+          }
+        }
+        if (stillIncomplete) {
+          self.showToast("采集未完成", "warning", CONFIG.TOAST_WARNING_DURATION);
+        }
+        self.advanceToNextItem();
+        self.startRefreshTimer();
+      },
+      CONFIG.API_TIMEOUT,
+    );
   },
 
   // ============== 图片压缩（含 EXIF 旋转修正） ==============
   compressImage: function (file, successCallback, errorCallback) {
     var completed = false;
-    function finishSuccess(base64) {
+    function finishSuccess(compressed) {
       if (completed) return;
       completed = true;
-      successCallback(base64);
+      successCallback(compressed);
     }
     function finishError(message) {
       if (completed) return;
@@ -1163,7 +1621,7 @@ var CertificateAiCollect = {
             finishError("图片处理失败，请重试");
             return;
           }
-          finishSuccess(base64);
+          finishSuccess({ dataUrl: base64, width: canvas.width, height: canvas.height });
         } catch (error) {
           finishError("图片处理失败，请重试");
         }
@@ -1266,8 +1724,17 @@ var CertificateAiCollect = {
       self.backDetail();
     });
 
-    $root.on("click", ".btn-reset-all", function () {
-      self.resetAllData();
+    $root.on("click", ".refresh-chip", function () {
+      self.handleRefreshChipClick();
+    });
+
+    $root.on("click", ".conflict-btn-close", function () {
+      self.hideConflict();
+    });
+
+    $root.on("click", ".conflict-btn-refresh", function () {
+      self.hideConflict();
+      if (self.state.orderInfo.orderNo) self.queryOrder(self.state.orderInfo.orderNo);
     });
 
     $root.on("click", ".upload-box", function () {
@@ -1302,6 +1769,10 @@ var CertificateAiCollect = {
 
     $(".confirm-mask").on("click", function (event) {
       if (event.target === this) self.hideConfirm();
+    });
+
+    $(".conflict-mask").on("click", function (event) {
+      if (event.target === this) self.hideConflict();
     });
 
     $(".photo-input-hidden").on("change", function () {
