@@ -263,6 +263,11 @@ body {
   background-color: #fff;
 }
 
+.mom-cert-ai-collect .action-status-tag {
+  grid-column: 1;
+  justify-self: start;
+}
+
 .mom-cert-ai-collect .refresh-control {
   grid-column: 2;
   justify-self: center;
@@ -386,13 +391,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.mom-cert-ai-collect .category-status-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
 }
 
 .mom-cert-ai-collect .category-status-tag,
