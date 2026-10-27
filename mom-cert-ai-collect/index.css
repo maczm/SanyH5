@@ -388,6 +388,13 @@ body {
   white-space: nowrap;
 }
 
+.mom-cert-ai-collect .category-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .mom-cert-ai-collect .category-status-tag,
 .mom-cert-ai-collect .category-result-tag {
   flex-shrink: 0;
