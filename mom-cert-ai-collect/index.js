@@ -5,6 +5,7 @@ var CONFIG = {
   JPEG_QUALITY: 0.8,
   MAX_SOURCE_FILE_SIZE: 20 * 1024 * 1024,
   API_TIMEOUT: 10000,
+  UPLOAD_TIMEOUT: 30000,
   RECOGNITION_TIMEOUT: 130000,
   TOAST_ERROR_DURATION: 4000,
   TOAST_SUCCESS_DURATION: 2000,
@@ -122,7 +123,7 @@ var CertificateAiCollect = {
 
   getImageSource: function (image) {
     if (!image) return "";
-    return image.dataUrl || image.url || "";
+    return image.url || image.dataUrl || "";
   },
 
   normalizeImage: function (image, index) {
@@ -132,8 +133,9 @@ var CertificateAiCollect = {
     var source = image || {};
     return {
       fuid: this.toText(source.fuid) || this.createFuid(),
-      dataUrl: this.toText(source.dataUrl),
       url: this.toText(source.url),
+      oss: this.toText(source.oss),
+      dataUrl: this.toText(source.dataUrl),
       fileName: this.toText(source.fileName),
       size: this.toNumber(source.size, 0),
       contentType: this.toText(source.contentType),
@@ -157,6 +159,32 @@ var CertificateAiCollect = {
     var number = parseInt(value, 10);
     if (isNaN(number) || number < 0) return fallback;
     return number;
+  },
+
+  serializeImages: function (images) {
+    var list = Object.prototype.toString.call(images) === "[object Array]" ? images : [];
+    return list.map(function (image, index) {
+      var source = image || {};
+      return {
+        fuid: source.fuid || "",
+        fileName: source.fileName || "",
+        url: source.url || "",
+        oss: source.oss || "",
+        size: source.size || 0,
+        contentType: source.contentType || "",
+        width: source.width || 0,
+        height: source.height || 0,
+        sort: typeof source.sort === "number" ? source.sort : index,
+      };
+    });
+  },
+
+  uploadImage: function (payload, callback) {
+    if (typeof window.uploadCertificateAiCollectImage !== "function") {
+      callback({ code: -1, errorType: "config", msg: "图片上传接口未接入，请稍后重试" });
+      return;
+    }
+    this.apiCall(window.uploadCertificateAiCollectImage, [payload], callback, CONFIG.UPLOAD_TIMEOUT);
   },
 
   parseBoolean: function (value) {
@@ -1293,30 +1321,76 @@ var CertificateAiCollect = {
     this.compressImage(
       file,
       function (compressed) {
-        self.state.readingImage = false;
-        self.removeToast($loadingToast);
-        self.renderRefreshChip();
-        if (sessionId !== self.state.taskSessionId) return;
+        if (sessionId !== self.state.taskSessionId) {
+          self.state.readingImage = false;
+          self.removeToast($loadingToast);
+          self.renderRefreshChip();
+          return;
+        }
         var current = self.getSubcategoryByKey(uploadKey);
-        if (!current) return;
+        if (!current) {
+          self.state.readingImage = false;
+          self.removeToast($loadingToast);
+          self.renderRefreshChip();
+          return;
+        }
         if (current.subcategory.images.length >= current.subcategory.maxCount) {
+          self.state.readingImage = false;
+          self.removeToast($loadingToast);
+          self.renderRefreshChip();
           self.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
           return;
         }
-        current.subcategory.images.push({
-          fuid: self.createFuid(),
-          dataUrl: compressed.dataUrl,
-          url: "",
-          fileName: file.name || "",
-          size: file.size || 0,
-          contentType: file.type || "",
-          width: compressed.width || 0,
-          height: compressed.height || 0,
-          sort: current.subcategory.images.length,
-        });
-        self.invalidateSubcategory(current.subcategory);
-        self.renderAll();
-        self.renderRefreshChip();
+
+        $loadingToast.find(".toast-message").text("图片上传中...");
+        var imageId = self.createFuid();
+        var fileName = file.name || "";
+        self.uploadImage(
+          {
+            fuid: imageId,
+            fileName: fileName,
+            base64: compressed.dataUrl,
+          },
+          function (response) {
+            self.state.readingImage = false;
+            self.removeToast($loadingToast);
+            self.renderRefreshChip();
+            if (sessionId !== self.state.taskSessionId) return;
+            if (!response || response.code !== 0) {
+              self.showToast(
+                self.getFriendlyErrorMessage(response, "图片上传"),
+                "error",
+                CONFIG.TOAST_ERROR_DURATION,
+              );
+              return;
+            }
+            var data = response.data || {};
+            if (!data.url || !data.oss) {
+              self.showToast("图片上传返回缺少URL或OSS，请重试", "error", CONFIG.TOAST_ERROR_DURATION);
+              return;
+            }
+            var latest = self.getSubcategoryByKey(uploadKey);
+            if (!latest) return;
+            if (latest.subcategory.images.length >= latest.subcategory.maxCount) {
+              self.showToast("该子类别已达拍摄上限", "error", CONFIG.TOAST_ERROR_DURATION);
+              return;
+            }
+            latest.subcategory.images.push({
+              fuid: data.fuid || imageId,
+              url: data.url,
+              oss: data.oss,
+              fileName: fileName,
+              size: file.size || 0,
+              contentType: file.type || "",
+              width: compressed.width || 0,
+              height: compressed.height || 0,
+              sort: latest.subcategory.images.length,
+            });
+            self.invalidateSubcategory(latest.subcategory);
+            self.renderAll();
+            self.renderRefreshChip();
+          },
+        );
       },
       function (message) {
         self.state.readingImage = false;
@@ -1404,7 +1478,7 @@ var CertificateAiCollect = {
       subcategoryCode: subcategory.subcategoryCode,
       requestId: subcategory.requestId,
       businessId: businessId,
-      images: subcategory.images,
+      images: this.serializeImages(subcategory.images),
       operator: this.getOperator(),
     };
 
@@ -1577,7 +1651,7 @@ var CertificateAiCollect = {
           mainCategoryCode: item.mainCategoryCode,
           subcategoryCode: item.subcategoryCode,
           requestId: item.requestId,
-          images: item.images,
+          images: self.serializeImages(item.images),
           status: "uncollected",
         };
       }),

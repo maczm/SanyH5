@@ -25,6 +25,7 @@ var mockConfig = {
   forceStatusError: providedMockConfig.forceStatusError || "",
   forceStartError: providedMockConfig.forceStartError || "",
   forceSaveError: providedMockConfig.forceSaveError || "",
+  forceUploadError: providedMockConfig.forceUploadError || "",
   scanResult: typeof providedMockConfig.scanResult === "string" ? providedMockConfig.scanResult : "12223214",
 };
 window.CertificateAiCollectMock = mockConfig;
@@ -160,13 +161,14 @@ function cloneImages(images) {
   var list = Object.prototype.toString.call(images) === "[object Array]" ? images : [];
   return list.map(function (image, index) {
     if (typeof image === "string") {
-      return { fuid: mockUid("img"), dataUrl: image, url: "", sort: index };
+      return { fuid: mockUid("img"), dataUrl: image, url: "", oss: "", sort: index };
     }
     var source = image || {};
     return {
       fuid: source.fuid || mockUid("img"),
       dataUrl: source.dataUrl || "",
       url: source.url || "",
+      oss: source.oss || "",
       fileName: source.fileName || "",
       size: source.size || 0,
       contentType: source.contentType || "",
@@ -309,6 +311,40 @@ if (typeof window.getCertificateAiCollectTask !== "function") {
           },
           subcategories: buildSubcategoriesForOrder(orderInfo.orderNo),
         },
+      });
+    }, mockConfig.delay);
+  };
+}
+
+// -- Mock API：图片base64上传 --
+if (typeof window.uploadCertificateAiCollectImage !== "function") {
+  window.uploadCertificateAiCollectImageCount = 0;
+  window.uploadCertificateAiCollectImage = function (params, callback) {
+    window.uploadCertificateAiCollectImageCount++;
+    window.lastCertificateAiCollectImageUpload = params;
+    var source = params || {};
+    setTimeout(function () {
+      if (mockConfig.forceUploadError === "network") {
+        callback({ code: -2, errorType: "network", msg: "网络异常，图片上传失败" });
+        return;
+      }
+      if (mockConfig.forceUploadError === "business") {
+        callback({ code: 1, errorType: "business", msg: "图片上传失败，请重试" });
+        return;
+      }
+      if (!source.base64) {
+        callback({ code: 1, errorType: "business", msg: "图片内容为空" });
+        return;
+      }
+      var fuid = source.fuid || mockUid("img");
+      var fileName = source.fileName || "image.jpg";
+      // Mock 用 base64 作为展示 URL；生产由 OSS 返回真实 URL
+      var url = source.base64.indexOf("data:") === 0 ? source.base64 : "data:image/jpeg;base64," + source.base64;
+      var oss = "oss://mock-cert/" + fuid + "/" + fileName;
+      callback({
+        code: 0,
+        msg: "success",
+        data: { fuid: fuid, url: url, oss: oss },
       });
     }, mockConfig.delay);
   };
