@@ -40,6 +40,7 @@ var CertificateAiCollect = {
     queryTokenSeed: 0,
     overallStatus: "empty",
     refreshCountdown: 0,
+    refreshIntervalSeconds: CONFIG.REFRESH_INTERVAL_SECONDS,
     refreshInFlight: false,
     refreshErrorType: "",
     refreshErrorMessage: "",
@@ -803,12 +804,15 @@ var CertificateAiCollect = {
       this.state.readingImage ||
       this.hasDirtyLocalData() ||
       $(".confirm-mask").not(".hidden").length > 0 ||
-      $(".conflict-mask").not(".hidden").length > 0
+      $(".conflict-mask").not(".hidden").length > 0 ||
+      $(".refresh-config-mask").not(".hidden").length > 0
     );
   },
 
   getRefreshIntervalSeconds: function () {
-    return CONFIG.REFRESH_INTERVAL_SECONDS;
+    var seconds = parseFloat(this.state.refreshIntervalSeconds);
+    if (isNaN(seconds)) return CONFIG.REFRESH_INTERVAL_SECONDS;
+    return Math.min(600, Math.max(3, Math.round(seconds)));
   },
 
   stopRefreshTimer: function () {
@@ -933,35 +937,68 @@ var CertificateAiCollect = {
   },
 
   renderRefreshChip: function () {
-    var $chip = $(".refresh-chip");
+    var $control = $(".refresh-control");
     if (!this.state.mainCategories.length || !this.state.orderInfo.orderNo) {
-      $chip.addClass("hidden");
+      $control.addClass("hidden");
       return;
     }
-    $chip.removeClass("hidden is-error is-paused is-pending");
+    $control.removeClass("hidden is-error is-paused is-pending");
     var text = "";
     var title = "";
     if (this.state.refreshInFlight) {
       text = "刷新中";
       title = "正在刷新状态";
     } else if (this.state.refreshErrorType) {
-      $chip.addClass("is-error");
+      $control.addClass("is-error");
       if (this.state.refreshErrorType === "network") text = "网络异常·重试";
       else if (this.state.refreshErrorType === "timeout") text = "刷新超时·重试";
       else if (this.state.refreshErrorType === "config") text = "刷新不可用";
       else text = "刷新失败·重试";
       title = this.state.refreshErrorMessage + "，点击重试";
     } else if (this.isRefreshPaused()) {
-      $chip.addClass("is-paused");
+      $control.addClass("is-paused");
       text = "已暂停";
       title = "有未保存数据或弹窗，刷新已暂停";
     } else {
-      if (this.hasPendingRecognition()) $chip.addClass("is-pending");
       text = this.state.refreshCountdown + "s";
-      title = (this.hasPendingRecognition() ? "识别中，" : "") + this.state.refreshCountdown + "秒后刷新，点击立即刷新";
+      title = this.state.refreshCountdown + "秒后刷新，点击立即刷新";
     }
-    $chip.find(".refresh-text").text(text);
-    $chip.attr("title", title).attr("aria-label", title);
+    $control.find(".refresh-text").text(text);
+    $(".refresh-chip").attr("title", title).attr("aria-label", title);
+  },
+
+  updateRefreshPresetSelection: function (seconds) {
+    $(".refresh-preset").each(function () {
+      var presetSeconds = parseInt($(this).attr("data-seconds"), 10);
+      $(this).toggleClass("active", presetSeconds === seconds);
+    });
+  },
+
+  openRefreshConfigModal: function () {
+    if (!this.state.mainCategories.length) return;
+    var seconds = this.getRefreshIntervalSeconds();
+    $(".refresh-custom-input").val(seconds);
+    $(".refresh-config-error").addClass("hidden");
+    this.updateRefreshPresetSelection(seconds);
+    $(".refresh-config-mask").removeClass("hidden");
+    this.renderRefreshChip();
+  },
+
+  closeRefreshConfigModal: function () {
+    $(".refresh-config-mask").addClass("hidden");
+    this.renderRefreshChip();
+  },
+
+  saveRefreshConfig: function () {
+    var seconds = parseInt($(".refresh-custom-input").val(), 10);
+    if (isNaN(seconds) || seconds < 3 || seconds > 600) {
+      $(".refresh-config-error").removeClass("hidden");
+      return;
+    }
+    $(".refresh-config-error").addClass("hidden");
+    this.state.refreshIntervalSeconds = seconds;
+    this.closeRefreshConfigModal();
+    this.startRefreshTimer();
   },
 
   handleRefreshChipClick: function () {
@@ -971,7 +1008,13 @@ var CertificateAiCollect = {
       this.showToast("有未保存的图片，暂不刷新", "warning", CONFIG.TOAST_WARNING_DURATION);
       return;
     }
-    if ($(".confirm-mask").not(".hidden").length || $(".conflict-mask").not(".hidden").length) return;
+    if (
+      $(".confirm-mask").not(".hidden").length ||
+      $(".conflict-mask").not(".hidden").length ||
+      $(".refresh-config-mask").not(".hidden").length
+    ) {
+      return;
+    }
     this.state.refreshErrorType = "";
     this.state.refreshErrorMessage = "";
     this.state.refreshErrorNotified = false;
@@ -1727,6 +1770,37 @@ var CertificateAiCollect = {
       self.handleRefreshChipClick();
     });
 
+    $root.on("click", ".refresh-config-btn", function () {
+      self.openRefreshConfigModal();
+    });
+
+    $root.on("click", ".refresh-config-cancel", function () {
+      self.closeRefreshConfigModal();
+    });
+
+    $root.on("click", ".refresh-config-save", function () {
+      self.saveRefreshConfig();
+    });
+
+    $root.on("click", ".refresh-preset", function () {
+      var seconds = parseInt($(this).attr("data-seconds"), 10);
+      $(".refresh-custom-input").val(seconds);
+      $(".refresh-config-error").addClass("hidden");
+      self.updateRefreshPresetSelection(seconds);
+    });
+
+    $(".refresh-custom-input").on("input", function () {
+      $(".refresh-config-error").addClass("hidden");
+      var seconds = parseInt($(this).val(), 10);
+      if (!isNaN(seconds)) self.updateRefreshPresetSelection(seconds);
+    });
+
+    $(".refresh-custom-input").on("keydown", function (event) {
+      if (event.key !== "Enter" && event.keyCode !== 13) return;
+      event.preventDefault();
+      self.saveRefreshConfig();
+    });
+
     $root.on("click", ".conflict-btn-close", function () {
       self.hideConflict();
     });
@@ -1772,6 +1846,10 @@ var CertificateAiCollect = {
 
     $(".conflict-mask").on("click", function (event) {
       if (event.target === this) self.hideConflict();
+    });
+
+    $(".refresh-config-mask").on("click", function (event) {
+      if (event.target === this) self.closeRefreshConfigModal();
     });
 
     $(".photo-input-hidden").on("change", function () {

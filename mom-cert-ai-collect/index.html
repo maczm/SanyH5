@@ -46,10 +46,13 @@
       </div>
 
       <div class="action-bar page-action-bar">
-        <button type="button" class="refresh-chip hidden" aria-label="立即刷新状态">
-          <span class="refresh-icon" aria-hidden="true">⟳</span>
-          <span class="refresh-text">30s</span>
-        </button>
+        <div class="refresh-control hidden">
+          <button type="button" class="refresh-chip" aria-label="立即刷新状态">
+            <span class="refresh-icon" aria-hidden="true">⟳</span>
+            <span class="refresh-text">10s</span>
+          </button>
+          <button type="button" class="refresh-config-btn" aria-label="设置刷新间隔" title="设置刷新间隔">⚙</button>
+        </div>
         <button type="button" class="toggle-control header-toggle">
           <svg class="icon-svg header-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
@@ -116,6 +119,28 @@
           <div class="modal-btns">
             <button type="button" class="modal-btn modal-btn-cancel confirm-btn-cancel">取消</button>
             <button type="button" class="modal-btn modal-btn-confirm confirm-btn-ok">确认更新</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay refresh-config-mask hidden">
+        <div class="modal refresh-config-box">
+          <h3>刷新间隔</h3>
+          <p>设置自动刷新间隔，范围 3-600 秒</p>
+          <div class="refresh-preset-list">
+            <button type="button" class="refresh-preset" data-seconds="5">5 秒</button>
+            <button type="button" class="refresh-preset" data-seconds="10">10 秒</button>
+            <button type="button" class="refresh-preset" data-seconds="30">30 秒</button>
+            <button type="button" class="refresh-preset" data-seconds="60">60 秒</button>
+          </div>
+          <div class="refresh-custom-row">
+            <input type="number" class="refresh-custom-input" min="3" max="600" step="1" inputmode="numeric" placeholder="自定义秒数" />
+            <span>秒</span>
+          </div>
+          <div class="refresh-config-error hidden">请输入 3-600 之间的秒数</div>
+          <div class="modal-btns">
+            <button type="button" class="modal-btn modal-btn-cancel refresh-config-cancel">取消</button>
+            <button type="button" class="modal-btn modal-btn-primary refresh-config-save">保存</button>
           </div>
         </div>
       </div>

@@ -274,16 +274,26 @@ body {
   font-weight: 500;
 }
 
-.mom-cert-ai-collect .refresh-chip {
+.mom-cert-ai-collect .refresh-control {
   display: flex;
   align-items: center;
-  gap: 4px;
   height: 26px;
-  padding: 0 9px;
   border: 1px solid #dcdcdc;
   border-radius: 13px;
   background: #fff;
   color: #8a8a8a;
+  overflow: hidden;
+}
+
+.mom-cert-ai-collect .refresh-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 6px 0 9px;
+  border: none;
+  background: transparent;
+  color: inherit;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -294,19 +304,30 @@ body {
   line-height: 1;
 }
 
-.mom-cert-ai-collect .refresh-chip.is-pending {
+.mom-cert-ai-collect .refresh-config-btn {
+  height: 100%;
+  padding: 0 7px;
+  border: none;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mom-cert-ai-collect .refresh-control.is-pending {
   color: #ff8f1f;
   border-color: #ffd591;
   background: #fff7e8;
 }
 
-.mom-cert-ai-collect .refresh-chip.is-error {
+.mom-cert-ai-collect .refresh-control.is-error {
   color: #d54941;
   border-color: #f2a6a2;
   background: #ffeeed;
 }
 
-.mom-cert-ai-collect .refresh-chip.is-paused {
+.mom-cert-ai-collect .refresh-control.is-paused {
   color: #8a8a8a;
   background: #f5f5f5;
 }
@@ -1009,6 +1030,66 @@ body {
   color: #fff;
 }
 
+.mom-cert-ai-collect .refresh-config-box h3 {
+  color: #181818;
+}
+
+.mom-cert-ai-collect .refresh-preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mom-cert-ai-collect .refresh-preset {
+  flex: 1 1 calc(50% - 4px);
+  padding: 10px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #181818;
+  font-size: 14px;
+}
+
+.mom-cert-ai-collect .refresh-preset.active {
+  border-color: #0052d9;
+  background: #e6f0ff;
+  color: #0052d9;
+  font-weight: 600;
+}
+
+.mom-cert-ai-collect .refresh-custom-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #5e5e5e;
+}
+
+.mom-cert-ai-collect .refresh-custom-input {
+  width: 118px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #c4c4c4;
+  border-radius: 6px;
+  font-size: 15px;
+  text-align: center;
+  outline: none;
+}
+
+.mom-cert-ai-collect .refresh-custom-input:focus {
+  border-color: #0052d9;
+}
+
+.mom-cert-ai-collect .refresh-config-error {
+  margin: -2px 0 12px;
+  font-size: 12px;
+  color: #d54941;
+  text-align: center;
+}
+
 .mom-cert-ai-collect .modal-btn:active {
   opacity: 0.8;
 }
@@ -1071,8 +1152,12 @@ body {
   }
 
   .mom-cert-ai-collect .refresh-chip {
-    padding: 0 7px;
+    padding: 0 4px 0 7px;
     font-size: 11px;
+  }
+
+  .mom-cert-ai-collect .refresh-config-btn {
+    padding: 0 5px;
   }
 
   .mom-cert-ai-collect .content {
