@@ -23,6 +23,8 @@ var NameplateCheckResult = {
   _pollTimer: null,
   _initRetryCount: 0,
   _viewers: [],
+  _layoutTimer: null,
+  _resizeBound: false,
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (templateClassName) {
@@ -173,6 +175,11 @@ var NameplateCheckResult = {
         NameplateCheckResult.initPage();
       }, 50);
       return;
+    }
+
+    if (!NameplateCheckResult._resizeBound) {
+      NameplateCheckResult._resizeBound = true;
+      $(window).on("resize", NameplateCheckResult.scheduleImageLayouts);
     }
 
     NameplateCheckResult.renderResult();
@@ -408,8 +415,9 @@ var NameplateCheckResult = {
         $fieldList.append(NameplateCheckResult.buildFieldRow(detail));
       });
     } else {
-      // 检查项没有字段明细时整节不展示（连占位空态一起隐藏）
+      // 检查项没有字段明细时整节不展示（连占位空态一起隐藏），图片改为并到检查项行内
       $fieldList.addClass("hidden");
+      $card.addClass("no-fields");
     }
 
     NameplateCheckResult.appendCheckImages($card, item, imageMap);
@@ -445,6 +453,9 @@ var NameplateCheckResult = {
     if (!images.length) return;
 
     $card.addClass("has-images");
+    if (!$card.hasClass("no-fields")) {
+      $card.addClass("images-compact images-cols-" + Math.min(images.length, 3));
+    }
     var $imageList = $card.find(".check-images").removeClass("hidden").find(".check-image-list");
     images.forEach(function (image) {
       $imageList.append(NameplateCheckResult.buildCheckImage(image));
@@ -454,7 +465,11 @@ var NameplateCheckResult = {
   buildCheckImage: function (image) {
     var $imageItem = NameplateCheckResult.cloneTemplate("template-check-image");
     var imageName = image.name || "";
-    $imageItem.find(".check-image").attr("src", image.url).attr("alt", imageName || "检查项图片");
+    var $image = $imageItem.find(".check-image");
+    $image.on("load", function () {
+      NameplateCheckResult.scheduleImageLayouts();
+    });
+    $image.attr("src", image.url).attr("alt", imageName || "检查项图片");
     if (imageName) {
       $imageItem.find(".check-image-name").text(imageName);
     } else {
@@ -483,6 +498,8 @@ var NameplateCheckResult = {
   finishRender: function (images, title) {
     NameplateCheckResult.appendImageSection(images, title);
     NameplateCheckResult.initImageViewers();
+    NameplateCheckResult.applyImageLayouts();
+    NameplateCheckResult.scheduleImageLayouts();
   },
 
   /** 为当前渲染出的全部图片（检查项内 + 独立图片区）初始化 Viewer；必须在插入文档后调用 */
@@ -524,6 +541,94 @@ var NameplateCheckResult = {
       if (viewer && typeof viewer.destroy === "function") viewer.destroy();
     });
     NameplateCheckResult._viewers = [];
+  },
+
+  // ============== PC 图片布局 ==============
+  /** 延迟重算（图片加载 / 窗口尺寸变化时合并触发） */
+  scheduleImageLayouts: function () {
+    if (NameplateCheckResult._layoutTimer) return;
+    NameplateCheckResult._layoutTimer = setTimeout(function () {
+      NameplateCheckResult._layoutTimer = null;
+      NameplateCheckResult.applyImageLayouts();
+    }, 30);
+  },
+
+  /**
+   * PC 图片布局：按“图片总高度不超过字段内容高度”选择列数，优先少列（图更大）；
+   * 所有列数都放不下时用紧凑横排，避免图片把卡片撑高。无字段检查项不参与。
+   */
+  applyImageLayouts: function () {
+    var isDesktop = window.matchMedia("(min-width: 768px) and (pointer: fine)").matches;
+    var $cards = $(".check-card.has-images");
+
+    if (!isDesktop) {
+      $cards.removeClass("images-fit images-compact images-cols-1 images-cols-2 images-cols-3");
+      return;
+    }
+
+    $cards.each(function () {
+      var $card = $(this);
+      if ($card.hasClass("no-fields")) return;
+
+      var mainElement = $card.find(".check-card-main")[0];
+      var panelElement = $card.find(".check-images")[0];
+      if (!mainElement || !panelElement) return;
+
+      var imageElements = $card.find(".check-image");
+      var imageCount = imageElements.length;
+      var panelWidth = panelElement.clientWidth;
+      if (!imageCount || !panelWidth) return;
+
+      var contentHeight = mainElement.offsetHeight;
+      var aspects = [];
+      imageElements.each(function () {
+        aspects.push(this.naturalWidth && this.naturalHeight ? this.naturalWidth / this.naturalHeight : 16 / 9);
+      });
+
+      var maxColumns = Math.min(imageCount, 3);
+      var chosenColumns = 0;
+      var chosenFit = false;
+      for (var columns = 1; columns <= maxColumns; columns++) {
+        if (NameplateCheckResult.estimateImageHeight(aspects, panelWidth, columns) <= contentHeight + 4) {
+          chosenColumns = columns;
+          chosenFit = true;
+          break;
+        }
+      }
+
+      if (!chosenColumns) {
+        chosenColumns = maxColumns;
+        chosenFit = false;
+        // 紧凑模式：按字段内容高度反推图片最大宽度，尽量不让图片把卡片撑高
+        var minAspect = Math.min.apply(null, aspects);
+        var trackWidth = (panelWidth - 8 * (chosenColumns - 1)) / chosenColumns;
+        var compactWidth = Math.min(Math.max(contentHeight - 25, 65) * minAspect, trackWidth);
+        compactWidth = Math.max(140, Math.min(240, compactWidth));
+        $card[0].style.setProperty("--compact-image-width", Math.round(compactWidth) + "px");
+      }
+
+      $card.removeClass("images-fit images-compact images-cols-1 images-cols-2 images-cols-3");
+      $card.addClass(chosenFit ? "images-fit" : "images-compact").addClass("images-cols-" + chosenColumns);
+    });
+  },
+
+  /** 估算指定列数下图片区总高度（每行取该行最高图 + 名称） */
+  estimateImageHeight: function (aspects, panelWidth, columns) {
+    var gap = 8;
+    var captionHeight = 25;
+    var rows = Math.ceil(aspects.length / columns);
+    var itemWidth = (panelWidth - gap * (columns - 1)) / columns;
+    var total = gap * (rows - 1);
+    for (var row = 0; row < rows; row++) {
+      var rowHeight = 0;
+      for (var column = 0; column < columns; column++) {
+        var index = row * columns + column;
+        if (index >= aspects.length) break;
+        rowHeight = Math.max(rowHeight, itemWidth / aspects[index] + captionHeight);
+      }
+      total += rowHeight;
+    }
+    return total;
   },
 
   // ============== 字段明细行 ==============

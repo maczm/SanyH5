@@ -271,18 +271,53 @@ body {
     grid-template-columns: minmax(0, 1fr) clamp(300px, 44%, 480px);
     column-gap: 16px;
   }
+  .mom-check-result .check-card.has-images .check-card-main,
+  .mom-check-result .check-card.has-images .check-images {
+    align-self: start;
+  }
   .mom-check-result .check-card.has-images .check-images {
     margin-top: 0;
   }
-  /* PC 图片横向排（1~3 张一行或两行），不再单列竖排 */
-  .mom-check-result .check-card.has-images .check-image-list {
-    justify-items: center;
-  }
+  /* 图片列数由 JS 按「图片总高度 ≤ 字段内容高度」计算，优先少列（图更大） */
   .mom-check-result .check-card.has-images .check-image-item {
-    max-width: 240px;
+    max-width: none;
   }
-  .mom-check-result .check-card.has-images .check-image-item:only-child {
-    max-width: 320px;
+  .mom-check-result .check-card.has-images.images-cols-1 .check-image-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mom-check-result .check-card.has-images.images-cols-2 .check-image-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mom-check-result .check-card.has-images.images-cols-3 .check-image-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .mom-check-result .check-card.has-images.images-compact .check-image-item {
+    max-width: var(--compact-image-width, 240px);
+  }
+  /* 无字段的检查项：图片缩略图直接并到检查项一行内 */
+  .mom-check-result .check-card.no-fields.has-images {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .mom-check-result .check-card.no-fields.has-images .check-card-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .mom-check-result .check-card.no-fields.has-images .check-images {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .mom-check-result .check-card.no-fields.has-images .check-image-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .mom-check-result .check-card.no-fields.has-images .check-image-item {
+    flex: 0 0 140px;
+    width: 140px;
+    max-width: 140px;
   }
   /* 字段值不再无限拉伸，缩小「识别值 / 正确值 / 徽章」间距 */
   .mom-check-result .field-values {
