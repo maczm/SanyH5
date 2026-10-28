@@ -1,13 +1,17 @@
 // ============== 铭牌检查结果 - 纯数据展示页 ==============
-// 数据来源：父页面注入的 window.checkResultData（JS 对象或 JSON 字符串），
-// 结构遵循信封格式 { code, mes, data }：
-//   data: {
-//     acceptNo, completedAt, status: PENDING/PROCESSING/COMPLETED/FAILED,
-//     overallConclusion: PASS/FAIL/UNCLEAR/RETRY,
-//     checkResults: [{ checkCode, checkName, conclusion, reason, fieldDetails: [...] }]
-//   }
-//   fieldDetails 项：{ fieldNameCn, fieldNameEn, conclusion: MATCH/MISMATCH/PASS/FAIL,
-//     unit（如 kW/kg）, reason（字段级原因）, recognizedValue, correctValue }
+// 数据来源（均由 Portal 在加载 iframe 前注入，页面只读）：
+//   window.AccpetNo        受理单号（拼写按注入名保留）；空 → 展示「未发起AI识别」
+//   window.checkResultData 检查结果，JS 对象或 JSON 字符串，结构遵循信封格式 { code, mes, data }：
+//     data: {
+//       acceptNo, completedAt, status: PENDING/PROCESSING/COMPLETED/FAILED,
+//       overallConclusion: PASS/FAIL/UNCLEAR/RETRY,
+//       checkResults: [{ checkCode, checkName, conclusion, reason, fieldDetails: [...] }]
+//     }
+//     fieldDetails 项：{ fieldNameCn, fieldNameEn, conclusion: MATCH/MISMATCH/PASS/FAIL,
+//       unit（如 kW/kg）, reason（字段级原因）, recognizedValue, correctValue }
+//   window.ImageUrlList / ImageNameList / ImageCheckList
+//                          三个等长数组（也兼容 JSON 字符串），按 ImageCheckList[i] 匹配
+//                          checkResults[].checkCode，把第 i 张图片归到对应检查项
 // 本地开发：同目录 mock.js 提供演示数据（生产不部署，Portal 只取
 //           index.html / index.js / index.css 三个文件）；未注入时展示空态。
 //
@@ -22,6 +26,58 @@ var NameplateCheckResult = {
   cloneTemplate: function (templateClassName) {
     var fragment = document.querySelector("." + templateClassName).content.cloneNode(true);
     return $(fragment.firstElementChild);
+  },
+
+  // ============== 注入数据读取 ==============
+  /**
+   * 是否已发起 AI 识别：Portal 注入的受理单号非空即已发起。
+   * 变量名 AccpetNo 为 Portal 注入名（拼写按对方原文保留，勿改）。
+   */
+  isAiTaskStarted: function () {
+    return String(window.AccpetNo == null ? "" : window.AccpetNo).trim() !== "";
+  },
+
+  /** 受理单号：优先取结果数据里的 acceptNo，缺省回退 Portal 注入的 AccpetNo */
+  resolveAcceptNo: function (data) {
+    var acceptNo = String((data && data.acceptNo) || "").trim();
+    return acceptNo || String(window.AccpetNo == null ? "" : window.AccpetNo).trim();
+  },
+
+  /** 读取注入的数组（兼容 JSON 字符串）；非数组一律视为空数组 */
+  readList: function (value) {
+    var list = value;
+    if (typeof list === "string") {
+      try {
+        list = JSON.parse(list);
+      } catch (error) {
+        return [];
+      }
+    }
+    return Array.isArray(list) ? list : [];
+  },
+
+  normalizeCheckCode: function (value) {
+    return String(value == null ? "" : value).trim().toUpperCase();
+  },
+
+  /**
+   * 图片三数组按索引一一对应，生成 checkCode → [{ url, name }] 映射。
+   * 空地址 / 空 checkCode 的项跳过；未匹配到检查项的图片不会被任何卡片使用。
+   */
+  buildCheckImageMap: function () {
+    var urls = NameplateCheckResult.readList(window.ImageUrlList);
+    var names = NameplateCheckResult.readList(window.ImageNameList);
+    var checkCodes = NameplateCheckResult.readList(window.ImageCheckList);
+    var imageMap = {};
+    var length = Math.min(urls.length, checkCodes.length);
+    for (var i = 0; i < length; i++) {
+      var url = String(urls[i] || "").trim();
+      var checkCode = NameplateCheckResult.normalizeCheckCode(checkCodes[i]);
+      if (!url || !checkCode) continue;
+      if (!imageMap[checkCode]) imageMap[checkCode] = [];
+      imageMap[checkCode].push({ url: url, name: String(names[i] || "").trim() });
+    }
+    return imageMap;
   },
 
   // ============== 状态标准化 ==============
@@ -110,12 +166,18 @@ var NameplateCheckResult = {
 
   // ============== 结果渲染 ==============
   /**
-   * 渲染检查结果页：优先取父页面注入数据（支持 JS 对象或 JSON 字符串），
-   * 注入数据缺失或解析失败时展示空态；按任务状态分支渲染——
-   * pending/processing/failed 仅展示任务横幅并视需要启动轮询，
-   * completed 展示整体结论横幅与检查项列表，终态时停止轮询。
+   * 渲染检查结果页：先判断是否已发起 AI 识别（AccpetNo 非空），
+   * 未发起时展示「未发起AI识别」空态；已发起时读取注入数据渲染，
+   * 按任务状态分支——pending/processing/failed 仅展示任务横幅并视需要启动轮询，
+   * completed 展示整体结论横幅与检查项列表（含检查项图片），终态时停止轮询。
    */
   renderResult: function () {
+    if (!NameplateCheckResult.isAiTaskStarted()) {
+      NameplateCheckResult.stopPolling();
+      NameplateCheckResult.showEmptyState("未发起AI识别");
+      return;
+    }
+
     // 取父页面注入数据（支持 JS 对象或 JSON 字符串）；未注入时展示空态
     var payload = window.checkResultData;
     if (typeof payload === "string") {
@@ -150,9 +212,10 @@ var NameplateCheckResult = {
 
     var list = data.checkResults || [];
     if (list.length) {
+      var imageMap = NameplateCheckResult.buildCheckImageMap();
       var $listWrap = $('<div class="check-list"></div>');
       list.forEach(function (item) {
-        $listWrap.append(NameplateCheckResult.buildCheckCard(item));
+        $listWrap.append(NameplateCheckResult.buildCheckCard(item, imageMap));
       });
       $body.append($listWrap);
     } else {
@@ -206,7 +269,7 @@ var NameplateCheckResult = {
     $banner.removeClass("processing").addClass(config.cls);
     $banner.find(".sb-title").text(config.title);
     $banner.find(".sb-sub").text(config.sub);
-    $banner.find(".task-accept-no").text("受理单号：" + (data.acceptNo || "-"));
+    $banner.find(".task-accept-no").text("受理单号：" + (NameplateCheckResult.resolveAcceptNo(data) || "-"));
     if (data.status) {
       $banner.find(".task-status").text("状态：" + NameplateCheckResult.statusLabel(data.status)).removeClass("hidden");
     }
@@ -244,7 +307,7 @@ var NameplateCheckResult = {
     $banner.find(".sb-icon svg").html(iconMap[state] || iconMap.unclear);
     $banner.find(".sb-title").text(NameplateCheckResult.conclusionLabel(state, data.overallConclusion));
     $banner.find(".sb-sub").text(subMap[state] || "");
-    $banner.find(".accept-no").text("受理单号：" + (data.acceptNo || "-"));
+    $banner.find(".accept-no").text("受理单号：" + (NameplateCheckResult.resolveAcceptNo(data) || "-"));
     $banner.find(".completed-at").text("完成时间：" + (data.completedAt || "-"));
     if (data.status) {
       $banner.find(".banner-status").text("状态：" + NameplateCheckResult.statusLabel(data.status)).removeClass("hidden");
@@ -287,7 +350,7 @@ var NameplateCheckResult = {
   },
 
   // ============== 检查项卡片 ==============
-  buildCheckCard: function (item) {
+  buildCheckCard: function (item, imageMap) {
     var state = NameplateCheckResult.conclusionState(item.conclusion);
     var badge = NameplateCheckResult.badgeConfig(state, "check");
     var cardCls = state === "fail" ? " card-fail" : (state === "skipped" || state === "unrated") ? " card-skip" : (state === "unclear" || state === "retry" || state === "unknown") ? " card-warn" : "";
@@ -319,7 +382,37 @@ var NameplateCheckResult = {
       $fieldList.append($empty);
     }
 
+    NameplateCheckResult.appendCheckImages($card, item, imageMap);
+
     return $card;
+  },
+
+  // ============== 检查项图片 ==============
+  /**
+   * 按 checkCode 把图片挂到检查项卡片：有图时卡片加 has-images（宽屏左右分栏），
+   * 无图时图片区保持 hidden，卡片维持单栏。图片顺序同注入数组顺序。
+   */
+  appendCheckImages: function ($card, item, imageMap) {
+    var images = (imageMap || {})[NameplateCheckResult.normalizeCheckCode(item.checkCode)] || [];
+    if (!images.length) return;
+
+    $card.addClass("has-images");
+    var $imageList = $card.find(".check-images").removeClass("hidden").find(".check-image-list");
+    images.forEach(function (image) {
+      $imageList.append(NameplateCheckResult.buildCheckImage(image));
+    });
+  },
+
+  buildCheckImage: function (image) {
+    var $imageItem = NameplateCheckResult.cloneTemplate("template-check-image");
+    var imageName = image.name || "";
+    $imageItem.find(".check-image").attr("src", image.url).attr("alt", imageName || "检查项图片");
+    if (imageName) {
+      $imageItem.find(".check-image-name").text(imageName);
+    } else {
+      $imageItem.find(".check-image-name").addClass("hidden");
+    }
+    return $imageItem;
   },
 
   // ============== 字段明细行 ==============

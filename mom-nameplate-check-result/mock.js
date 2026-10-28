@@ -1,8 +1,17 @@
 // ============== 演示数据（仅本地开发用） ==============
 // 生产环境不部署本文件：Portal 部署只取 index.html / index.js / index.css。
-// 生产环境由父页面（Portal）向 window.checkResultData 注入真实检查结果；
+// 生产环境由父页面（Portal）注入 window.AccpetNo / checkResultData / Image*List；
 // 本地开发由本文件提供演示数据，删除本文件后页面将展示空态。
 // 数据为生产环境真实样例（含 MATCH/MISMATCH 字段结论与 unit 单位）。
+
+// 受理单号：置空（""）可验证「未发起AI识别」空态
+window.AccpetNo = "ACP202608240959563903";
+
+// 图片三数组等长、按索引一一对应；ImageCheckList 填检查项 checkCode
+window.ImageUrlList = ["../18601605145677184.jpg", "../18601605145677184.jpg", "../18601605145677184.jpg"];
+window.ImageNameList = ["铭牌整体", "VIN 钢印", "发动机铭牌"];
+window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_006"];
+
 window.checkResultData = {
   code: 200,
   mes: "操作成功",

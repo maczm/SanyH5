@@ -43,22 +43,34 @@
           <div class="sb-summary hidden"></div>
         </div>
       </template>
-      <!-- 检查项卡片 -->
+      <!-- 检查项卡片（有图片时宽屏左右分栏：检查项在左、图片在右） -->
       <template class="template-check-card">
         <div class="check-card">
-          <div class="check-card-header">
-            <div class="check-title-wrap">
-              <span class="check-name"></span>
-              <span class="check-code hidden"></span>
+          <div class="check-card-main">
+            <div class="check-card-header">
+              <div class="check-title-wrap">
+                <span class="check-name"></span>
+                <span class="check-code hidden"></span>
+              </div>
+              <span class="ck-badge"></span>
             </div>
-            <span class="ck-badge"></span>
+            <div class="check-reason hidden">
+              <span class="reason-label">原因</span>
+              <span class="reason-text"></span>
+            </div>
+            <div class="field-list"></div>
           </div>
-          <div class="check-reason hidden">
-            <span class="reason-label">原因</span>
-            <span class="reason-text"></span>
+          <div class="check-images hidden">
+            <div class="check-image-list"></div>
           </div>
-          <div class="field-list"></div>
         </div>
+      </template>
+      <!-- 检查项图片（ImageUrlList / ImageNameList 按 ImageCheckList 归到对应检查项） -->
+      <template class="template-check-image">
+        <figure class="check-image-item">
+          <img class="check-image" src="" alt="" loading="lazy" decoding="async" />
+          <figcaption class="check-image-name"></figcaption>
+        </figure>
       </template>
       <!-- 字段明细行 -->
       <template class="template-field-row">

@@ -13,7 +13,7 @@ SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、�
 | 合格证查看 | mom-cert/ | 第三方静态 HTML + index.js 叠加引擎（HTML 只读） | 0（读 $Context.inputs） |
 | 装箱作业 | mom-packing/ | 骨架 + template + `Packing` 命名空间 | 4 |
 | 铭牌照片上传 | mom-nameplate-photo-upload/ | 骨架 + template + `NameplatePhotoUpload` 命名空间（样板） | 4 |
-| 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.checkResultData，mock.js 演示） |
+| 铭牌检查结果 | mom-nameplate-check-result/ | 骨架 + template + `NameplateCheckResult` 命名空间 | 0（读 window.AccpetNo / checkResultData / Image*List，mock.js 演示） |
 | 装配物料检查 | mom-assembly-material-check/ | 骨架 + template + `AssemblyMaterialCheck` 命名空间（双视图：工位选择/物料检查） | 4（window.assemblyMaterialCheck_*） |
 | 关重件更换 | mom-key-component-change/ | 骨架 + template + `KeyComponentChange` 命名空间（四视图：更换/移除/更换确认/VIN更换） | 9（window.KeyComponentChange_*） |
 | 合格证AI图像采集 | mom-cert-ai-collect/ | 骨架 + template + `CertificateAiCollect` 命名空间（双视图：采集详情/采集列表） | 6（Mock；真实接口待确认） |

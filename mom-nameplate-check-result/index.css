@@ -190,6 +190,8 @@ body {
   box-shadow: var(--shadow-sm);
   border-left: 3px solid var(--success);
   animation: fadeSlideIn 0.3s ease;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 .mom-check-result .check-card:last-child {
   margin-bottom: 0;
@@ -202,6 +204,54 @@ body {
 }
 .mom-check-result .check-card.card-skip {
   border-left-color: #dadce0;
+}
+.mom-check-result .check-card-main {
+  min-width: 0;
+}
+
+/* 检查项图片：宽屏在检查项右侧，窄屏在检查项下方（DOM 顺序即上下） */
+.mom-check-result .check-images {
+  min-width: 0;
+  margin-top: 12px;
+}
+.mom-check-result .check-image-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+.mom-check-result .check-image-item {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+.mom-check-result .check-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #f1f3f4;
+}
+.mom-check-result .check-image-name {
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+@media (min-width: 768px) {
+  .mom-check-result .check-card.has-images {
+    grid-template-columns: minmax(0, 1fr) clamp(220px, 24%, 300px);
+    column-gap: 16px;
+  }
+  .mom-check-result .check-card.has-images .check-images {
+    margin-top: 0;
+  }
+  .mom-check-result .check-card.has-images .check-image-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .mom-check-result .check-card-header {
