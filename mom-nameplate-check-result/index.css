@@ -297,11 +297,11 @@ body {
   /* 无字段的检查项：图片缩略图直接并到检查项一行内 */
   .mom-check-result .check-card.no-fields.has-images {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 16px;
   }
   .mom-check-result .check-card.no-fields.has-images .check-card-main {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
   }
   .mom-check-result .check-card.no-fields.has-images .check-images {
