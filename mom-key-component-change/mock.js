@@ -49,9 +49,9 @@ var mockOrderDataMap = {
       { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
     ],
     removeSnList: [
-      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-20 08:30:00" },
-      { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-21 09:15:00" },
-      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialType: "改制减件", scanTime: "2026-08-21 10:00:00" },
+      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-20 08:30:00" },
+      { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-21 09:15:00" },
+      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialID: 3003, materialNo: "MAT-NEG-031", scanTime: "2026-08-21 10:00:00" },
     ],
   },
   // 同 VIN 双单：生产订单 014 + 改制订单 015（共用 VIN，视图1 按单分组展示，两单都能采集）
@@ -88,15 +88,15 @@ var mockOrderDataMap = {
     snList: [],
     // 改制单的待解绑 = 同 VIN 生产订单 014 上、与改制单物料类型匹配的已采 SN
     removeSnList: [
-      { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-MOTOR-OLD-A", materialNo: "MAT-MOTOR-021", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-20 08:00:00" },
+      { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-MOTOR-OLD-A", materialID: 5001, materialNo: "MAT-MOTOR-021", scanTime: "2026-08-20 08:00:00" },
     ],
   },
 };
 
 // -- 待更换明细（改制 + 生产订单） --
 var mockChangeRecordList = [
-  { wipOrderNo: "184000000013", wipOrderType: 2, vin: "LSVU2A0N260800002", serialNo: "SN-OLD-CHG-1", materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-22 10:00:00" },
-  { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-OLD-CHG-2", materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-22 11:30:00" },
+  { wipOrderNo: "184000000013", wipOrderType: 2, vin: "LSVU2A0N260800002", serialNo: "SN-OLD-CHG-1", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-22 10:00:00" },
+  { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-OLD-CHG-2", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-22 11:30:00" },
 ];
 
 // 待更换旧件的位置：仅 Mock 内部用于按 materialSeq 过滤（出参不含该字段，与协议一致）

@@ -506,16 +506,32 @@ var KeyComponentChange = {
     state.removeSnList = removeSnList;
   },
 
+  /**
+   * 物料描述/类型等主数据只从 keyComponentList 取（按 materialNo 匹配）；
+   * 解绑/更换清单只带标识字段，不再重复下发描述/类型。
+   */
+  getComponentMeta: function (materialID, materialNo) {
+    var component = KeyComponentChange.state.keyComponentList.filter(function (item) {
+      if (materialID !== null && materialID !== undefined && String(item.materialID) === String(materialID))
+        return true;
+      return !!materialNo && item.materialNo === materialNo;
+    })[0];
+    return {
+      materialDesc: component ? component.materialDesc || "" : "",
+      materialType: component ? component.materialType || "" : "",
+    };
+  },
+
   /** 待解绑数量 = removeSnList 条数（前端自算，不依赖后端数量字段） */
   getPendingRemoveQty: function () {
     return KeyComponentChange.state.removeSnList.length;
   },
 
-  /** 指定物料类型的待解绑数量 */
+  /** 指定物料类型的待解绑数量（类型按 materialNo 从 keyComponentList 回查） */
   getPendingRemoveQtyByType: function (materialType) {
     if (!materialType) return 0;
     return KeyComponentChange.state.removeSnList.filter(function (record) {
-      return record.materialType === materialType;
+      return KeyComponentChange.getComponentMeta(record.materialID, record.materialNo).materialType === materialType;
     }).length;
   },
 
@@ -1108,7 +1124,10 @@ var KeyComponentChange = {
     var state = KeyComponentChange.state;
     var materialType = state.removeFilter.materialType || "";
     var recordList = state.removeSnList.filter(function (record) {
-      return !materialType || record.materialType === materialType;
+      return (
+        !materialType ||
+        KeyComponentChange.getComponentMeta(record.materialID, record.materialNo).materialType === materialType
+      );
     });
     $(".remove-record-list .remove-record-card").remove();
     $(".empty-remove-record").toggleClass("hidden", recordList.length > 0);
@@ -1121,7 +1140,9 @@ var KeyComponentChange = {
         .find(".remove-record-order-no")
         .text(KeyComponentChange.formatOrderNo(record.wipOrderNo, record.wipOrderType));
       $card.find(".remove-record-material-no").text(record.materialNo || "");
-      $card.find(".remove-record-material-desc").text(record.materialDesc || "");
+      $card
+        .find(".remove-record-material-desc")
+        .text(KeyComponentChange.getComponentMeta(record.materialID, record.materialNo).materialDesc);
       $card.find(".remove-record-old-serial").text(record.serialNo || "");
       $card.find(".remove-record-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
       $card.data("record", record);
