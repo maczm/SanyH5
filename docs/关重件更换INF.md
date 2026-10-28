@@ -35,6 +35,33 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 
 > 不再返回单条顶层字段；前端对旧结构兼容（无 `orderList` 时包成单元素数组）。
 
+**请求/响应示例**
+
+```jsonc
+// 订单号搜索
+{ "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "184000000013", "vin": "" } }
+
+// 响应（订单号搜索：只回命中的一张单）
+{ "code": 0, "msg": "ok", "data": { "orderList": [
+  { "wipOrderNo": "184000000013", "wipOrderType": 2, "productID": 9002,
+    "productNo": "MAT-HOST-002", "productDesc": "8x4 搅拌车底盘", "vin": "LSVU2A0N260800002" }
+] } }
+
+// VIN 搜索
+{ "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "", "vin": "LSVU2A0N260800003" } }
+
+// 响应（有改制单：改制在前、生产在后）
+{ "code": 0, "msg": "ok", "data": { "orderList": [
+  { "wipOrderNo": "184000000015", "wipOrderType": 2, "productID": 9005,
+    "productNo": "MAT-HOST-005", "productDesc": "8x4 牵引车底盘（改制）", "vin": "LSVU2A0N260800003" },
+  { "wipOrderNo": "184000000014", "wipOrderType": 1, "productID": 9004,
+    "productNo": "MAT-HOST-004", "productDesc": "8x4 牵引车底盘", "vin": "LSVU2A0N260800003" }
+] } }
+
+// 查不到
+{ "code": 1, "msg": "未查询到订单信息" }
+```
+
 ## 查询关重件信息
 
 ```js
@@ -95,6 +122,29 @@ window.KeyComponentChange_GetKeyComponentInfo(
 | `materialSeq` | string | 关重件序号（采集值，**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述） |
 | `scanTime` | string | 扫描时间 |
 
+**请求/响应示例**
+
+```jsonc
+{ "taskType": "GetKeyComponentInfo", "reported": { "wipOrderNo": "184000000013", "wipOrderType": 2 } }
+
+{ "code": 0, "msg": "ok", "data": {
+  "removeSnList": [
+    { "wipOrderNo": "184000000001", "wipOrderType": 1, "vin": "LSVU2A0N260800009",
+      "serialNo": "SN-MOTOR-OLD-1", "materialNo": "MAT-MOTOR-001", "materialDesc": "永磁体同步电机",
+      "materialType": "永磁体同步电机", "scanTime": "2026-08-20 08:30:00" }
+  ],
+  "keyComponentList": [
+    { "materialID": 3001, "materialNo": "MAT-MOTOR-011", "materialDesc": "永磁体同步电机",
+      "materialQty": 1, "uomCode": "EA", "materialType": "永磁体同步电机", "materialSeq": "1" },
+    { "materialID": 3003, "materialNo": "MAT-NEG-031", "materialDesc": "改制减件",
+      "materialQty": -1, "uomCode": "EA", "materialType": "改制减件", "materialSeq": null }
+  ],
+  "snList": [
+    { "serialNo": "SN-MOTOR-B1", "materialID": 3001, "materialSeq": "1", "scanTime": "2026-08-24 10:00:00" }
+  ]
+} }
+```
+
 ## 校验并保存扫描件
 
 ```js
@@ -131,6 +181,23 @@ window.KeyComponentChange_CheckAndSave(
 |---|---|---|
 | `isChange` | string | `"1"` = 走更换流程（页面跳视图3，本次不保存）；其它值 = 后台已保存 |
 
+**请求/响应示例**
+
+```jsonc
+// 采集归属生产单 014 的变速箱
+{ "taskType": "CheckAndSave", "reported": {
+    "wipOrderNo": "184000000014", "wipOrderType": 1, "vin": "LSVU2A0N260800003",
+    "productID": 9004, "productNo": "MAT-HOST-004", "productDesc": "8x4 牵引车底盘",
+    "materialID": 4003, "materialNo": "MAT-BOX-023", "materialDesc": "变速箱总成", "materialSeq": "3",
+    "serialNo": "SN-BOX-NEW-1", "materialQty": 1, "uomCode": "EA", "partner": "供应商A",
+    "inputType": 0, "inputCode": 13 } }
+
+// 已保存
+{ "code": 0, "msg": "ok", "data": { "isChange": "0" } }
+// 需走更换（页面跳视图3）
+{ "code": 0, "msg": "ok", "data": { "isChange": "1" } }
+```
+
 ## 移除关重件
 
 ```js
@@ -152,6 +219,17 @@ window.KeyComponentChange_Remove(
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `oldGenealogyID` | string | 被删除数据的 ID（保存新关重件 回传） |
+
+**请求/响应示例**
+
+```jsonc
+// 解绑对应生产单 014 的旧件
+{ "taskType": "Remove", "reported": {
+    "wipOrderNo": "184000000014", "wipOrderType": 1, "vin": "LSVU2A0N260800003",
+    "serialNo": "SN-MOTOR-OLD-A" } }
+
+{ "code": 0, "msg": "ok", "data": { "oldGenealogyID": "GEN-1" } }
+```
 
 ## 查询待移除明细（页面已不使用） / 查询待更换明细
 
@@ -185,6 +263,25 @@ window.KeyComponentChange_GetChangeKeyComponentInfo(
 | `materialType` | string | 关重件类型（待移除明细按类型过滤用；待更换明细可空） |
 | `scanTime` | string | 录入时间 |
 
+**请求/响应示例**
+
+```jsonc
+// 查询待更换明细（前电机位置）
+{ "taskType": "GetChangeKeyComponentInfo",
+  "reported": { "wipOrderNo": "184000000012", "wipOrderType": 1,
+                "materialNo": "MAT-MOTOR-001", "materialSeq": "1" } }
+
+{ "code": 0, "msg": "ok", "data": [
+  { "wipOrderNo": "184000000013", "wipOrderType": 2, "vin": "LSVU2A0N260800002",
+    "serialNo": "SN-OLD-CHG-1", "materialNo": "MAT-MOTOR-011", "materialDesc": "永磁体同步电机",
+    "materialType": "永磁体同步电机", "scanTime": "2026-08-22 10:00:00" }
+] }
+
+// 查询待移除明细（页面已不使用，保留协议）
+{ "taskType": "GetRemoveKeyComponentInfo", "reported": { "wipOrderNo": "184000000013", "wipOrderType": 2 } }
+{ "code": 0, "msg": "ok", "data": [ /* 结构同上 */ ] }
+```
+
 ## 保存新关重件（带被替换旧件 ID）
 
 ```js
@@ -199,6 +296,20 @@ window.KeyComponentChange_Save(
 | `oldGenealogyID` | string | 是 | 被替换旧件的 ID（移除关重件 返回） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
+
+**请求/响应示例**
+
+```jsonc
+// 移除旧件后保存新件（reported = 校验并保存扫描件 全字段 + oldGenealogyID）
+{ "taskType": "Save", "reported": {
+    "wipOrderNo": "184000000013", "wipOrderType": 2, "vin": "LSVU2A0N260800002",
+    "productID": 9002, "productNo": "MAT-HOST-002", "productDesc": "8x4 搅拌车底盘",
+    "materialID": 3001, "materialNo": "MAT-MOTOR-011", "materialDesc": "永磁体同步电机",
+    "materialSeq": "1", "serialNo": "CHG-M3", "materialQty": 1, "uomCode": "EA",
+    "partner": "供应商B", "inputType": 0, "inputCode": 13, "oldGenealogyID": "GEN-1" } }
+
+{ "code": 0, "msg": "ok", "data": null }
+```
 
 ## 查询 VIN 信息
 
@@ -220,6 +331,13 @@ window.KeyComponentChange_GetVinInfo(
 | `oldVin` | string | 订单当前 VIN（旧VIN，页面「旧VIN」显示值） |
 | `oldFactoryCode` | string | 订单当前出厂编码（旧出厂编码，回填页面「出厂编码」输入框供修改） |
 
+**请求/响应示例**
+
+```jsonc
+{ "taskType": "GetVinInfo", "reported": { "wipOrderNo": "184000000012" } }
+{ "code": 0, "msg": "ok", "data": { "oldVin": "LSVU2A0N260800001", "oldFactoryCode": "FAC-0001" } }
+```
+
 ## 保存 VIN
 
 ```js
@@ -238,3 +356,14 @@ window.KeyComponentChange_SaveVin(
 | `factoryCode` | string | 是 | 出厂编码（VIN更换页 出厂编码输入框，本次录入的新值） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
+
+**请求/响应示例**
+
+```jsonc
+{ "taskType": "SaveVin", "reported": {
+    "wipOrderNo": "184000000012", "oldVin": "LSVU2A0N260800001",
+    "newVin": "LSVU2A0N260800099", "oldFactoryCode": "FAC-0001",
+    "factoryCode": "FAC0000000000099" } }
+
+{ "code": 0, "msg": "ok", "data": null }
+```
