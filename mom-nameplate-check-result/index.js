@@ -11,7 +11,8 @@
 //       unit（如 kW/kg）, reason（字段级原因）, recognizedValue, correctValue }
 //   window.ImageUrlList / ImageNameList / ImageCheckList
 //                          三个等长数组（也兼容 JSON 字符串），按 ImageCheckList[i] 匹配
-//                          checkResults[].checkCode，把第 i 张图片归到对应检查项
+//                          checkResults[].checkCode，把第 i 张图片归到对应检查项；
+//                          未发起 / 未完成 / 未匹配到检查项的图片展示在末尾独立图片区
 // 本地开发：同目录 mock.js 提供演示数据（生产不部署，Portal 只取
 //           index.html / index.js / index.css 三个文件）；未注入时展示空态。
 //
@@ -62,22 +63,34 @@ var NameplateCheckResult = {
   },
 
   /**
-   * 图片三数组按索引一一对应，生成 checkCode → [{ url, name }] 映射。
-   * 空地址 / 空 checkCode 的项跳过；未匹配到检查项的图片不会被任何卡片使用。
+   * 读取图片三数组（按索引一一对应），返回 [{ url, name, checkCode }]。
+   * 空地址跳过；checkCode 允许为空（表示未关联任何检查项）。
    */
-  buildCheckImageMap: function () {
+  readCheckImages: function () {
     var urls = NameplateCheckResult.readList(window.ImageUrlList);
     var names = NameplateCheckResult.readList(window.ImageNameList);
     var checkCodes = NameplateCheckResult.readList(window.ImageCheckList);
-    var imageMap = {};
-    var length = Math.min(urls.length, checkCodes.length);
-    for (var i = 0; i < length; i++) {
+    var images = [];
+    for (var i = 0; i < urls.length; i++) {
       var url = String(urls[i] || "").trim();
-      var checkCode = NameplateCheckResult.normalizeCheckCode(checkCodes[i]);
-      if (!url || !checkCode) continue;
-      if (!imageMap[checkCode]) imageMap[checkCode] = [];
-      imageMap[checkCode].push({ url: url, name: String(names[i] || "").trim() });
+      if (!url) continue;
+      images.push({
+        url: url,
+        name: String(names[i] || "").trim(),
+        checkCode: NameplateCheckResult.normalizeCheckCode(checkCodes[i]),
+      });
     }
+    return images;
+  },
+
+  /** 按 checkCode 分组（空 checkCode 不参与关联，归入「其他图片」） */
+  groupImagesByCheckCode: function (images) {
+    var imageMap = {};
+    images.forEach(function (image) {
+      if (!image.checkCode) return;
+      if (!imageMap[image.checkCode]) imageMap[image.checkCode] = [];
+      imageMap[image.checkCode].push(image);
+    });
     return imageMap;
   },
 
@@ -170,14 +183,20 @@ var NameplateCheckResult = {
    * 渲染检查结果页：先判断是否已发起 AI 识别（AccpetNo 非空），
    * 未发起时展示「未发起AI识别」空态；已发起时读取注入数据渲染，
    * 按任务状态分支——pending/processing/failed 仅展示任务横幅并视需要启动轮询，
-   * completed 展示整体结论横幅与检查项列表（含检查项图片），终态时停止轮询。
+   * completed 展示整体结论横幅与检查项列表（含检查项图片）。
+   * 未发起 / 未完成 / 未匹配到检查项的图片统一放在结果末尾的独立图片区，可点开预览。
    */
   renderResult: function () {
     NameplateCheckResult.destroyImageViewers();
 
+    var images = NameplateCheckResult.readCheckImages();
+    var $body = $(".result-body");
+    $body.empty();
+
     if (!NameplateCheckResult.isAiTaskStarted()) {
       NameplateCheckResult.stopPolling();
-      NameplateCheckResult.showEmptyState("未发起AI识别");
+      $body.append(NameplateCheckResult.buildEmptyState("未发起AI识别"));
+      NameplateCheckResult.finishRender(images, "图片");
       return;
     }
 
@@ -187,46 +206,52 @@ var NameplateCheckResult = {
       try {
         payload = JSON.parse(payload);
       } catch (e) {
-        NameplateCheckResult.showEmptyState("检查结果数据解析失败，请检查 window.checkResultData 是否为合法 JSON");
+        $body.append(NameplateCheckResult.buildEmptyState("检查结果数据解析失败，请检查 window.checkResultData 是否为合法 JSON"));
+        NameplateCheckResult.finishRender(images, "图片");
         return;
       }
     }
     var data = (payload && payload.data) ? payload.data : payload;
 
-    var $body = $(".result-body");
-    $body.empty();
-
     if (!data) {
-      NameplateCheckResult.showEmptyState("暂无检查结果数据");
+      $body.append(NameplateCheckResult.buildEmptyState("暂无检查结果数据"));
+      NameplateCheckResult.finishRender(images, "图片");
       return;
     }
 
     var state = NameplateCheckResult.statusState(data.status);
 
-    // 任务未完成或失败：仅展示任务状态横幅
+    // 任务未完成或失败：任务横幅 + 独立图片区
     if (state === "pending" || state === "processing" || state === "failed") {
       $body.append(NameplateCheckResult.buildTaskBanner(data, state));
+      NameplateCheckResult.finishRender(images, "图片");
       NameplateCheckResult.startPollingIfNeeded(state);
       return;
     }
 
-    // 任务已完成：整体结论横幅 + 检查项列表
+    // 任务已完成：整体结论横幅 + 检查项列表；未匹配检查项的图片放到最末尾
     $body.append(NameplateCheckResult.buildStatusBanner(data));
 
     var list = data.checkResults || [];
+    var imageMap = NameplateCheckResult.groupImagesByCheckCode(images);
+    var linkedCheckCodes = list.map(function (item) {
+      return NameplateCheckResult.normalizeCheckCode(item.checkCode);
+    });
+    var otherImages = images.filter(function (image) {
+      return !image.checkCode || linkedCheckCodes.indexOf(image.checkCode) === -1;
+    });
+
     if (list.length) {
-      var imageMap = NameplateCheckResult.buildCheckImageMap();
       var $listWrap = $('<div class="check-list"></div>');
       list.forEach(function (item) {
         $listWrap.append(NameplateCheckResult.buildCheckCard(item, imageMap));
       });
       $body.append($listWrap);
-      NameplateCheckResult.initCheckImageViewers();
     } else {
-      var $empty = NameplateCheckResult.cloneTemplate("template-empty-state");
-      $empty.find("p").text("暂无检查明细数据");
-      $body.append($empty);
+      $body.append(NameplateCheckResult.buildEmptyState("暂无检查明细数据"));
     }
+
+    NameplateCheckResult.finishRender(otherImages, list.length ? "其他图片" : "图片");
 
     // 状态已终态：停止轮询
     NameplateCheckResult.stopPolling();
@@ -240,6 +265,7 @@ var NameplateCheckResult = {
     if (state !== "pending" && state !== "processing") return;
     NameplateCheckResult.stopPolling();
     NameplateCheckResult._pollTimer = setInterval(function () {
+      if ($(".viewer-in").length) return; // 图片预览打开时不打断
       var current = window.checkResultData;
       if (current && typeof current === "object") {
         NameplateCheckResult.renderResult();
@@ -254,10 +280,10 @@ var NameplateCheckResult = {
     }
   },
 
-  showEmptyState: function (message) {
+  buildEmptyState: function (message) {
     var $empty = NameplateCheckResult.cloneTemplate("template-empty-state");
     $empty.find("p").text(message);
-    $(".result-body").html($empty);
+    return $empty;
   },
 
   // ============== 任务状态横幅（待处理/处理中/失败） ==============
@@ -437,8 +463,30 @@ var NameplateCheckResult = {
     return $imageItem;
   },
 
-  /** 为当前渲染出的图片逐个初始化 Viewer（必须在卡片插入文档后调用，模板克隆在插入前归属独立文档） */
-  initCheckImageViewers: function () {
+  /**
+   * 独立图片区：不与检查项关联的图片（未发起/未完成/未匹配）统一展示在结果末尾。
+   * title 用于区分「图片」与「其他图片」。
+   */
+  appendImageSection: function (images, title) {
+    if (!images.length) return;
+
+    var $section = NameplateCheckResult.cloneTemplate("template-image-section");
+    $section.find(".image-section-title").text(title || "图片");
+    var $imageList = $section.find(".check-image-list");
+    images.forEach(function (image) {
+      $imageList.append(NameplateCheckResult.buildCheckImage(image));
+    });
+    $(".result-body").append($section);
+  },
+
+  /** 渲染收尾：追加独立图片区，并统一初始化所有图片预览（此时图片已插入文档） */
+  finishRender: function (images, title) {
+    NameplateCheckResult.appendImageSection(images, title);
+    NameplateCheckResult.initImageViewers();
+  },
+
+  /** 为当前渲染出的全部图片（检查项内 + 独立图片区）初始化 Viewer；必须在插入文档后调用 */
+  initImageViewers: function () {
     $(".check-image-item").each(function () {
       NameplateCheckResult.initImageViewer($(this));
     });

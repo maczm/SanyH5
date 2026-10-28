@@ -242,6 +242,26 @@ body {
   color: var(--text-secondary);
   word-break: break-word;
 }
+
+/* 独立图片区：不关联检查项的图片（未发起/未完成/未匹配检查项） */
+.mom-check-result .image-section {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm);
+}
+.mom-check-result .image-section-title {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+@media (min-width: 768px) and (pointer: fine) {
+  .mom-check-result .image-section .check-image-item {
+    max-width: 280px;
+  }
+}
 /* 仅精细指针（鼠标/触控板）才左右分栏；手机/平板无论横竖屏都按下方位图 */
 @media (min-width: 768px) and (pointer: fine) {
   .mom-check-result .check-card.has-images {
