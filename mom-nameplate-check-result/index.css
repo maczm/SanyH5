@@ -241,7 +241,8 @@ body {
   color: var(--text-secondary);
   word-break: break-word;
 }
-@media (min-width: 768px) {
+/* 仅精细指针（鼠标/触控板）才左右分栏；手机/平板无论横竖屏都按下方位图 */
+@media (min-width: 768px) and (pointer: fine) {
   .mom-check-result .check-card.has-images {
     grid-template-columns: minmax(0, 1fr) clamp(220px, 24%, 300px);
     column-gap: 16px;
@@ -475,9 +476,9 @@ body {
   word-break: break-word;
 }
 
-/* 手机端字段行空间有限：隐藏「一致/不一致」徽章，把宽度让给字段值；
-   不一致仍由行底色 + 识别值红色标示 */
-@media (max-width: 767px) {
+/* 手机/平板（粗指针）或窄屏：字段行空间有限，隐藏「一致/不一致」徽章，
+   把宽度让给字段值；不一致仍由行底色 + 识别值红色标示 */
+@media (max-width: 767px), (pointer: coarse) {
   .mom-check-result .field-row .f-badge {
     display: none;
   }
