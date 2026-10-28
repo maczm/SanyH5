@@ -89,6 +89,9 @@ body {
 /* ==================== 内容区 ==================== */
 .mom-check-result .result-body {
   flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
@@ -265,14 +268,41 @@ body {
 /* 仅精细指针（鼠标/触控板）才左右分栏；手机/平板无论横竖屏都按下方位图 */
 @media (min-width: 768px) and (pointer: fine) {
   .mom-check-result .check-card.has-images {
-    grid-template-columns: minmax(0, 1fr) clamp(220px, 24%, 300px);
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 44%, 480px);
     column-gap: 16px;
   }
   .mom-check-result .check-card.has-images .check-images {
     margin-top: 0;
   }
+  /* PC 图片横向排（1~3 张一行或两行），不再单列竖排 */
   .mom-check-result .check-card.has-images .check-image-list {
-    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+  .mom-check-result .check-card.has-images .check-image-item {
+    max-width: 240px;
+  }
+  .mom-check-result .check-card.has-images .check-image-item:only-child {
+    max-width: 320px;
+  }
+  /* 字段值不再无限拉伸，缩小「识别值 / 正确值 / 徽章」间距 */
+  .mom-check-result .field-values {
+    flex: 0 1 480px;
+    max-width: 480px;
+  }
+}
+
+/* 中等宽度 PC：收窄图片列，避免字段值被挤到换行 */
+@media (min-width: 768px) and (max-width: 1023px) and (pointer: fine) {
+  .mom-check-result .check-card.has-images {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+/* 无图片的检查项：字段行仍占满卡片，避免徽章悬在中间 */
+@media (min-width: 768px) and (pointer: fine) {
+  .mom-check-result .check-card:not(.has-images) .field-values {
+    flex: 1;
+    max-width: none;
   }
 }
 
