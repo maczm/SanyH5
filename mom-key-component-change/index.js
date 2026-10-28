@@ -473,7 +473,8 @@ var KeyComponentChange = {
     $(".collect-quantity-tag").text(
       orderInfo ? state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList) : ""
     );
-    $(".remove-quantity-tag").text(orderInfo ? state.removeQty + "/" + state.needRemoveQty : "");
+    // 需解绑数量只显示「还有多少件需要解绑」的单值（不再显示 已解绑/总数 进度）
+    $(".remove-quantity-tag").text(isChangeOrder ? KeyComponentChange.getPendingRemoveQty() : "");
     $(".remove-quantity-row").toggleClass("hidden", !isChangeOrder);
 
     groups.forEach(function (group) {
