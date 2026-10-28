@@ -372,7 +372,7 @@ var NameplateCheckResult = {
     }
 
     var $fieldList = $card.find(".field-list");
-    var details = item.fieldDetails || [];
+    var details = NameplateCheckResult.sortFieldDetails(item.fieldDetails || []);
     if (details.length) {
       details.forEach(function (detail) {
         $fieldList.append(NameplateCheckResult.buildFieldRow(detail));
@@ -385,6 +385,24 @@ var NameplateCheckResult = {
     NameplateCheckResult.appendCheckImages($card, item, imageMap);
 
     return $card;
+  },
+
+  // ============== 字段排序 ==============
+  /**
+   * 不通过（MISMATCH/FAIL）的字段排到最前，其余字段保持接口原顺序。
+   * 用稳定分组而不是 sort，避免依赖引擎排序稳定性。
+   */
+  sortFieldDetails: function (details) {
+    var failed = [];
+    var others = [];
+    details.forEach(function (detail) {
+      if (NameplateCheckResult.conclusionState(detail.conclusion) === "fail") {
+        failed.push(detail);
+      } else {
+        others.push(detail);
+      }
+    });
+    return failed.concat(others);
   },
 
   // ============== 检查项图片 ==============
