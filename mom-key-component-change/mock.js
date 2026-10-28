@@ -83,7 +83,10 @@ var mockOrderDataMap = {
       { materialID: 5003, materialNo: "MAT-BOX-023", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
     ],
     snList: [],
-    removeSnList: [],
+    // 改制单的待解绑 = 同 VIN 生产订单 014 上、与改制单物料类型匹配的已采 SN
+    removeSnList: [
+      { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-MOTOR-OLD-A", materialNo: "MAT-MOTOR-021", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-20 08:00:00" },
+    ],
   },
 };
 

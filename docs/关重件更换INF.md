@@ -55,7 +55,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `removeSnList` | array | 该单所有**待解绑**旧件；生产单返回 `[]`；待解绑数量 = `length`（不返回 `removeQty`/`needRemoveQty`） |
+| `removeSnList` | array | 该单所有**待解绑**旧件；生产单返回 `[]`；**改制单返回同 VIN 对应生产订单中、与改制单物料类型匹配的已采 SN**；待解绑数量 = `length`（不返回 `removeQty`/`needRemoveQty`） |
 | `keyComponentList` | array | 关重件配置清单 |
 | `snList` | array | 已采集序列号清单（与 `keyComponentList` 同级） |
 
@@ -63,14 +63,16 @@ window.KeyComponentChange_GetKeyComponentInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `wipOrderNo` | string | 旧件所属订单号 |
-| `wipOrderType` | number | 旧件所属订单类型 |
+| `wipOrderNo` | string | 旧件所属订单号（改制单场景为对应**生产订单**） |
+| `wipOrderType` | number | 旧件所属订单类型（生产订单为 1） |
 | `vin` | string | 旧件所属订单 VIN（`移除关重件` 入参） |
 | `serialNo` | string | 旧件序列号（`移除关重件` 入参） |
 | `materialNo` | string | 旧件物料编码 |
 | `materialDesc` | string | 旧件物料描述 |
 | `materialType` | string | 关重件类型（按类型解绑/过滤的依据） |
 | `scanTime` | string | 录入时间 |
+
+> 改制单解绑的是**同 VIN 对应生产订单**上、与改制单物料类型匹配的 SN；由后端解析生产订单并返回，页面按行内订单执行移除。
 
 **keyComponentList 每项**
 
