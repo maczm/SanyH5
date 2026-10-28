@@ -221,47 +221,24 @@ body {
   max-width: 100%;
 }
 
-/* 待移除关重件未处理完：采集被拦截时的醒目提示（紧贴物料二维码输入框下方） */
-.mom-key-component-change .material-qr-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 0 0 6px;
-  padding: 8px 10px;
-  border: 1px solid #f3b6b2;
-  border-radius: 6px;
-  background: #fce8e6;
-  color: #b3261e;
-  font-size: 12px;
-  font-weight: 700;
+/* 多订单时订单号标签较长：允许换行，避免被省略 */
+.mom-key-component-change .order-no-tag {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   line-height: 1.45;
 }
-.mom-key-component-change .material-qr-warning svg {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-}
-.mom-key-component-change .material-qr-warning.attention {
-  animation: materialQrWarningAttention 0.4s ease-in-out;
-}
-@keyframes materialQrWarningAttention {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20% {
-    transform: translateX(-5px);
-  }
-  40% {
-    transform: translateX(5px);
-  }
-  60% {
-    transform: translateX(-3px);
-  }
-  80% {
-    transform: translateX(3px);
-  }
+
+/* 解绑页：本次仅显示某物料类型的待解绑 */
+.mom-key-component-change .remove-filter-tip {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--primary-bg);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 /* 需解绑数量行：解绑按钮右对齐 */
