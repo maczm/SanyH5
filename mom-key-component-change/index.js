@@ -955,6 +955,12 @@ var KeyComponentChange = {
     KeyComponentChange.applyButtonSwitch();
   },
 
+  /** 最后一个 SN 解绑成功后的自动返回：订单数据刚刷新过，不再重复请求 */
+  leaveRemoveView: function () {
+    KeyComponentChange.switchView("key-component-check-view");
+    KeyComponentChange.clearMaterialInput();
+  },
+
   removeRecord: function (record) {
     if (!record) return;
     KeyComponentChange.showConfirmDialog(
@@ -978,9 +984,14 @@ var KeyComponentChange = {
               return;
             }
             KeyComponentChange.showToast("提示", "移除成功", "success");
-            // 删除后刷新订单数据（需解绑数量、卡片列表）与待移除清单
-            KeyComponentChange.loadKeyComponentInfo();
-            KeyComponentChange.loadRemoveRecordList();
+            // 先刷新订单数据（需解绑数量、卡片）：最后一件解绑后数量归零 → 自动回主页；否则刷新待移除清单留在视图2
+            KeyComponentChange.loadKeyComponentInfo(function () {
+              if (KeyComponentChange.getPendingRemoveQty() === 0) {
+                KeyComponentChange.leaveRemoveView();
+                return;
+              }
+              KeyComponentChange.loadRemoveRecordList();
+            });
           }
         );
       }
