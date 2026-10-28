@@ -478,10 +478,13 @@ body {
 }
 
 /* 手机/平板（粗指针）或窄屏：字段行空间有限，隐藏「一致/不一致」徽章，
-   把宽度让给字段值；不一致仍由行底色 + 识别值红色标示 */
+   把宽度让给字段值；不一致改由更明显的行底色 + 识别值红色标示 */
 @media (max-width: 767px), (pointer: coarse) {
   .mom-check-result .field-row .f-badge {
     display: none;
+  }
+  .mom-check-result .field-row.mismatch {
+    background: #fce8e6;
   }
 }
 
