@@ -50,11 +50,51 @@ var mockOrderDataMap = {
       { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
     ],
   },
+  // 同 VIN 双单：生产订单 014 + 改制订单 015（共用 VIN，视图1 按单分组展示，两单都能采集）
+  "184000000014": {
+    wipOrderNo: "184000000014",
+    wipOrderType: 1,
+    productID: 9004,
+    productNo: "MAT-HOST-004",
+    productDesc: "8x4 牵引车底盘",
+    serialNo: "SN-HOST-0014",
+    vin: "LSVU2A0N260800003",
+    factoryCode: "FAC-0014",
+    removeQty: 0,
+    needRemoveQty: 0,
+    keyComponentList: [
+      { materialID: 4001, materialNo: "MAT-MOTOR-021", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 4003, materialNo: "MAT-BOX-023", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
+    ],
+    snList: [
+      { serialNo: "SN-MOTOR-OLD-A", materialID: 4001, materialSeq: "1", scanTime: "2026-08-20 08:00:00" },
+    ],
+  },
+  "184000000015": {
+    wipOrderNo: "184000000015",
+    wipOrderType: 2,
+    productID: 9005,
+    productNo: "MAT-HOST-005",
+    productDesc: "8x4 牵引车底盘（改制）",
+    serialNo: "SN-HOST-0015",
+    vin: "LSVU2A0N260800003",
+    factoryCode: "FAC-0015",
+    removeQty: 0,
+    needRemoveQty: 0,
+    keyComponentList: [
+      { materialID: 5001, materialNo: "MAT-MOTOR-021", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 5001, materialNo: "MAT-MOTOR-021", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "2" },
+      { materialID: 5003, materialNo: "MAT-BOX-023", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
+    ],
+    snList: [],
+  },
 };
 
 var mockVinIndexMap = {
   LSVU2A0N260800001: "184000000012",
   LSVU2A0N260800002: "184000000013",
+  // 同 VIN 双单：VIN 查询落到改制单（当前单），组内包含生产单 014
+  LSVU2A0N260800003: "184000000015",
 };
 
 // -- 待移除明细（改制订单 → 生产订单） --
@@ -82,6 +122,51 @@ function recordMockRequest(taskType, reported) {
 
 function findMockOrderData(reported) {
   return mockOrderDataMap[reported.wipOrderNo] || null;
+}
+
+/** 同 VIN 订单组（模拟后端按 VIN 聚合生产 + 改制订单），按订单类型排序（生产在前） */
+function getMockOrderGroup(orderData) {
+  if (!orderData) return [];
+  return Object.keys(mockOrderDataMap)
+    .map(function (orderNo) {
+      return mockOrderDataMap[orderNo];
+    })
+    .filter(function (order) {
+      return order.vin && order.vin === orderData.vin;
+    })
+    .sort(function (left, right) {
+      return Number(left.wipOrderType) - Number(right.wipOrderType);
+    });
+}
+
+function getMockGroupChangeOrder(orderGroup) {
+  for (var i = 0; i < orderGroup.length; i++) {
+    if (String(orderGroup[i].wipOrderType) === "2") return orderGroup[i];
+  }
+  return null;
+}
+
+/** 给配置/序列号补归属订单字段（与后端按组返回的结构一致） */
+function withMockOwnership(order, item) {
+  var result = { wipOrderNo: order.wipOrderNo, wipOrderType: order.wipOrderType };
+  Object.keys(item).forEach(function (key) {
+    result[key] = item[key];
+  });
+  return result;
+}
+
+function buildMockOrderList(orderGroup) {
+  return orderGroup.map(function (order) {
+    return {
+      wipOrderNo: order.wipOrderNo,
+      wipOrderType: order.wipOrderType,
+      productID: order.productID,
+      productNo: order.productNo,
+      productDesc: order.productDesc,
+      serialNo: order.serialNo,
+      vin: order.vin,
+    };
+  });
 }
 
 // 最近一次查询的改制订单号：移除页移除的是生产订单旧件，已解绑数量记在改制订单上
@@ -116,6 +201,7 @@ if (typeof window.KeyComponentChange_GetWipOrderNoInfo != "function") {
           productNo: orderData.productNo,
           productDesc: orderData.productDesc,
           serialNo: orderData.serialNo,
+          orderList: buildMockOrderList(getMockOrderGroup(orderData)),
         },
       });
     }, MOCK_DELAY);
@@ -133,17 +219,30 @@ if (typeof window.KeyComponentChange_GetKeyComponentInfo != "function") {
         callback({ code: 1, msg: "未查询到关重件信息" });
         return;
       }
-      if (String(orderData.wipOrderType) === "2") {
-        mockActiveChangeOrderNo = orderData.wipOrderNo;
+      var orderGroup = getMockOrderGroup(orderData);
+      var changeOrder = getMockGroupChangeOrder(orderGroup);
+      if (changeOrder) {
+        mockActiveChangeOrderNo = changeOrder.wipOrderNo;
       }
+      var keyComponentList = [];
+      var snList = [];
+      orderGroup.forEach(function (order) {
+        (order.keyComponentList || []).forEach(function (component) {
+          keyComponentList.push(withMockOwnership(order, component));
+        });
+        (order.snList || []).forEach(function (serial) {
+          snList.push(withMockOwnership(order, serial));
+        });
+      });
       callback({
         code: 0,
         msg: "ok",
         data: {
-          removeQty: orderData.removeQty,
-          needRemoveQty: orderData.needRemoveQty,
-          keyComponentList: orderData.keyComponentList,
-          snList: orderData.snList,
+          removeQty: changeOrder ? changeOrder.removeQty : 0,
+          needRemoveQty: changeOrder ? changeOrder.needRemoveQty : 0,
+          orderList: buildMockOrderList(orderGroup),
+          keyComponentList: keyComponentList,
+          snList: snList,
         },
       });
     }, MOCK_DELAY);

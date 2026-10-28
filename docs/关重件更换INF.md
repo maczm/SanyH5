@@ -26,6 +26,18 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 | `productNo` | string | 订单物料编码 |
 | `productDesc` | string | 订单物料描述 |
 | `serialNo` | string | 订单序列号 |
+| `orderList` | array | 同一 VIN 的订单组（生产订单 + 改制订单）；每项见下表，无同组订单时只有一条 |
+
+**orderList 每项**（`查询关重件信息` 同名字段结构一致）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `wipOrderNo` | string | 订单号 |
+| `wipOrderType` | number | 订单类型：1=生产订单，2=改制订单 |
+| `productID` | number | 订单物料 ID |
+| `productNo` | string | 订单物料编码 |
+| `productDesc` | string | 订单物料描述 |
+| `serialNo` | string | 订单序列号 |
 
 ## 查询关重件信息
 
@@ -47,14 +59,17 @@ window.KeyComponentChange_GetKeyComponentInfo(
 |---|---|---|
 | `removeQty` | number | 已解绑数量 |
 | `needRemoveQty` | number | 需解绑总数 |
-| `keyComponentList` | array | 关重件配置清单 |
-| `snList` | array | 已采集序列号清单（与 `keyComponentList` 同级，不嵌套在关重件条目内） |
+| `orderList` | array | 同一 VIN 的订单组（结构同 查询订单信息 `orderList`），用于前端按单分组展示 |
+| `keyComponentList` | array | 关重件配置清单（组内所有订单合并返回） |
+| `snList` | array | 已采集序列号清单（组内所有订单合并返回，与 `keyComponentList` 同级，不嵌套在关重件条目内） |
 
 **keyComponentList 每项**
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `materialID` | number | 关重件物料 ID（`snList` 按此字段归属） |
+| `wipOrderNo` | string | 归属订单号 |
+| `wipOrderType` | number | 归属订单类型（1=生产订单，2=改制订单） |
+| `materialID` | number | 关重件物料 ID（`snList` 按「归属订单 + materialID」归属） |
 | `materialNo` | string | 关重件物料编码 |
 | `materialDesc` | string | 关重件物料描述 |
 | `materialQty` | number | 关重件物料数量（该物料需采集总数） |
@@ -66,10 +81,14 @@ window.KeyComponentChange_GetKeyComponentInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
+| `wipOrderNo` | string | 归属订单号 |
+| `wipOrderType` | number | 归属订单类型（1=生产订单，2=改制订单） |
 | `serialNo` | string | 关重件序列号 |
-| `materialID` | number | 关重件物料 ID（归属到同 ID 的配置条目） |
+| `materialID` | number | 关重件物料 ID（按「归属订单 + materialID」归到配置条目） |
 | `materialSeq` | string | 关重件序号（采集值，**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述） |
 | `scanTime` | string | 扫描时间 |
+
+> **订单组**：同一 VIN 下若同时存在生产订单与改制订单，按组返回两单的配置与序列号；每项必须带 `wipOrderNo`/`wipOrderType`。前端按「订单 + 物料编码」分组卡片、按「订单 + materialID」归属序列号；`removeQty`/`needRemoveQty` 按组统计（取组内改制订单）。
 
 ## 校验并保存扫描件
 
@@ -84,12 +103,12 @@ window.KeyComponentChange_CheckAndSave(
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `wipOrderNo` | string | 是 | 订单号（查询订单信息 返回） |
-| `wipOrderType` | number | 是 | 订单类型（查询订单信息 返回） |
-| `productID` | number | 是 | 订单物料 ID（查询订单信息 返回） |
-| `productNo` | string | 是 | 订单物料编码（查询订单信息 返回） |
-| `productDesc` | string | 是 | 订单物料描述（查询订单信息 返回） |
-| `serialNo` | string | 是 | 订单序列号（查询订单信息 返回） |
+| `wipOrderNo` | string | 是 | 本次扫描物料**归属订单**的订单号（组内可能为生产订单或改制订单；缺省按当前单） |
+| `wipOrderType` | number | 是 | 归属订单类型（1=生产订单，2=改制订单） |
+| `productID` | number | 是 | 归属订单的订单物料 ID（查询订单信息 orderList 对应项） |
+| `productNo` | string | 是 | 归属订单的订单物料编码 |
+| `productDesc` | string | 是 | 归属订单的订单物料描述 |
+| `serialNo` | string | 是 | 归属订单的订单序列号 |
 | `materialID` | number | 是 | 关重件物料 ID（查询关重件信息 配置条目） |
 | `materialNo` | string | 是 | 关重件物料编码（二维码第一段） |
 | `materialDesc` | string | 是 | 关重件物料描述（查询关重件信息 配置条目） |

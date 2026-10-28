@@ -60,6 +60,8 @@ var KeyComponentChange = {
 
   state: {
     orderInfo: null,
+    // 同 VIN 订单组（生产 + 改制）；后端未返回时退化为 [orderInfo]
+    orderList: [],
     keyComponentList: [],
     serialList: [],
     removeQty: 0,
@@ -259,13 +261,12 @@ var KeyComponentChange = {
     return false;
   },
 
-  /** 解绑按钮：业务条件（改制订单且需解绑总数 > 已解绑数）与开关取交集 */
+  /** 解绑按钮：业务条件（组内有改制订单且还有待解绑）与开关取交集 */
   updateUnbindButton: function () {
     var state = KeyComponentChange.state;
-    var orderInfo = state.orderInfo;
-    var isChangeOrder = !!orderInfo && String(orderInfo.wipOrderType) === "2";
+    var hasChangeOrder = !!KeyComponentChange.getChangeOrderInfo();
     var setting = KeyComponentChange.BUTTON_SWITCH.unbind;
-    var visible = isChangeOrder && state.needRemoveQty > state.removeQty && setting.visible;
+    var visible = hasChangeOrder && state.needRemoveQty > state.removeQty && setting.visible;
     $(".btn-unbind")
       .toggleClass("hidden", !visible)
       .prop("disabled", !setting.permitted)
@@ -335,6 +336,8 @@ var KeyComponentChange = {
         }
         var orderInfo = res.data || {};
         KeyComponentChange.state.orderInfo = orderInfo;
+        KeyComponentChange.state.orderList =
+          Array.isArray(orderInfo.orderList) && orderInfo.orderList.length ? orderInfo.orderList : [orderInfo];
         // 换单即清空上一单的关重件数据，避免 KC2 失败或仍在途时旧单数据残留在界面上（跨订单误提交）
         KeyComponentChange.clearKeyComponentState();
         $(".order-no-tag").text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType));
@@ -382,8 +385,11 @@ var KeyComponentChange = {
           return;
         }
         var data = res.data || {};
-        state.keyComponentList = data.keyComponentList || [];
-        state.serialList = data.snList || [];
+        if (Array.isArray(data.orderList) && data.orderList.length) {
+          state.orderList = data.orderList;
+        }
+        state.keyComponentList = KeyComponentChange.normalizeOwnership(data.keyComponentList || []);
+        state.serialList = KeyComponentChange.normalizeOwnership(data.snList || []);
         state.removeQty = data.removeQty || 0;
         state.needRemoveQty = data.needRemoveQty || 0;
         KeyComponentChange.renderKeyComponentList();
@@ -396,6 +402,63 @@ var KeyComponentChange = {
     return keyComponentList.reduce(function (total, component) {
       return total + (Number(component.materialQty) || 0);
     }, 0);
+  },
+
+  // ============== 订单组（同 VIN 的生产订单 + 改制订单） ==============
+  /** 组内订单列表：后端未返回 orderList 时退化为当前单 */
+  getOrderList: function () {
+    var state = KeyComponentChange.state;
+    if (state.orderList && state.orderList.length) return state.orderList;
+    return state.orderInfo ? [state.orderInfo] : [];
+  },
+
+  /** 订单归属键：订单号 + 订单类型（配置/序列号按它判断属于哪张单） */
+  buildOrderKey: function (order) {
+    if (!order) return "";
+    var orderType = order.wipOrderType === null || order.wipOrderType === undefined ? "" : order.wipOrderType;
+    return String(order.wipOrderNo || "") + "|" + String(orderType);
+  },
+
+  /** 按订单号+订单类型取组内订单信息，取不到回退当前单 */
+  findOrderInfo: function (wipOrderNo, wipOrderType) {
+    var orderKey = KeyComponentChange.buildOrderKey({ wipOrderNo: wipOrderNo, wipOrderType: wipOrderType });
+    var orderList = KeyComponentChange.getOrderList();
+    for (var i = 0; i < orderList.length; i++) {
+      if (KeyComponentChange.buildOrderKey(orderList[i]) === orderKey) return orderList[i];
+    }
+    return KeyComponentChange.state.orderInfo;
+  },
+
+  /** 组内订单在 orderList 中的顺序（用于卡片按单分组排序） */
+  getOrderIndex: function (order) {
+    var orderKey = KeyComponentChange.buildOrderKey(order);
+    var orderList = KeyComponentChange.getOrderList();
+    for (var i = 0; i < orderList.length; i++) {
+      if (KeyComponentChange.buildOrderKey(orderList[i]) === orderKey) return i;
+    }
+    return orderList.length;
+  },
+
+  /** 组内改制订单（需解绑数量、解绑入口以它为准）；没有则返回 null */
+  getChangeOrderInfo: function () {
+    var orderList = KeyComponentChange.getOrderList();
+    for (var i = 0; i < orderList.length; i++) {
+      if (String(orderList[i].wipOrderType) === "2") return orderList[i];
+    }
+    return null;
+  },
+
+  /** 为配置/序列号补订单归属（兼容后端未返回行内订单字段的旧版本） */
+  normalizeOwnership: function (itemList) {
+    var orderInfo = KeyComponentChange.state.orderInfo;
+    (itemList || []).forEach(function (item) {
+      if (!item) return;
+      if (!item.wipOrderNo) item.wipOrderNo = orderInfo ? orderInfo.wipOrderNo : "";
+      if (item.wipOrderType === null || item.wipOrderType === undefined) {
+        item.wipOrderType = orderInfo ? orderInfo.wipOrderType : "";
+      }
+    });
+    return itemList || [];
   },
 
   /** 卡内序列号排序：扫描时间倒序（无时间排最后），同时间按关重件序号升序 */
@@ -423,16 +486,21 @@ var KeyComponentChange = {
     return left.materialNo < right.materialNo ? -1 : 1;
   },
 
-  /** 相同关重件物料编码合并为一张卡；序列号按 materialID 归属到配置条目 */
+  /** 同一订单下相同物料编码合并为一张卡；序列号按「订单 + materialID」归属到配置条目 */
   groupKeyComponentList: function (keyComponentList, serialList) {
     var groups = [];
     keyComponentList.forEach(function (component) {
+      var componentOrderKey = KeyComponentChange.buildOrderKey(component);
       var group = null;
       groups.forEach(function (item) {
-        if (item.materialNo === component.materialNo) group = item;
+        if (KeyComponentChange.buildOrderKey(item) === componentOrderKey && item.materialNo === component.materialNo) {
+          group = item;
+        }
       });
       if (!group) {
         group = {
+          wipOrderNo: component.wipOrderNo,
+          wipOrderType: component.wipOrderType,
           materialNo: component.materialNo,
           materialDesc: component.materialDesc,
           materialType: component.materialType,
@@ -449,36 +517,51 @@ var KeyComponentChange = {
       }
     });
     groups.forEach(function (group) {
+      var groupOrderKey = KeyComponentChange.buildOrderKey(group);
       group.serialList = serialList
         .filter(function (serial) {
-          return group.materialIds.indexOf(serial.materialID) !== -1;
+          return (
+            KeyComponentChange.buildOrderKey(serial) === groupOrderKey &&
+            group.materialIds.indexOf(serial.materialID) !== -1
+          );
         })
         .sort(KeyComponentChange.compareSerialByScanTime);
       group.latestScanTime = group.serialList.length
         ? KeyComponentChange.normalizeTime(group.serialList[0].scanTime)
         : "";
+      group.orderIndex = KeyComponentChange.getOrderIndex(group);
     });
-    return groups.sort(KeyComponentChange.compareGroupByLatestScanTime);
+    // 先按订单组顺序（同单卡片连在一起），同单内再按最新扫描时间/物料编码排序
+    return groups.sort(function (left, right) {
+      if (left.orderIndex !== right.orderIndex) return left.orderIndex - right.orderIndex;
+      return KeyComponentChange.compareGroupByLatestScanTime(left, right);
+    });
   },
 
   renderKeyComponentList: function () {
     var state = KeyComponentChange.state;
     var orderInfo = state.orderInfo;
-    var isChangeOrder = !!orderInfo && String(orderInfo.wipOrderType) === "2";
+    var changeOrderInfo = KeyComponentChange.getChangeOrderInfo();
     var groups = KeyComponentChange.groupKeyComponentList(state.keyComponentList, state.serialList);
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    // 未查询订单时不显示 0/0，避免误读为「该订单需采集 0 件」
+    // 需采集数量 = 组内合并总需采集 − 已采集 − 待移除（未查询订单时不显示）
+    var requiredQuantity = KeyComponentChange.sumMaterialQty(state.keyComponentList);
+    var collectedQuantity = state.serialList.length;
+    var pendingRemoveQty = KeyComponentChange.getPendingRemoveQty();
     $(".collect-quantity-tag").text(
-      orderInfo ? state.serialList.length + "/" + KeyComponentChange.sumMaterialQty(state.keyComponentList) : ""
+      orderInfo ? Math.max(0, requiredQuantity - collectedQuantity - pendingRemoveQty) : ""
     );
-    // 需解绑数量只显示「还有多少件需要解绑」的单值（不再显示 已解绑/总数 进度）
-    $(".remove-quantity-tag").text(isChangeOrder ? KeyComponentChange.getPendingRemoveQty() : "");
-    $(".remove-quantity-row").toggleClass("hidden", !isChangeOrder);
+    // 需解绑数量只显示「还有多少件需要解绑」的单值（组内改制订单才有该行）
+    $(".remove-quantity-tag").text(changeOrderInfo ? pendingRemoveQty : "");
+    $(".remove-quantity-row").toggleClass("hidden", !changeOrderInfo);
 
     groups.forEach(function (group) {
       var $card = KeyComponentChange.cloneTemplate("template-key-component-card");
+      $card
+        .find(".key-component-order-tag")
+        .text(KeyComponentChange.formatOrderNo(group.wipOrderNo, group.wipOrderType));
       $card.find(".key-component-material-no").text(group.materialNo);
       $card.find(".key-component-material-desc").text(group.materialDesc);
       $card.find(".key-component-material-type").text(group.materialType).toggleClass("hidden", !group.materialType);
@@ -489,7 +572,7 @@ var KeyComponentChange = {
         $row.find(".serial-no").text(serial.serialNo);
         $row.find(".motor-position").text(motorPositionLabel).toggleClass("hidden", !motorPositionLabel);
         $row.find(".scan-time").text(KeyComponentChange.normalizeTime(serial.scanTime));
-        $row.data("serial-no", serial.serialNo);
+        $row.data("serial", serial);
         $card.find(".key-component-serial-list").append($row);
       });
       $(".key-component-list").append($card);
@@ -538,10 +621,13 @@ var KeyComponentChange = {
     });
   },
 
-  getCollectedSequenceList: function (materialIds) {
+  /** 指定订单下、指定物料的已采集序号列表（同一物料可能在多张单都有配置，必须按订单隔离） */
+  getCollectedSequenceList: function (materialIds, ownerComponent) {
+    var ownerKey = KeyComponentChange.buildOrderKey(ownerComponent);
     return KeyComponentChange.state.serialList
       .filter(function (serial) {
         return (
+          KeyComponentChange.buildOrderKey(serial) === ownerKey &&
           materialIds.indexOf(serial.materialID) !== -1 &&
           serial.materialSeq !== null &&
           serial.materialSeq !== undefined &&
@@ -553,13 +639,14 @@ var KeyComponentChange = {
       });
   },
 
-  /** 同一物料编码的已扫描/需扫描数量（配置可能多条，如永磁体同步电机） */
+  /** 同一订单下同一物料编码的已扫描/需扫描数量（配置可能多条，如永磁体同步电机） */
   getMaterialQuantityState: function (matchedComponents) {
+    var ownerKey = KeyComponentChange.buildOrderKey(matchedComponents[0]);
     var materialIds = matchedComponents.map(function (component) {
       return component.materialID;
     });
     var collectedQuantity = KeyComponentChange.state.serialList.filter(function (serial) {
-      return materialIds.indexOf(serial.materialID) !== -1;
+      return KeyComponentChange.buildOrderKey(serial) === ownerKey && materialIds.indexOf(serial.materialID) !== -1;
     }).length;
     return {
       collectedQuantity: collectedQuantity,
@@ -583,7 +670,7 @@ var KeyComponentChange = {
     var materialIds = matchedComponents.map(function (component) {
       return component.materialID;
     });
-    var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds);
+    var collectedSequenceList = KeyComponentChange.getCollectedSequenceList(materialIds, matchedComponents[0]);
     var isMotor = KeyComponentChange.isMotorComponent(matchedComponents);
     if (isMotor && allowCollectedSequence) {
       // 更换：永磁体同步电机必须弹窗，由操作员现场指定被替换的位置
@@ -676,6 +763,38 @@ var KeyComponentChange = {
     }, 500);
   },
 
+  /**
+   * 扫到的物料归属哪张单：当前单优先 → 组内其它未满量的单 → 都满则按当前单走更换流程。
+   * 返回 { orderInfo, components, isFull }；组内没有该物料返回 null。
+   */
+  resolveScanOwner: function (materialNo) {
+    var state = KeyComponentChange.state;
+    var matchedComponents = KeyComponentChange.findMatchedComponents(materialNo);
+    if (!matchedComponents.length) return null;
+    var currentOrderKey = KeyComponentChange.buildOrderKey(state.orderInfo);
+    var orderedOrders = [];
+    if (state.orderInfo) orderedOrders.push(state.orderInfo);
+    KeyComponentChange.getOrderList().forEach(function (orderInfo) {
+      if (KeyComponentChange.buildOrderKey(orderInfo) !== currentOrderKey) orderedOrders.push(orderInfo);
+    });
+    var candidates = [];
+    orderedOrders.forEach(function (orderInfo) {
+      var orderKey = KeyComponentChange.buildOrderKey(orderInfo);
+      var components = matchedComponents.filter(function (component) {
+        return KeyComponentChange.buildOrderKey(component) === orderKey;
+      });
+      if (components.length) candidates.push({ orderInfo: orderInfo, components: components });
+    });
+    if (!candidates.length) return null;
+    for (var i = 0; i < candidates.length; i++) {
+      var quantityState = KeyComponentChange.getMaterialQuantityState(candidates[i].components);
+      if (quantityState.collectedQuantity < quantityState.requiredQuantity) {
+        return { orderInfo: candidates[i].orderInfo, components: candidates[i].components, isFull: false };
+      }
+    }
+    return { orderInfo: candidates[0].orderInfo, components: candidates[0].components, isFull: true };
+  },
+
   handleMaterialCheck: function () {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) {
@@ -705,8 +824,8 @@ var KeyComponentChange = {
       );
       return;
     }
-    var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
-    if (!matchedComponents.length) {
+    var scanOwner = KeyComponentChange.resolveScanOwner(parsedQrCode.materialNo);
+    if (!scanOwner) {
       KeyComponentChange.showToast("提示", parsedQrCode.materialNo + " 不是本订单关重件", "error");
       return;
     }
@@ -714,17 +833,20 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", "该序列号已采集", "error");
       return;
     }
-    var quantityState = KeyComponentChange.getMaterialQuantityState(matchedComponents);
-    var isMaterialFull = quantityState.collectedQuantity >= quantityState.requiredQuantity;
     var finishMaterialScan = function (materialSequence) {
-      if (isMaterialFull) {
-        KeyComponentChange.startMaterialChange(parsedQrCode, materialSequence);
+      if (scanOwner.isFull) {
+        KeyComponentChange.startMaterialChange(
+          parsedQrCode,
+          materialSequence,
+          scanOwner.orderInfo,
+          scanOwner.components
+        );
         return;
       }
-      KeyComponentChange.checkAndSave(parsedQrCode, materialSequence);
+      KeyComponentChange.checkAndSave(parsedQrCode, materialSequence, scanOwner.orderInfo, scanOwner.components);
     };
     // 序号优先级（人工选择 / 自动分配 / 弹窗）统一在 resolveMaterialSequence 内处理
-    KeyComponentChange.resolveMaterialSequence(matchedComponents, isMaterialFull, finishMaterialScan);
+    KeyComponentChange.resolveMaterialSequence(scanOwner.components, scanOwner.isFull, finishMaterialScan);
   },
 
   /** 按关重件序号取配置条目：同物料编码多条配置时，materialID/uomCode 必须与所选序号对应 */
@@ -741,12 +863,19 @@ var KeyComponentChange = {
     return matchedList.length ? matchedList[0] : null;
   },
 
-  buildPendingScan: function (parsedQrCode, materialSequence) {
+  buildPendingScan: function (parsedQrCode, materialSequence, ownerOrder, matchedComponents) {
     var inputSource = KeyComponentChange.state.inputSource;
-    var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
-    var component =
-      KeyComponentChange.findComponentBySequence(matchedComponents, materialSequence) || matchedComponents[0] || {};
+    var components = matchedComponents || KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
+    var component = KeyComponentChange.findComponentBySequence(components, materialSequence) || components[0] || {};
+    var orderInfo = ownerOrder || KeyComponentChange.state.orderInfo || {};
     return {
+      // 归属订单：本次扫描的物料属于哪张单，报文的订单物料字段都取该单
+      wipOrderNo: orderInfo.wipOrderNo || "",
+      wipOrderType: orderInfo.wipOrderType,
+      productID: orderInfo.productID,
+      productNo: orderInfo.productNo,
+      productDesc: orderInfo.productDesc,
+      serialNo: orderInfo.serialNo,
       materialID: component.materialID,
       materialNo: parsedQrCode.materialNo,
       materialDesc: component.materialDesc || "",
@@ -760,29 +889,38 @@ var KeyComponentChange = {
     };
   },
 
-  checkAndSave: function (parsedQrCode, materialSequence) {
-    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(parsedQrCode, materialSequence);
+  checkAndSave: function (parsedQrCode, materialSequence, ownerOrder, matchedComponents) {
+    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(
+      parsedQrCode,
+      materialSequence,
+      ownerOrder,
+      matchedComponents
+    );
     KeyComponentChange.submitCheckAndSave();
   },
 
   /** 该关重件已采集满：本次扫描不再直接入库，直接进入更换页由操作员指定被替换的旧件 */
-  startMaterialChange: function (parsedQrCode, materialSequence) {
+  startMaterialChange: function (parsedQrCode, materialSequence, ownerOrder, matchedComponents) {
     // 已在更换决策中（pendingScan 未清）时忽略重复触发，避免重复进入更换页拉两份清单
     if (KeyComponentChange.state.pendingScan) return;
-    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(parsedQrCode, materialSequence);
+    KeyComponentChange.state.pendingScan = KeyComponentChange.buildPendingScan(
+      parsedQrCode,
+      materialSequence,
+      ownerOrder,
+      matchedComponents
+    );
     KeyComponentChange.enterChangeView();
   },
 
-  /** CheckAndSave / Save 共用报文字段（订单物料 + 本次扫描的关重件） */
+  /** CheckAndSave / Save 共用报文字段（归属订单物料 + 本次扫描的关重件） */
   buildCheckReported: function (pendingScan) {
-    var orderInfo = KeyComponentChange.state.orderInfo;
     return {
-      wipOrderNo: orderInfo.wipOrderNo,
-      wipOrderType: orderInfo.wipOrderType,
-      productID: orderInfo.productID,
-      productNo: orderInfo.productNo,
-      productDesc: orderInfo.productDesc,
-      serialNo: orderInfo.serialNo,
+      wipOrderNo: pendingScan.wipOrderNo,
+      wipOrderType: pendingScan.wipOrderType,
+      productID: pendingScan.productID,
+      productNo: pendingScan.productNo,
+      productDesc: pendingScan.productDesc,
+      serialNo: pendingScan.serialNo,
       materialID: pendingScan.materialID,
       materialNo: pendingScan.materialNo,
       materialDesc: pendingScan.materialDesc,
@@ -827,11 +965,12 @@ var KeyComponentChange = {
     );
   },
 
-  removeSerial: function (materialSerialNo) {
-    var state = KeyComponentChange.state;
-    var orderInfo = state.orderInfo;
-    if (!orderInfo || !materialSerialNo) return;
-    KeyComponentChange.showConfirmDialog("确认删除关重件序列号 " + materialSerialNo + " ？", function () {
+  /** 删除某条已采集序列号：按该行所属订单删除（组内可能来自生产单或改制单） */
+  removeSerial: function (serial) {
+    if (!serial || !serial.serialNo) return;
+    var orderInfo = KeyComponentChange.findOrderInfo(serial.wipOrderNo, serial.wipOrderType);
+    if (!orderInfo) return;
+    KeyComponentChange.showConfirmDialog("确认删除关重件序列号 " + serial.serialNo + " ？", function () {
       KeyComponentChange.showLoading("删除中...");
       KeyComponentChange.apiCall(
         window.KeyComponentChange_Remove,
@@ -840,7 +979,7 @@ var KeyComponentChange = {
             wipOrderNo: orderInfo.wipOrderNo,
             wipOrderType: orderInfo.wipOrderType,
             serialNo: orderInfo.serialNo,
-            materialSerialNo: materialSerialNo,
+            materialSerialNo: serial.serialNo,
           }),
         ],
         function (res) {
@@ -876,6 +1015,7 @@ var KeyComponentChange = {
   resetCheckSession: function () {
     var state = KeyComponentChange.state;
     state.orderInfo = null;
+    state.orderList = [];
     state.keyComponentList = [];
     state.serialList = [];
     state.removeQty = 0;
@@ -907,7 +1047,8 @@ var KeyComponentChange = {
 
   // ============== 视图2：关重件移除 ==============
   enterRemoveView: function () {
-    var orderInfo = KeyComponentChange.state.orderInfo;
+    // 解绑针对组内改制订单（可能不是当前查询命中/展示的那张单）
+    var orderInfo = KeyComponentChange.getChangeOrderInfo() || KeyComponentChange.state.orderInfo;
     if (!orderInfo) return;
     $(".remove-order-no-tag").text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType));
     KeyComponentChange.switchView("key-component-remove-view");
@@ -915,7 +1056,7 @@ var KeyComponentChange = {
   },
 
   loadRemoveRecordList: function () {
-    var orderInfo = KeyComponentChange.state.orderInfo;
+    var orderInfo = KeyComponentChange.getChangeOrderInfo() || KeyComponentChange.state.orderInfo;
     if (!orderInfo) return;
     KeyComponentChange.showLoading("加载移除明细中...");
     KeyComponentChange.apiCall(
@@ -1001,11 +1142,10 @@ var KeyComponentChange = {
   // ============== 视图3：关重件更换 ==============
   enterChangeView: function () {
     var state = KeyComponentChange.state;
-    var orderInfo = state.orderInfo;
     var pendingScan = state.pendingScan;
-    if (!orderInfo || !pendingScan) return;
+    if (!pendingScan) return;
     $(".change-material-tag").text(
-      KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType) +
+      KeyComponentChange.formatOrderNo(pendingScan.wipOrderNo, pendingScan.wipOrderType) +
         "-" +
         pendingScan.materialNo +
         "-" +
@@ -1018,17 +1158,17 @@ var KeyComponentChange = {
 
   loadChangeRecordList: function () {
     var state = KeyComponentChange.state;
-    var orderInfo = state.orderInfo;
-    if (!orderInfo || !state.pendingScan) return;
+    var pendingScan = state.pendingScan;
+    if (!pendingScan) return;
     KeyComponentChange.showLoading("加载更换明细中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetChangeKeyComponentInfo,
       [
         KeyComponentChange.buildTaskRequest("GetChangeKeyComponentInfo", {
-          wipOrderNo: orderInfo.wipOrderNo,
-          wipOrderType: orderInfo.wipOrderType,
-          materialNo: state.pendingScan.materialNo,
-          materialSeq: KeyComponentChange.normalizeMaterialSequence(state.pendingScan.materialSeq),
+          wipOrderNo: pendingScan.wipOrderNo,
+          wipOrderType: pendingScan.wipOrderType,
+          materialNo: pendingScan.materialNo,
+          materialSeq: KeyComponentChange.normalizeMaterialSequence(pendingScan.materialSeq),
         }),
       ],
       function (res) {
@@ -1407,7 +1547,7 @@ var KeyComponentChange = {
     });
     $(".key-component-check-view").on("click", ".btn-delete-serial", function () {
       if (!KeyComponentChange.ensureButtonPermitted("deleteSerial")) return;
-      KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial-no"));
+      KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial"));
     });
     $(".key-component-check-view").on("click", ".btn-unbind", function () {
       KeyComponentChange.enterRemoveView();
