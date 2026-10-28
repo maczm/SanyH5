@@ -156,6 +156,7 @@ window.KeyComponentChange_GetChangeKeyComponentInfo(
 | `serialNo` | string | 订单序列号 |
 | `materialSerialNo` | string | 关重件旧序列号 |
 | `materialNo` | string | 物料编码 |
+| `materialDesc` | string | 物料描述（待移除明细卡片展示；可为空字符串） |
 | `scanTime` | string | 录入时间 |
 
 ## 保存新关重件（带被替换旧件 ID）
