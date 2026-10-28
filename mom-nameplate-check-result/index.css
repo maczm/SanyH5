@@ -294,28 +294,15 @@ body {
   .mom-check-result .check-card.has-images.images-compact .check-image-item {
     max-width: var(--compact-image-width, 240px);
   }
-  /* 无字段的检查项：图片缩略图直接并到检查项一行内 */
-  .mom-check-result .check-card.no-fields.has-images {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .mom-check-result .check-card.no-fields.has-images .check-card-main {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
+  /* 无字段的检查项：沿用同一左右分栏，标题/徽章/图片列与其他检查项对齐 */
+  .mom-check-result .check-card.no-fields.has-images .check-card-main,
   .mom-check-result .check-card.no-fields.has-images .check-images {
-    flex: 0 0 auto;
-    width: auto;
+    align-self: center;
   }
   .mom-check-result .check-card.no-fields.has-images .check-image-list {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
+    justify-items: start;
   }
   .mom-check-result .check-card.no-fields.has-images .check-image-item {
-    flex: 0 0 140px;
     width: 140px;
     max-width: 140px;
   }
