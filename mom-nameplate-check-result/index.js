@@ -377,9 +377,8 @@ var NameplateCheckResult = {
         $fieldList.append(NameplateCheckResult.buildFieldRow(detail));
       });
     } else {
-      var $empty = NameplateCheckResult.cloneTemplate("template-empty-state");
-      $empty.find("p").text("该检查项无字段明细");
-      $fieldList.append($empty);
+      // 检查项没有字段明细时整节不展示（连占位空态一起隐藏）
+      $fieldList.addClass("hidden");
     }
 
     NameplateCheckResult.appendCheckImages($card, item, imageMap);
