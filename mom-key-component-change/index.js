@@ -1144,6 +1144,12 @@ var KeyComponentChange = {
         .find(".remove-record-material-desc")
         .text(KeyComponentChange.getComponentMeta(record.materialID, record.materialNo).materialDesc);
       $card.find(".remove-record-old-serial").text(record.serialNo || "");
+      var motorPositionLabel = KeyComponentChange.getMotorPositionLabel(record.materialSeq);
+      $card
+        .find(".remove-record-motor-position")
+        .text(motorPositionLabel)
+        .closest(".remove-record-field")
+        .toggleClass("hidden", !motorPositionLabel);
       $card.find(".remove-record-scan-time").text(KeyComponentChange.normalizeTime(record.scanTime));
       $card.data("record", record);
       $(".remove-record-list").append($card);

@@ -49,9 +49,9 @@ var mockOrderDataMap = {
       { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
     ],
     removeSnList: [
-      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-20 08:30:00" },
-      { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-21 09:15:00" },
-      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialID: 3003, materialNo: "MAT-NEG-031", scanTime: "2026-08-21 10:00:00" },
+      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-011", materialSeq: "1", scanTime: "2026-08-20 08:30:00" },
+      { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-011", materialSeq: "2", scanTime: "2026-08-21 09:15:00" },
+      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialID: 3003, materialNo: "MAT-NEG-031", materialSeq: null, scanTime: "2026-08-21 10:00:00" },
     ],
   },
   // 同 VIN 双单：生产订单 014 + 改制订单 015（共用 VIN，视图1 按单分组展示，两单都能采集）
@@ -88,7 +88,7 @@ var mockOrderDataMap = {
     snList: [],
     // 改制单的待解绑 = 同 VIN 生产订单 014 上、与改制单物料类型匹配的已采 SN
     removeSnList: [
-      { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-MOTOR-OLD-A", materialID: 5001, materialNo: "MAT-MOTOR-021", scanTime: "2026-08-20 08:00:00" },
+      { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-MOTOR-OLD-A", materialID: 5001, materialNo: "MAT-MOTOR-021", materialSeq: "1", scanTime: "2026-08-20 08:00:00" },
     ],
   },
 };

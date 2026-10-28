@@ -96,6 +96,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 | `serialNo` | string | 旧件序列号（`移除关重件` 入参） |
 | `materialID` | number | 旧件物料 ID（可选；页面优先按 ID 匹配 `keyComponentList`，无 ID 时按 `materialNo`） |
 | `materialNo` | string | 旧件物料编码（与 `materialID` 二选一即可定位配置） |
+| `materialSeq` | string | 旧件序号（**字符串**：`"1"`=前电机，`"2"`=后电机，null=无位置；解绑页展示「位置」） |
 | `scanTime` | string | 录入时间 |
 
 > 改制单解绑的是**同 VIN 对应生产订单**上、与改制单物料类型匹配的 SN；由后端解析生产订单并返回，页面按行内订单执行移除。**物料描述/类型等主数据只从 `keyComponentList` 取**（按 `materialID` 或 `materialNo` 匹配），`removeSnList` 只带标识字段。
@@ -129,7 +130,8 @@ window.KeyComponentChange_GetKeyComponentInfo(
 { "code": 0, "msg": "ok", "data": {
   "removeSnList": [
     { "wipOrderNo": "184000000001", "wipOrderType": 1, "vin": "LSVU2A0N260800009",
-      "serialNo": "SN-MOTOR-OLD-1", "materialID": 3001, "materialNo": "MAT-MOTOR-011", "scanTime": "2026-08-20 08:30:00" }
+      "serialNo": "SN-MOTOR-OLD-1", "materialID": 3001, "materialNo": "MAT-MOTOR-011",
+      "materialSeq": "1", "scanTime": "2026-08-20 08:30:00" }
   ],
   "keyComponentList": [
     { "materialID": 3001, "materialNo": "MAT-MOTOR-011", "materialDesc": "永磁体同步电机",
