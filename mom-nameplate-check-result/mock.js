@@ -8,9 +8,14 @@
 window.AccpetNo = "ACP202608240959563903";
 
 // 图片三数组等长、按索引一一对应；ImageCheckList 填检查项 checkCode
-window.ImageUrlList = ["../18601605145677184.jpg", "../18601605145677184.jpg", "../18601605145677184.jpg"];
-window.ImageNameList = ["铭牌整体", "VIN 钢印", "发动机铭牌"];
-window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_006"];
+window.ImageUrlList = [
+  "../18601605145677184.jpg",
+  "../18601605145677184.jpg",
+  "../18601605145677184.jpg",
+  "../18601605145677184.jpg",
+];
+window.ImageNameList = ["铭牌整体", "VIN 钢印", "VIN 钢印", "发动机铭牌"];
+window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_003", "CHECK_006"];
 
 window.checkResultData = {
   code: 200,

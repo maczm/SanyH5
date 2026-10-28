@@ -364,8 +364,9 @@ var NameplateCheckResult = {
     var $badge = $card.find(".ck-badge");
     $badge.addClass(badge.cls).text(badge.text);
 
+    // 结论通过的检查项不再展示原因（原因对通过项没有信息量）
     var checkReason = String(item.reason || "").trim();
-    if (checkReason) {
+    if (checkReason && state !== "pass") {
       $card.find(".check-reason").removeClass("hidden");
       $card.find(".reason-text").text(checkReason);
     }
@@ -442,8 +443,9 @@ var NameplateCheckResult = {
     var $fieldBadge = $row.find(".f-badge");
     $fieldBadge.addClass(badge.cls).text(badge.text);
 
+    // 口径与检查项一致：通过（MATCH/PASS）的字段不展示原因
     var fieldReason = String(detail.reason || "").trim();
-    if (fieldReason) {
+    if (fieldReason && state !== "pass") {
       $row.find(".field-reason").removeClass("hidden");
       $row.find(".field-reason-text").text(fieldReason);
     }
