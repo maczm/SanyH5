@@ -3,21 +3,28 @@
 // 生产环境由父页面（Portal）注入 window.AccpetNo / checkResultData / Image*List；
 // 本地开发由本文件提供演示数据，删除本文件后页面将展示空态。
 // 数据为生产环境真实样例（含 MATCH/MISMATCH 字段结论与 unit 单位）。
+//
+// 本地演示状态（通过 URL 参数切换，如 index.html?mock=not-started）：
+//   默认 / ?mock=completed  已完成：4 张关联检查项 + 2 张未匹配（末尾「其他图片」）
+//   ?mock=not-started       未发起：AccpetNo 为空，6 张图片都在「图片」区
+//   ?mock=processing        检查中：6 张图片都在「图片」区
 
-// 受理单号：置空（""）可验证「未发起AI识别」空态
-window.AccpetNo = "ACP202608240959563903";
+var mockState = "completed";
+var mockQuery = location.search || "";
+var mockParamIndex = mockQuery.indexOf("mock=");
+if (mockParamIndex !== -1) {
+  mockState = mockQuery.slice(mockParamIndex + 5).split("&")[0] || "completed";
+}
 
-// 图片三数组等长、按索引一一对应；ImageCheckList 填检查项 checkCode
-window.ImageUrlList = [
-  "../18601605145677184.jpg",
-  "../18601605145677184.jpg",
-  "../18601605145677184.jpg",
-  "../18601605145677184.jpg",
-];
-window.ImageNameList = ["铭牌整体", "VIN 钢印", "VIN 钢印", "发动机铭牌"];
-window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_003", "CHECK_006"];
+var mockAcceptNo = "ACP202608240959563903";
+var mockImageUrl = "../18601605145677184.jpg";
 
-window.checkResultData = {
+// 图片三数组等长、按索引一一对应；前 4 张能匹配检查项，后 2 张分别为不存在的编码与空编码
+window.ImageUrlList = [mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl];
+window.ImageNameList = ["铭牌整体", "VIN 钢印", "VIN 钢印", "发动机铭牌", "未匹配检查项", "无检查项编码"];
+window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_003", "CHECK_006", "CHECK_999", ""];
+
+var mockCompletedResult = {
   code: 200,
   mes: "操作成功",
   data: {
@@ -159,3 +166,23 @@ window.checkResultData = {
     completedAt: "2026-08-24 10:01:25",
   },
 };
+
+if (mockState === "not-started") {
+  window.AccpetNo = "";
+} else if (mockState === "processing") {
+  window.AccpetNo = mockAcceptNo;
+  window.checkResultData = {
+    code: 200,
+    mes: "操作成功",
+    data: {
+      acceptNo: mockAcceptNo,
+      overallConclusion: "",
+      status: "PROCESSING",
+      completedAt: "",
+      checkResults: [],
+    },
+  };
+} else {
+  window.AccpetNo = mockAcceptNo;
+  window.checkResultData = mockCompletedResult;
+}
