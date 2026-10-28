@@ -19,10 +19,11 @@ if (mockParamIndex !== -1) {
 var mockAcceptNo = "ACP202608240959563903";
 var mockImageUrl = "../18601605145677184.jpg";
 
-// 图片三数组等长、按索引一一对应；前 4 张能匹配检查项，后 2 张分别为不存在的编码与空编码
+// 图片三数组等长、按索引一一对应；前 4 张匹配普通检查项，CHECK_999 未匹配，
+// 最后 1 张挂到无字段的 CHECK_001（用于验证模板检查项的行内图片排版）
 window.ImageUrlList = [mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl, mockImageUrl];
-window.ImageNameList = ["铭牌整体", "VIN 钢印", "VIN 钢印", "发动机铭牌", "未匹配检查项", "无检查项编码"];
-window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_003", "CHECK_006", "CHECK_999", ""];
+window.ImageNameList = ["铭牌整体", "VIN 钢印", "VIN 钢印", "发动机铭牌", "未匹配检查项", "模板图"];
+window.ImageCheckList = ["CHECK_002", "CHECK_003", "CHECK_003", "CHECK_006", "CHECK_999", "CHECK_001"];
 
 var mockCompletedResult = {
   code: 200,
