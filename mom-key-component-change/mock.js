@@ -42,6 +42,8 @@ var mockOrderDataMap = {
       { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
+      // 改制单减件：数量为负数，解绑后由后端回到 0（页面按原值显示 0/-1 → 0/0）
+      { materialID: 3003, materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialQty: -1, uomCode: "EA", materialType: "改制减件", materialSeq: null },
     ],
     snList: [
       { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
@@ -49,6 +51,7 @@ var mockOrderDataMap = {
     removeSnList: [
       { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-20 08:30:00" },
       { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialNo: "MAT-MOTOR-001", materialDesc: "永磁体同步电机", materialType: "永磁体同步电机", scanTime: "2026-08-21 09:15:00" },
+      { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialType: "改制减件", scanTime: "2026-08-21 10:00:00" },
     ],
   },
   // 同 VIN 双单：生产订单 014 + 改制订单 015（共用 VIN，视图1 按单分组展示，两单都能采集）
@@ -236,13 +239,29 @@ if (typeof window.KeyComponentChange_Remove != "function") {
           return serial.serialNo !== reported.serialNo;
         });
       }
-      // 待解绑清单：从所有订单的 removeSnList 中移除该旧件
+      // 待解绑清单：从所有订单的 removeSnList 中移除该旧件；记录所属订单用于负数数量回填
+      var removedRecord = null;
+      var ownerOrder = null;
       Object.keys(mockOrderDataMap).forEach(function (orderNo) {
         var order = mockOrderDataMap[orderNo];
+        (order.removeSnList || []).forEach(function (record) {
+          if (record.serialNo === reported.serialNo) {
+            removedRecord = record;
+            ownerOrder = order;
+          }
+        });
         order.removeSnList = (order.removeSnList || []).filter(function (record) {
           return record.serialNo !== reported.serialNo;
         });
       });
+      // 模拟后端：解绑后该组件负数数量 +1（如 -1 → 0）
+      if (removedRecord && ownerOrder) {
+        (ownerOrder.keyComponentList || []).forEach(function (component) {
+          if (component.materialNo === removedRecord.materialNo && Number(component.materialQty) < 0) {
+            component.materialQty = Number(component.materialQty) + 1;
+          }
+        });
+      }
       if (!window.__keyComponentMockRemoved) window.__keyComponentMockRemoved = [];
       window.__keyComponentMockRemoved.push(reported);
       callback({ code: 0, msg: "ok", data: { oldGenealogyID: "GEN-" + window.__keyComponentMockRemoved.length } });
