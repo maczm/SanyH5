@@ -23,7 +23,7 @@ SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、�
 ## 2. 硬约束（违反即事故）
 
 1. **mom-cert/index.html 第三方只读，禁止修改**——该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）；唯一例外：2025-09 用户批准 jQuery CDN 改本地（仅 script src 一行），此后仍禁止其他修改
-2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（Portal 只取 3 文件，mock.js 不进生产）；根目录 `jquery.min.js` 为各页共享的本地 jQuery，随解决方案整体部署（非页面级文件，各页以 `../jquery.min.js` 引用）
+2. **部署 3 文件约束**：每页生产部署只能有 index.html / index.js / index.css；**开发期允许额外 mock.js**（Portal 只取 3 文件，mock.js 不进生产）；根目录 `jquery.min.js` 为各页共享的本地 jQuery，`viewer.min.js` / `viewer.min.css` 为共享的图片预览库（Viewer.js 1.15.2），均随解决方案整体部署（非页面级文件，各页以 `../jquery.min.js`、`../viewer.min.*` 引用）
 3. **项目根无 package.json、无 node_modules**；工具一律全局安装
 4. **不得格式化/批量修改任何 *.html**（.prettierignore 已排除；mom-cert HTML 尤其只读）
 5. **约束只在本文件**：全部约束/规则/约定只能写在根目录 `AGENT.md`；接口协议与流程图一律放 `docs/`（命名见 §6），`docs/<中文模块名>INF.md` **只放协议、零约束**
@@ -270,6 +270,8 @@ callback({ code: number, msg: string, data?: any })
 ### 12.4 公共能力
 
 **扫码**：Portal 父窗口提供 `window.parent.OpenCamera(callback)`，回调返回 `{ data: "扫码结果字符串" }`（兼容 `{ value: "..." }` 或纯字符串）。
+
+**图片预览**：本地共享库 Viewer.js（根目录 `viewer.min.js` / `viewer.min.css`），页面以 `new window.Viewer(图片元素, 选项)` 按图片实例化，单图预览、不跨图翻页；库未加载时页面静默跳过预览。
 
 > 图片压缩参数与共享参数名的约束见 §8.2；业务行为（如二维码字段切分、模板自动选中）不属规范，本文件不写。
 

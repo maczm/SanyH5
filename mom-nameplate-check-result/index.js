@@ -21,6 +21,7 @@
 var NameplateCheckResult = {
   _pollTimer: null,
   _initRetryCount: 0,
+  _viewers: [],
 
   // ============== 模板克隆 ==============
   cloneTemplate: function (templateClassName) {
@@ -172,6 +173,8 @@ var NameplateCheckResult = {
    * completed 展示整体结论横幅与检查项列表（含检查项图片），终态时停止轮询。
    */
   renderResult: function () {
+    NameplateCheckResult.destroyImageViewers();
+
     if (!NameplateCheckResult.isAiTaskStarted()) {
       NameplateCheckResult.stopPolling();
       NameplateCheckResult.showEmptyState("未发起AI识别");
@@ -218,6 +221,7 @@ var NameplateCheckResult = {
         $listWrap.append(NameplateCheckResult.buildCheckCard(item, imageMap));
       });
       $body.append($listWrap);
+      NameplateCheckResult.initCheckImageViewers();
     } else {
       var $empty = NameplateCheckResult.cloneTemplate("template-empty-state");
       $empty.find("p").text("暂无检查明细数据");
@@ -431,6 +435,47 @@ var NameplateCheckResult = {
       $imageItem.find(".check-image-name").addClass("hidden");
     }
     return $imageItem;
+  },
+
+  /** 为当前渲染出的图片逐个初始化 Viewer（必须在卡片插入文档后调用，模板克隆在插入前归属独立文档） */
+  initCheckImageViewers: function () {
+    $(".check-image-item").each(function () {
+      NameplateCheckResult.initImageViewer($(this));
+    });
+  },
+
+  /**
+   * 单图预览：每张图片各自初始化一个 Viewer 实例（单 item，不跨图片翻页）。
+   * Viewer 为根目录共享库（viewer.min.js，未加载时静默跳过）。
+   */
+  initImageViewer: function ($imageItem) {
+    if (typeof window.Viewer !== "function") return;
+    var imageElement = $imageItem.find(".check-image")[0];
+    if (!imageElement) return;
+
+    var viewer = new window.Viewer(imageElement, {
+      navbar: false,
+      title: function (image) {
+        return image.alt || "";
+      },
+      toolbar: {
+        zoomIn: 1,
+        zoomOut: 1,
+        oneToOne: 1,
+        reset: 1,
+        rotateLeft: 1,
+        rotateRight: 1,
+      },
+    });
+    NameplateCheckResult._viewers.push(viewer);
+  },
+
+  /** 销毁全部 Viewer 实例：重渲染前调用，避免旧实例残留 */
+  destroyImageViewers: function () {
+    NameplateCheckResult._viewers.forEach(function (viewer) {
+      if (viewer && typeof viewer.destroy === "function") viewer.destroy();
+    });
+    NameplateCheckResult._viewers = [];
   },
 
   // ============== 字段明细行 ==============

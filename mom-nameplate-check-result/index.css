@@ -233,6 +233,7 @@ body {
   width: 100%;
   height: auto;
   background: #f1f3f4;
+  cursor: zoom-in;
 }
 .mom-check-result .check-image-name {
   padding: 5px 8px;
