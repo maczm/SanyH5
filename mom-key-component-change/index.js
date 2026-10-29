@@ -1055,6 +1055,12 @@ var KeyComponentChange = {
       KeyComponentChange.enterRemoveView(materialType);
       return;
     }
+    // 跨订单净需求 <= 0：该物料是需解绑物料（改制 -1 + 生产 +1 = 0），不能采集
+    var materialNetQty = KeyComponentChange.getGroupMaterialNetQty(activeComponents[0].materialNo);
+    if (materialNetQty <= 0) {
+      KeyComponentChange.showToast("提示", "该物料为需解绑物料，不能采集", "error");
+      return;
+    }
     var scanOwner = KeyComponentChange.resolveScanOwner(parsedQrCode.materialNo);
     if (!scanOwner) {
       KeyComponentChange.showToast("提示", parsedQrCode.materialNo + " 不是本订单关重件", "error");
