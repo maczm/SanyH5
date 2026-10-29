@@ -641,6 +641,14 @@ var KeyComponentChange = {
     };
   },
 
+  /** 同一物料编码跨订单的净数量（改制 -1 + 同 VIN 生产单 +1 = 0） */
+  getGroupMaterialNetQty: function (materialNo) {
+    return KeyComponentChange.state.keyComponentList.reduce(function (total, component) {
+      if (component.materialNo !== materialNo) return total;
+      return total + (Number(component.materialQty) || 0);
+    }, 0);
+  },
+
   /** 待解绑数量 = removeSnList 条数（前端自算，不依赖后端数量字段） */
   getPendingRemoveQty: function () {
     return KeyComponentChange.state.removeSnList.length;
@@ -754,8 +762,14 @@ var KeyComponentChange = {
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    // 需采集数量：当前选中订单的剩余值（已采只统计配置内物料，忽略历史/非配置序列号）
-    var requiredQuantity = KeyComponentChange.sumMaterialQty(activeComponents);
+    // 需采集数量：按物料编码取「跨订单净需求」（改制 -1 + 生产 +1 = 0，不重复采集），只累加正数
+    var activeMaterialNoList = [];
+    activeComponents.forEach(function (component) {
+      if (activeMaterialNoList.indexOf(component.materialNo) === -1) activeMaterialNoList.push(component.materialNo);
+    });
+    var requiredQuantity = activeMaterialNoList.reduce(function (total, materialNo) {
+      return total + Math.max(0, KeyComponentChange.getGroupMaterialNetQty(materialNo));
+    }, 0);
     var collectedQuantity = groups.reduce(function (total, group) {
       return total + group.serialList.length;
     }, 0);
