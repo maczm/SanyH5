@@ -20,7 +20,7 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `orderList` | array | 订单集合；**订单号搜索返回该单所在 VIN 的订单组**，VIN 搜索按 `vin` 取该车订单（改制在前、生产在后）；无同组时只有一条 |
+| `orderList` | array | 订单集合；**订单号搜索命中改制单 → 该改制单 + 同 VIN 生产单；命中生产单 → 只返回该生产单**。VIN 搜索：该车有改制单 → 改制 + 生产，否则生产单（改制在前） |
 
 **orderList 每项**
 
@@ -38,7 +38,7 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 **请求/响应示例**
 
 ```jsonc
-// 订单号搜索（返回该单所在 VIN 的订单组）
+// 订单号搜索（改制单：带出同 VIN 生产单）
 { "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "184000000015", "vin": "" } }
 
 { "code": 0, "msg": "ok", "data": { "orderList": [
@@ -101,6 +101,8 @@ window.KeyComponentChange_GetKeyComponentInfo(
 | `scanTime` | string | 录入时间 |
 
 > 改制单解绑的是**同 VIN 对应生产订单**上、与改制单物料类型匹配的 SN；由后端解析生产订单并返回，页面按行内订单执行移除。**物料描述/类型等主数据只从 `keyComponentList` 取**（按 `materialID` 或 `materialNo` 匹配），`removeSnList` 只带标识字段。
+>
+> `查询待更换明细` 的范围：生产单只返回**该生产单**该物料的记录；改制单返回**改制单 + 同 VIN 生产单**该物料的记录（按录入时间倒序由页面展示）。
 
 **keyComponentList 每项**
 

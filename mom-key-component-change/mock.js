@@ -92,16 +92,20 @@ var mockOrderDataMap = {
   },
 };
 
-// -- 待更换明细（改制 + 生产订单） --
+// -- 待更换明细（按归属订单 + 物料查：生产单只回自己；改制单回改制 + 同 VIN 生产单） --
 var mockChangeRecordList = [
-  { wipOrderNo: "184000000013", wipOrderType: 2, vin: "LSVU2A0N260800002", serialNo: "SN-OLD-CHG-1", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-22 10:00:00" },
-  { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-OLD-CHG-2", materialID: 3001, materialNo: "MAT-MOTOR-011", scanTime: "2026-08-22 11:30:00" },
+  { wipOrderNo: "184000000012", wipOrderType: 1, vin: "LSVU2A0N260800001", serialNo: "SN-OLD-012-1", materialID: 2001, materialNo: "MAT-MOTOR-001", materialSeq: "1", scanTime: "2026-08-22 10:00:00" },
+  { wipOrderNo: "184000000015", wipOrderType: 2, vin: "LSVU2A0N260800003", serialNo: "SN-OLD-015-1", materialID: 5001, materialNo: "MAT-MOTOR-021", materialSeq: "1", scanTime: "2026-08-22 11:00:00" },
+  { wipOrderNo: "184000000014", wipOrderType: 1, vin: "LSVU2A0N260800003", serialNo: "SN-OLD-014-1", materialID: 4001, materialNo: "MAT-MOTOR-021", materialSeq: "1", scanTime: "2026-08-22 09:00:00" },
+  { wipOrderNo: "184000000013", wipOrderType: 2, vin: "LSVU2A0N260800002", serialNo: "SN-OLD-013-1", materialID: 3001, materialNo: "MAT-MOTOR-011", materialSeq: "1", scanTime: "2026-08-22 10:30:00" },
 ];
 
 // 待更换旧件的位置：仅 Mock 内部用于按 materialSeq 过滤（出参不含该字段，与协议一致）
 var mockChangeRecordSequenceMap = {
-  "SN-OLD-CHG-1": "1",
-  "SN-OLD-CHG-2": "2",
+  "SN-OLD-012-1": "1",
+  "SN-OLD-015-1": "1",
+  "SN-OLD-014-1": "1",
+  "SN-OLD-013-1": "1",
 };
 
 function recordMockRequest(taskType, reported) {
@@ -155,22 +159,27 @@ if (typeof window.KeyComponentChange_GetWipOrderNoInfo != "function") {
     var reported = (request && request.reported) || {};
     recordMockRequest("GetWipOrderNoInfo", reported);
     setTimeout(function () {
-      var orderData = null;
+      var orderList = [];
       if (reported.wipOrderNo) {
-        orderData = mockOrderDataMap[reported.wipOrderNo] || null;
+        var orderData = mockOrderDataMap[reported.wipOrderNo] || null;
+        if (!orderData) {
+          callback({ code: 1, msg: "未查询到订单信息" });
+          return;
+        }
+        // 改制单：带出同 VIN 生产单；生产单：只返回自己
+        orderList =
+          String(orderData.wipOrderType) === "2" ? getMockOrderListByVin(orderData.vin) : [buildMockOrderListItem(orderData)];
       } else if (reported.vin) {
-        orderData = Object.keys(mockOrderDataMap)
-          .map(function (orderNo) { return mockOrderDataMap[orderNo]; })
-          .filter(function (order) { return order.vin === reported.vin; })[0] || null;
+        orderList = getMockOrderListByVin(reported.vin);
       }
-      if (!orderData) {
+      if (!orderList.length) {
         callback({ code: 1, msg: "未查询到订单信息" });
         return;
       }
       callback({
         code: 0,
         msg: "ok",
-        data: { orderList: getMockOrderListByVin(orderData.vin) },
+        data: { orderList: orderList },
       });
     }, MOCK_DELAY);
   };
@@ -274,13 +283,27 @@ if (typeof window.KeyComponentChange_GetChangeKeyComponentInfo != "function") {
     var reported = (request && request.reported) || {};
     recordMockRequest("GetChangeKeyComponentInfo", reported);
     setTimeout(function () {
-      var materialSequence = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
-      var recordList = mockChangeRecordList;
-      if (materialSequence === "1" || materialSequence === "2") {
-        recordList = mockChangeRecordList.filter(function (record) {
-          return mockChangeRecordSequenceMap[record.serialNo] === materialSequence;
-        });
+      var owner = findMockOrderData(reported);
+      if (!owner) {
+        callback({ code: 1, msg: "未查询到订单信息" });
+        return;
       }
+      // 生产单：只查自己；改制单：查改制 + 同 VIN 生产单
+      var ownerIsChange = String(owner.wipOrderType) === "2";
+      var groupOrderNos = Object.keys(mockOrderDataMap)
+        .map(function (orderNo) { return mockOrderDataMap[orderNo]; })
+        .filter(function (order) { return order.vin === owner.vin; })
+        .filter(function (order) { return ownerIsChange || String(order.wipOrderType) === "1"; })
+        .map(function (order) { return order.wipOrderNo; });
+      var materialSequence = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
+      var recordList = mockChangeRecordList.filter(function (record) {
+        if (groupOrderNos.indexOf(record.wipOrderNo) === -1) return false;
+        if (record.materialNo !== reported.materialNo) return false;
+        if (materialSequence === "1" || materialSequence === "2") {
+          return mockChangeRecordSequenceMap[record.serialNo] === materialSequence;
+        }
+        return true;
+      });
       callback({ code: 0, msg: "ok", data: recordList });
     }, MOCK_DELAY);
   };
