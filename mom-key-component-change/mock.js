@@ -43,6 +43,7 @@ var mockOrderDataMap = {
       { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: -1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: -1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
+      { materialID: 3004, materialNo: "MAT-BOX-OLD-33", materialDesc: "变速箱总成（旧）", materialQty: -1, uomCode: "EA", materialType: "关重件", materialSeq: null },
       { materialID: 3003, materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialQty: -1, uomCode: "EA", materialType: "改制减件", materialSeq: null },
     ],
     // 013 为「只解绑」场景：无已采新件，卡片按负数显示 0/-N
@@ -50,6 +51,7 @@ var mockOrderDataMap = {
     removeSnList: [
       { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-OLD-11", materialSeq: "1", scanTime: "2026-08-20 08:30:00" },
       { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-OLD-12", materialSeq: "2", scanTime: "2026-08-21 09:15:00" },
+      { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-BOX-OLD-1", materialID: 3004, materialNo: "MAT-BOX-OLD-33", materialSeq: null, scanTime: "2026-08-21 10:30:00" },
       { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-NEG-OLD-1", materialID: 3003, materialNo: "MAT-NEG-OLD-31", materialSeq: null, scanTime: "2026-08-21 10:00:00" },
     ],
   },
