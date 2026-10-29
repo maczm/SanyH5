@@ -9,6 +9,11 @@ function Portal_OnDocumentKeyDown() {}
 
 var KeyComponentChange = {
   API_TIMEOUT: 10000,
+  // 多人并发：数据新鲜度相关
+  KEY_COMPONENT_STALE_MS: 30000, // 焦点/切单/定时刷新阈值
+  KEY_COMPONENT_ENTRY_STALE_MS: 5000, // 进解绑/替换页前的刷新阈值
+  AUTO_REFRESH_TICK_MS: 30000, // 空闲定时刷新间隔
+  _autoRefreshTimer: null,
 
   // 只有该类型的关重件有前后位置（序号 "1"/"2"），前后位置弹窗也只对它发生
   MOTOR_MATERIAL_TYPE: "永磁体同步电机",
@@ -63,6 +68,8 @@ var KeyComponentChange = {
     orders: [],
     // 当前展示/操作的订单（多订单时可人工切换）
     activeOrderKey: "",
+    // 最近一次成功加载关重件信息的时间（用于并发/新鲜度判断）
+    lastKeyComponentLoadedAt: 0,
     // "订单号|类型" -> { keyComponentList, snList, removeSnList }
     orderDataMap: {},
     keyComponentList: [],
@@ -419,6 +426,8 @@ var KeyComponentChange = {
     KeyComponentChange.renderOrderHeader();
     KeyComponentChange.renderKeyComponentList();
     KeyComponentChange.focusMaterialInput();
+    // 切单时若数据已过期则静默刷新（避免基于旧快照操作）
+    KeyComponentChange.refreshKeyComponentInfoIfStale(KeyComponentChange.KEY_COMPONENT_STALE_MS);
   },
 
   /** 清空订单集合的关重件数据并重绘列表（换单、加载失败时调用） */
@@ -433,7 +442,7 @@ var KeyComponentChange = {
 
   // ============== 视图1：关重件列表 ==============
   /** 对订单集合逐单查询关重件信息，全部返回后合并渲染（请求序号守卫丢弃过期响应） */
-  loadKeyComponentInfo: function (finishedCallback) {
+  loadKeyComponentInfo: function (finishedCallback, silent) {
     var state = KeyComponentChange.state;
     var orders = state.orders;
     if (!orders.length) return;
@@ -442,7 +451,7 @@ var KeyComponentChange = {
     var remaining = orders.length;
     var errorMessage = "";
     state.orderDataMap = {};
-    KeyComponentChange.showLoading("加载关重件中...");
+    if (!silent) KeyComponentChange.showLoading("加载关重件中...");
     orders.forEach(function (orderInfo) {
       KeyComponentChange.apiCall(
         window.KeyComponentChange_GetKeyComponentInfo,
@@ -466,17 +475,72 @@ var KeyComponentChange = {
           }
           remaining--;
           if (remaining > 0) return;
-          KeyComponentChange.hideLoading();
+          if (!silent) KeyComponentChange.hideLoading();
           if (errorMessage) {
+            // 静默刷新失败：保留现有数据，不打断操作
+            if (silent) return;
             KeyComponentChange.clearKeyComponentState();
             KeyComponentChange.showToast("加载失败", errorMessage, "error");
             return;
           }
           KeyComponentChange.mergeOrderData();
           KeyComponentChange.renderKeyComponentList();
+          KeyComponentChange.state.lastKeyComponentLoadedAt = Date.now();
           if (typeof finishedCallback === "function") finishedCallback();
         }
       );
+    });
+  },
+
+  /** 当前是否在主页（视图1） */
+  isCheckViewActive: function () {
+    var view = document.querySelector(".key-component-check-view");
+    return !!view && !view.classList.contains("hidden");
+  },
+
+  isModalOpen: function () {
+    return $(".template-confirm:not(.hidden), .template-motor-picker:not(.hidden)").length > 0;
+  },
+
+  /** 空闲自动刷新条件：有订单、未提交、在主页、无弹窗、页面可见 */
+  canAutoRefresh: function () {
+    var state = KeyComponentChange.state;
+    if (!state.orders.length || state.isSubmitting) return false;
+    if (document.hidden) return false;
+    if (!KeyComponentChange.isCheckViewActive()) return false;
+    if (KeyComponentChange.isModalOpen()) return false;
+    return true;
+  },
+
+  /** 距上次加载超过 maxAgeMs 才刷新（默认静默；silent=false 时显示 loading） */
+  refreshKeyComponentInfoIfStale: function (maxAgeMs, callback, silent) {
+    var state = KeyComponentChange.state;
+    if (!state.orders.length) {
+      if (typeof callback === "function") callback();
+      return;
+    }
+    var age = Date.now() - (state.lastKeyComponentLoadedAt || 0);
+    if (age < maxAgeMs) {
+      if (typeof callback === "function") callback();
+      return;
+    }
+    KeyComponentChange.loadKeyComponentInfo(callback, silent !== false);
+  },
+
+  /** 空闲定时 + 页面可见/窗口聚焦时的自动刷新（只初始化一次） */
+  startAutoRefresh: function () {
+    if (KeyComponentChange._autoRefreshTimer) return;
+    KeyComponentChange._autoRefreshTimer = setInterval(function () {
+      if (!KeyComponentChange.canAutoRefresh()) return;
+      KeyComponentChange.refreshKeyComponentInfoIfStale(KeyComponentChange.KEY_COMPONENT_STALE_MS);
+    }, KeyComponentChange.AUTO_REFRESH_TICK_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden || !KeyComponentChange.canAutoRefresh()) return;
+      KeyComponentChange.refreshKeyComponentInfoIfStale(KeyComponentChange.KEY_COMPONENT_STALE_MS);
+    });
+    window.addEventListener("focus", function () {
+      if (!KeyComponentChange.canAutoRefresh()) return;
+      KeyComponentChange.refreshKeyComponentInfoIfStale(KeyComponentChange.KEY_COMPONENT_STALE_MS);
     });
   },
 
@@ -1100,6 +1164,8 @@ var KeyComponentChange = {
         if (res.code !== 0) {
           state.pendingScan = null;
           KeyComponentChange.showToast("提交失败", res.msg || "保存关重件失败", "error");
+          // 失败即刷新：别人可能已改动数据，避免继续用旧快照
+          KeyComponentChange.loadKeyComponentInfo(null, true);
           return;
         }
         state.pendingScan = null;
@@ -1132,6 +1198,7 @@ var KeyComponentChange = {
           KeyComponentChange.hideLoading();
           if (res.code !== 0) {
             KeyComponentChange.showToast("删除失败", res.msg || "删除关重件失败", "error");
+            KeyComponentChange.loadKeyComponentInfo(null, true);
             return;
           }
           KeyComponentChange.showToast("提示", "删除成功", "success");
@@ -1199,12 +1266,26 @@ var KeyComponentChange = {
    * 列表直接来自 GetKeyComponentInfo 的 removeSnList，不再单独请求。
    */
   enterRemoveView: function (materialType) {
-    var orderInfo = KeyComponentChange.getPrimaryOrder();
-    if (!orderInfo) return;
+    if (!KeyComponentChange.getPrimaryOrder()) return;
     KeyComponentChange.state.removeFilter.materialType = materialType || "";
-    $(".remove-order-no-tag").text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType));
-    KeyComponentChange.renderRemoveRecordList();
-    KeyComponentChange.switchView("key-component-remove-view");
+    // 进解绑页前刷新一次，避免基于过期快照操作（别人可能已解绑/新增）
+    KeyComponentChange.refreshKeyComponentInfoIfStale(
+      KeyComponentChange.KEY_COMPONENT_ENTRY_STALE_MS,
+      function () {
+        var pendingQty = materialType
+          ? KeyComponentChange.getPendingRemoveQtyByType(materialType)
+          : KeyComponentChange.getPendingRemoveQty();
+        if (pendingQty === 0) {
+          KeyComponentChange.showToast("提示", "暂无需解绑的关重件", "error");
+          return;
+        }
+        var orderInfo = KeyComponentChange.getPrimaryOrder();
+        $(".remove-order-no-tag").text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType));
+        KeyComponentChange.renderRemoveRecordList();
+        KeyComponentChange.switchView("key-component-remove-view");
+      },
+      false
+    );
   },
 
   /** 按当前过滤类型渲染待解绑清单（数据来自内存，移除成功后刷新 GetKeyComponentInfo 再重渲染） */
@@ -1269,6 +1350,7 @@ var KeyComponentChange = {
           KeyComponentChange.hideLoading();
           if (res.code !== 0) {
             KeyComponentChange.showToast("移除失败", res.msg || "移除关重件失败", "error");
+            KeyComponentChange.loadKeyComponentInfo(null, true);
             return;
           }
           KeyComponentChange.showToast("提示", "移除成功", "success");
@@ -1303,7 +1385,14 @@ var KeyComponentChange = {
     );
     $(".new-serial-tag").text(pendingScan.serialNo);
     KeyComponentChange.switchView("key-component-change-view");
-    KeyComponentChange.loadChangeRecordList();
+    // 进替换页前刷新一次，旧件列表由最新 snList 派生
+    KeyComponentChange.refreshKeyComponentInfoIfStale(
+      KeyComponentChange.KEY_COMPONENT_ENTRY_STALE_MS,
+      function () {
+        KeyComponentChange.loadChangeRecordList();
+      },
+      false
+    );
   },
 
   /**
@@ -1436,6 +1525,7 @@ var KeyComponentChange = {
             KeyComponentChange.hideLoading();
             if (res.code !== 0) {
               KeyComponentChange.showToast("移除失败", res.msg || "移除关重件失败", "error");
+              KeyComponentChange.loadKeyComponentInfo(null, true);
               return;
             }
             state.changedOldGenealogyId = (res.data || {}).oldGenealogyID;
@@ -1465,6 +1555,7 @@ var KeyComponentChange = {
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
           KeyComponentChange.showToast("保存失败", "移除成功，保存失败，请重试", "error");
+          KeyComponentChange.loadKeyComponentInfo(null, true);
           return;
         }
         state.pendingScan = null;
@@ -1877,6 +1968,8 @@ var KeyComponentChange = {
     }
 
     KeyComponentChange.initEvents();
+    // C：空闲定时 + 页面可见/窗口聚焦时自动刷新（多人并发下降低旧数据窗口）
+    KeyComponentChange.startAutoRefresh();
     KeyComponentChange.applyButtonSwitch();
     KeyComponentChange.compensateHostTopGap();
     KeyComponentChange.renderKeyComponentList();
