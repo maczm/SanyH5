@@ -20,7 +20,7 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `orderList` | array | 订单集合；**订单号搜索命中改制单 → 该改制单 + 同 VIN 生产单；命中生产单 → 只返回该生产单**。VIN 搜索：该车有改制单 → 改制 + 生产，否则生产单（改制在前） |
+| `orderList` | array | 订单集合；**订单号与 VIN 搜索都先按 VIN 归组，返回该 VIN 下的所有订单（生产 + 改制，改制在前）**；前端按集合逐单查询关重件信息 |
 
 **orderList 每项**
 
@@ -38,7 +38,7 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 **请求/响应示例**
 
 ```jsonc
-// 订单号搜索（改制单：带出同 VIN 生产单）
+// 订单号搜索（先查 VIN，再返回该 VIN 下所有订单）
 { "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "184000000015", "vin": "" } }
 
 { "code": 0, "msg": "ok", "data": { "orderList": [

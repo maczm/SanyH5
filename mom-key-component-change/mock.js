@@ -159,27 +159,23 @@ if (typeof window.KeyComponentChange_GetWipOrderNoInfo != "function") {
     var reported = (request && request.reported) || {};
     recordMockRequest("GetWipOrderNoInfo", reported);
     setTimeout(function () {
-      var orderList = [];
+      var orderData = null;
       if (reported.wipOrderNo) {
-        var orderData = mockOrderDataMap[reported.wipOrderNo] || null;
-        if (!orderData) {
-          callback({ code: 1, msg: "未查询到订单信息" });
-          return;
-        }
-        // 改制单：带出同 VIN 生产单；生产单：只返回自己
-        orderList =
-          String(orderData.wipOrderType) === "2" ? getMockOrderListByVin(orderData.vin) : [buildMockOrderListItem(orderData)];
+        orderData = mockOrderDataMap[reported.wipOrderNo] || null;
       } else if (reported.vin) {
-        orderList = getMockOrderListByVin(reported.vin);
+        orderData = Object.keys(mockOrderDataMap)
+          .map(function (orderNo) { return mockOrderDataMap[orderNo]; })
+          .filter(function (order) { return order.vin === reported.vin; })[0] || null;
       }
-      if (!orderList.length) {
+      if (!orderData) {
         callback({ code: 1, msg: "未查询到订单信息" });
         return;
       }
+      // 订单号/VIN 搜索都先按 VIN 归组，返回该 VIN 下所有订单（改制在前）
       callback({
         code: 0,
         msg: "ok",
-        data: { orderList: orderList },
+        data: { orderList: getMockOrderListByVin(orderData.vin) },
       });
     }, MOCK_DELAY);
   };
