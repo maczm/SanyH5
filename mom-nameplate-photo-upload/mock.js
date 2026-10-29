@@ -8,6 +8,9 @@ var MOCK_DELAY = 500;
 // MOCK_FROM_KEY_PART = true：模拟「由关重件绑定页面进入」——按钮文案变「保存并返回」，
 // 并按下方工位/订单号自动查询；改成 false 即回到正常入口（按钮为「保存」）。
 var MOCK_FROM_KEY_PART = true;
+// MOCK_DEFAULT_WORKSTATION：模拟 Portal 注入的 window.DefaultWorkStation（工位编码），
+// 填工位编码时页面加载后会自动选中该工位；留空表示不设置默认工位。
+var MOCK_DEFAULT_WORKSTATION = "";
 if (typeof window.fromKeyPart !== "string") {
   window.fromKeyPart = MOCK_FROM_KEY_PART ? "KeyPart" : "";
 }
@@ -16,6 +19,9 @@ if (typeof window.KeyPartStationCode !== "string") {
 }
 if (typeof window.KeyPartOrderNo !== "string") {
   window.KeyPartOrderNo = MOCK_FROM_KEY_PART ? "PO-MOCK-001" : "";
+}
+if (typeof window.DefaultWorkStation !== "string") {
+  window.DefaultWorkStation = MOCK_DEFAULT_WORKSTATION;
 }
 
 // -- Mock 工位列表 --
@@ -158,6 +164,20 @@ if (typeof window.uploadPhoto != "function") {
       // Mock: 直接返回 base64 作为 URL
       callback({ code: 0, msg: "success", data: { url: params.base64 } });
     }, 300);
+  };
+}
+
+// -- Mock API：设置默认工位（选择工位时调用，入参 { stationCode }） --
+// 探针：window.setDefaultWorkStationCount / window.lastDefaultWorkStation
+if (typeof window.setDefaultWorkStation != "function") {
+  window.setDefaultWorkStationCount = 0;
+  window.lastDefaultWorkStation = null;
+  window.setDefaultWorkStation = function (params, callback) {
+    window.setDefaultWorkStationCount++;
+    window.lastDefaultWorkStation = params && params.stationCode;
+    setTimeout(function () {
+      if (callback) callback({ code: 0, msg: "success" });
+    }, 200);
   };
 }
 

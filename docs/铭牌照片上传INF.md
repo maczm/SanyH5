@@ -17,6 +17,35 @@ window.getStationList(callback)
 | `stationCode` | string | 工位编码 |
 | `stationName` | string | 工位名称 |
 
+## API-N1.1：设置默认工位（页面调用，Portal 实现）
+
+```js
+window.setDefaultWorkStation({ stationCode }, callback)
+```
+
+**调用时机**：操作员在工位下拉里选择工位（或手输完整工位名后查询）时调用一次——这是"选择工位"唯一会走的接口；
+带入值（关重件入口的 `KeyPartStationCode`）与 `window.DefaultWorkStation` 匹配选中**不会**触发本接口。
+
+**入参**：`{ stationCode }`（工位编码）。
+
+**出参** `callback(res)`：`{ code, msg }`，`code === 0` 视为成功。失败只记日志，不阻断页面操作（不弹提示）。
+
+| 情况 | 页面行为 |
+|---|---|
+| Portal 未注入该函数 | 静默跳过，选择工位照常可用 |
+| 调用抛异常 | 捕获并 `console.warn`，不影响后续拍照/查询 |
+| 关重件入口 | 不调用（工位为带入值，不应改写默认） |
+
+**页面加载的默认工位**：Portal 可注入 `window.DefaultWorkStation`（工位编码）。
+页面在工位列表加载完成后**按编码精确匹配**（忽略大小写）：
+
+| 情况 | 行为 |
+|---|---|
+| 命中列表项 | 自动选中该工位（不自动查询） |
+| 未命中 | 不选中，仅 `console.log` 记录 |
+| 关重件入口已带入工位 | 带入值优先，忽略 `DefaultWorkStation` |
+| 已有选中工位（用户已选） | 不覆盖 |
+
 ## API-N2：获取照片类型配置 + 订单信息
 
 ```js
@@ -174,6 +203,7 @@ window.submitPhotoRecord({
 window.fromKeyPart            // 入口标识：值为 "KeyPart" 表示由关重件绑定页面进入
 window.KeyPartStationCode     // 由关重件绑定页面带入的工位编码（可选，用于预填并自动查询）
 window.KeyPartOrderNo         // 由关重件绑定页面带入的订单号（可选，用于预填并自动查询）
+window.DefaultWorkStation     // 页面加载的默认工位编码（可选，匹配到工位列表则自动选中）
 ```
 
 | 属性 | 类型 | 说明 |

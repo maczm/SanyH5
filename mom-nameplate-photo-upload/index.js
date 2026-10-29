@@ -300,8 +300,10 @@ var NameplatePhotoUpload = {
   isKeyPartEntry: function () {
     var flag = window.fromKeyPart;
     var hasPair = !!window.KeyPartStationCode && !!window.KeyPartOrderNo;
-    if (flag === "KeyPart") return true;
-    if (flag === true || flag === 1 || flag === "true") return true;
+    if (flag === "KeyPart" || flag === true || flag === 1 || flag === "true") return true;
+    // 明确表示"非关重件"时直接否掉：不能因为上一个表单残留了工位/订单号而误判
+    if (flag === "" || flag === false || flag === 0 || flag === "false") return false;
+    // 只有 Portal 完全没注入该标记时，才用"工位+订单号成对带入"兜底
     return hasPair;
   },
 
@@ -551,6 +553,9 @@ var NameplatePhotoUpload = {
       if (!$(".dropdown-station").hasClass("hidden")) {
         NameplatePhotoUpload.showStationDropdown();
       }
+
+      // 页面加载默认工位：window.DefaultWorkStation 能匹配到列表项就直接选中
+      NameplatePhotoUpload.applyDefaultWorkStation();
     });
   },
 
@@ -589,16 +594,60 @@ var NameplatePhotoUpload = {
     $dropdown.removeClass("hidden");
   },
 
-  selectStation: function (stationCode, stationName) {
+  selectStation: function (stationCode, stationName, fromUser) {
     NameplatePhotoUpload.state.stationCode = stationCode;
     $(".input-station").val(stationCode + " - " + stationName);
     $(".input-station-code").val(stationCode);
     $(".dropdown-station").addClass("hidden");
 
+    // 只有操作员亲自选的工位才回写"默认工位"（带入值 / DefaultWorkStation 匹配不触发）
+    if (fromUser) NameplatePhotoUpload.persistDefaultStation(stationCode);
+
     if (NameplatePhotoUpload.state.configLoaded) {
       NameplatePhotoUpload.state.configLoaded = false;
       NameplatePhotoUpload.hideResultAreas();
     }
+  },
+
+  /**
+   * 把工位设为默认：调用 Portal 注入的 window.setDefaultWorkStation({ stationCode }, callback)。
+   * 这是"选择工位时唯一需要走的接口"，失败不阻断页面操作（只记录日志），未注入时静默跳过。
+   */
+  persistDefaultStation: function (stationCode) {
+    if (!stationCode) return;
+    if (NameplatePhotoUpload.state.fromKeyPart) return; // 关重件入口工位为带入值，不改默认
+    if (typeof window.setDefaultWorkStation !== "function") return;
+    try {
+      window.setDefaultWorkStation({ stationCode: stationCode }, function (res) {
+        if (res && res.code !== 0) console.warn("[API] setDefaultWorkStation 失败", res);
+        else console.log("[API] setDefaultWorkStation 成功", { stationCode: stationCode });
+      });
+    } catch (err) {
+      console.warn("[API] setDefaultWorkStation 异常", err);
+    }
+  },
+
+  /**
+   * 页面加载时的默认工位：Portal 注入 window.DefaultWorkStation（工位编码）。
+   * 在已加载的工位列表里**按编码精确匹配**，命中才选中；未命中忽略并记录日志。
+   * 优先级低于关重件入口带入的工位（KeyPartStationCode）。
+   */
+  applyDefaultWorkStation: function () {
+    var state = NameplatePhotoUpload.state;
+    var defaultCode = String(window.DefaultWorkStation || "").trim();
+    if (!defaultCode) return;
+    if (state.stationCode) return; // 已有工位（带入或已选）不覆盖
+    if (state.fromKeyPart && String(window.KeyPartStationCode || "").trim()) return; // 关重件带入优先
+
+    var stations = state.stations || [];
+    for (var i = 0; i < stations.length; i++) {
+      if (String(stations[i].stationCode).toUpperCase() === defaultCode.toUpperCase()) {
+        NameplatePhotoUpload.selectStation(stations[i].stationCode, stations[i].stationName);
+        console.log("[Default] 已按 window.DefaultWorkStation 选中工位", stations[i].stationCode);
+        return;
+      }
+    }
+    console.log("[Default] window.DefaultWorkStation 未匹配到工位，忽略", defaultCode);
   },
 
   hideResultAreas: function () {
@@ -744,6 +793,8 @@ var NameplatePhotoUpload = {
           if (full === typedVal) {
             stationCode = state.stations[i].stationCode;
             state.stationCode = stationCode;
+            // 操作员手输完整工位名后查询：同样回写默认工位
+            NameplatePhotoUpload.persistDefaultStation(stationCode);
             $(".input-station-code").val(stationCode);
             break;
           }
@@ -1549,7 +1600,7 @@ var NameplatePhotoUpload = {
 
     // 下拉选项点击（mousedown 先于 document 关闭逻辑）
     $(".form-area").on("mousedown", ".combobox-item", function () {
-      NameplatePhotoUpload.selectStation($(this).data("code"), $(this).data("name"));
+      NameplatePhotoUpload.selectStation($(this).data("code"), $(this).data("name"), true);
     });
 
     // 下拉箭头点击
@@ -1587,7 +1638,7 @@ var NameplatePhotoUpload = {
         if (val) {
           for (var i = 0; i < NameplatePhotoUpload.state.stations.length; i++) {
             if (NameplatePhotoUpload.state.stations[i].stationCode.toUpperCase() === val.toUpperCase()) {
-              NameplatePhotoUpload.selectStation(NameplatePhotoUpload.state.stations[i].stationCode, NameplatePhotoUpload.state.stations[i].stationName);
+              NameplatePhotoUpload.selectStation(NameplatePhotoUpload.state.stations[i].stationCode, NameplatePhotoUpload.state.stations[i].stationName, true);
               break;
             }
           }
