@@ -102,7 +102,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 
 > 改制单解绑的是**同 VIN 对应生产订单**上、与改制单物料类型匹配的 SN；由后端解析生产订单并返回，页面按行内订单执行移除。**物料描述/类型等主数据只从 `keyComponentList` 取**（按 `materialID` 或 `materialNo` 匹配），`removeSnList` 只带标识字段。
 >
-> `查询待更换明细` 的范围：生产单只返回**该生产单**该物料的记录；改制单返回**改制单 + 同 VIN 生产单**该物料的记录（按录入时间倒序由页面展示）。
+> 更换旧件由页面从已加载的 `snList` 本地派生（不调接口）：归属生产单只取生产单该物料的记录；归属改制单取改制 + 同 VIN 生产单该物料的记录；按录入时间倒序展示。
 
 **keyComponentList 每项**
 
@@ -234,10 +234,11 @@ window.KeyComponentChange_Remove(
 { "code": 0, "msg": "ok", "data": { "oldGenealogyID": "GEN-1" } }
 ```
 
-## 查询待移除明细（页面已不使用） / 查询待更换明细
+## 查询待移除明细 / 查询待更换明细（页面均不再使用）
 
 ```js
-// 待移除明细已并入 查询关重件信息 的 removeSnList，页面不再调用本接口（保留协议向后兼容，可废弃）
+// 待移除明细已并入 查询关重件信息 的 removeSnList；待更换明细由页面用已加载的 snList 本地派生
+// （生产单归属只取生产单；改制单归属取改制 + 同 VIN 生产单），页面不再调用这两个接口（保留协议向后兼容，可废弃）
 window.KeyComponentChange_GetRemoveKeyComponentInfo(
   { taskType: "GetRemoveKeyComponentInfo", reported: { wipOrderNo, wipOrderType } }, callback)
 window.KeyComponentChange_GetChangeKeyComponentInfo(

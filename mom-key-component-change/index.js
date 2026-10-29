@@ -61,6 +61,8 @@ var KeyComponentChange = {
   state: {
     // 一次查询得到的订单集合（订单号搜索 1 张；VIN 搜索通常 2 张：改制 + 生产）
     orders: [],
+    // 当前展示/操作的订单（多订单时可人工切换）
+    activeOrderKey: "",
     // "订单号|类型" -> { keyComponentList, snList, removeSnList }
     orderDataMap: {},
     keyComponentList: [],
@@ -265,10 +267,12 @@ var KeyComponentChange = {
     return false;
   },
 
-  /** 解绑按钮：还有待解绑时显示（业务条件与开关取交集） */
+  /** 解绑按钮：当前选中订单为改制单且还有待解绑时显示 */
   updateUnbindButton: function () {
+    var activeOrder = KeyComponentChange.getActiveOrder();
+    var isChangeActive = !!activeOrder && String(activeOrder.wipOrderType) === "2";
     var setting = KeyComponentChange.BUTTON_SWITCH.unbind;
-    var visible = KeyComponentChange.getPendingRemoveQty() > 0 && setting.visible;
+    var visible = isChangeActive && KeyComponentChange.getPendingRemoveQty() > 0 && setting.visible;
     $(".btn-unbind")
       .toggleClass("hidden", !visible)
       .prop("disabled", !setting.permitted)
@@ -324,10 +328,11 @@ var KeyComponentChange = {
     }
     KeyComponentChange.state.orderRequestSequence++;
     var orderRequestSequence = KeyComponentChange.state.orderRequestSequence;
+    var searchPayload = KeyComponentChange.getOrderSearchPayload(searchKey);
     KeyComponentChange.showLoading("查询订单中...");
     KeyComponentChange.apiCall(
       window.KeyComponentChange_GetWipOrderNoInfo,
-      [KeyComponentChange.buildTaskRequest("GetWipOrderNoInfo", KeyComponentChange.getOrderSearchPayload(searchKey))],
+      [KeyComponentChange.buildTaskRequest("GetWipOrderNoInfo", searchPayload)],
       function (res) {
         KeyComponentChange.hideLoading();
         // 过期响应丢弃：连查两单时慢的旧响应不得覆盖新订单
@@ -343,6 +348,21 @@ var KeyComponentChange = {
           return;
         }
         KeyComponentChange.state.orders = orderList;
+        // 默认展示：订单号搜索 → 命中的订单；VIN 搜索 → 改制订单（无则第一张）
+        var activeOrder = null;
+        if (searchPayload.wipOrderNo) {
+          activeOrder =
+            orderList.filter(function (order) {
+              return String(order.wipOrderNo) === String(searchPayload.wipOrderNo);
+            })[0] || null;
+        }
+        if (!activeOrder) {
+          activeOrder =
+            orderList.filter(function (order) {
+              return String(order.wipOrderType) === "2";
+            })[0] || orderList[0];
+        }
+        KeyComponentChange.state.activeOrderKey = KeyComponentChange.buildOrderKey(activeOrder);
         // 换单即清空上一次的关重件数据，避免加载失败或仍在途时旧数据残留（跨订单误提交）
         KeyComponentChange.clearKeyComponentState();
         KeyComponentChange.renderOrderHeader();
@@ -354,16 +374,51 @@ var KeyComponentChange = {
     );
   },
 
-  /** 顶部订单号：集合内所有单号并列（单订单时就是它自己） */
+  /** 顶部订单号：单订单直接展示；多订单渲染切换按钮（当前选中高亮） */
   renderOrderHeader: function () {
     var orders = KeyComponentChange.state.orders;
-    $(".order-no-tag").text(
-      orders
-        .map(function (orderInfo) {
-          return KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType);
-        })
-        .join(" / ")
-    );
+    var activeOrder = KeyComponentChange.getActiveOrder();
+    var $group = $(".order-switch-group").empty();
+    if (orders.length <= 1) {
+      $(".order-no-tag")
+        .removeClass("hidden")
+        .text(activeOrder ? KeyComponentChange.formatOrderNo(activeOrder.wipOrderNo, activeOrder.wipOrderType) : "");
+      $group.addClass("hidden");
+      return;
+    }
+    // 多订单：隐藏单标签，改用切换按钮
+    $(".order-no-tag").addClass("hidden").text("");
+    $group.removeClass("hidden");
+    orders.forEach(function (orderInfo) {
+      var orderKey = KeyComponentChange.buildOrderKey(orderInfo);
+      var $btn = KeyComponentChange.cloneTemplate("template-order-switch-btn");
+      $btn
+        .text(KeyComponentChange.formatOrderNo(orderInfo.wipOrderNo, orderInfo.wipOrderType))
+        .attr("data-order-key", orderKey)
+        .toggleClass("active", orderKey === KeyComponentChange.buildOrderKey(activeOrder));
+      $group.append($btn);
+    });
+  },
+
+  /** 当前展示的订单（找不到时回退第一张） */
+  getActiveOrder: function () {
+    var state = KeyComponentChange.state;
+    var orders = state.orders;
+    if (!orders.length) return null;
+    for (var i = 0; i < orders.length; i++) {
+      if (KeyComponentChange.buildOrderKey(orders[i]) === state.activeOrderKey) return orders[i];
+    }
+    return orders[0];
+  },
+
+  /** 切换展示订单：只影响展示与采集归属，数据仍是全量 */
+  setActiveOrder: function (orderKey) {
+    var state = KeyComponentChange.state;
+    if (!orderKey || orderKey === state.activeOrderKey) return;
+    state.activeOrderKey = orderKey;
+    KeyComponentChange.renderOrderHeader();
+    KeyComponentChange.renderKeyComponentList();
+    KeyComponentChange.focusMaterialInput();
   },
 
   /** 清空订单集合的关重件数据并重绘列表（换单、加载失败时调用） */
@@ -618,25 +673,36 @@ var KeyComponentChange = {
 
   renderKeyComponentList: function () {
     var state = KeyComponentChange.state;
-    var hasOrders = state.orders.length > 0;
-    var groups = KeyComponentChange.groupKeyComponentList(state.keyComponentList, state.serialList);
+    var activeOrder = KeyComponentChange.getActiveOrder();
+    var activeOrderKey = KeyComponentChange.buildOrderKey(activeOrder);
+    var isChangeActive = !!activeOrder && String(activeOrder.wipOrderType) === "2";
+    var groups = KeyComponentChange.groupKeyComponentList(state.keyComponentList, state.serialList).filter(
+      function (group) {
+        return KeyComponentChange.buildOrderKey(group) === activeOrderKey;
+      }
+    );
+    var activeComponents = state.keyComponentList.filter(function (component) {
+      return KeyComponentChange.buildOrderKey(component) === activeOrderKey;
+    });
+    var activeSerials = state.serialList.filter(function (serial) {
+      return KeyComponentChange.buildOrderKey(serial) === activeOrderKey;
+    });
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    // 需采集数量：本次维持现状（合并剩余值），后续单独定口径
-    var requiredQuantity = KeyComponentChange.sumMaterialQty(state.keyComponentList);
-    var collectedQuantity = state.serialList.length;
-    var pendingRemoveQty = KeyComponentChange.getPendingRemoveQty();
+    // 需采集数量：当前选中订单的剩余值
+    var requiredQuantity = KeyComponentChange.sumMaterialQty(activeComponents);
+    var collectedQuantity = activeSerials.length;
+    var pendingRemoveQty = isChangeActive ? KeyComponentChange.getPendingRemoveQty() : 0;
     $(".collect-quantity-tag").text(
-      hasOrders ? Math.max(0, requiredQuantity - collectedQuantity - pendingRemoveQty) : ""
+      activeOrder ? Math.max(0, requiredQuantity - collectedQuantity - pendingRemoveQty) : ""
     );
-    // 需解绑数量：还有待解绑时显示条数（按需解绑，无待解绑不占位）
+    // 需解绑数量：当前选中订单为改制单且有待解绑时显示
     $(".remove-quantity-tag").text(pendingRemoveQty);
-    $(".remove-quantity-row").toggleClass("hidden", !hasOrders || pendingRemoveQty === 0);
+    $(".remove-quantity-row").toggleClass("hidden", !isChangeActive || pendingRemoveQty === 0);
 
     groups.forEach(function (group) {
       var $card = KeyComponentChange.cloneTemplate("template-key-component-card");
-      $card.find(".key-component-order-tag").text(KeyComponentChange.getOrderTypeLabel(group.wipOrderType));
       $card.find(".key-component-material-no").text(group.materialNo);
       $card.find(".key-component-material-desc").text(group.materialDesc);
       $card.find(".key-component-material-type").text(group.materialType).toggleClass("hidden", !group.materialType);
@@ -811,34 +877,19 @@ var KeyComponentChange = {
    * 返回 { orderInfo, components, isFull }；集合内没有该物料返回 null。
    */
   resolveScanOwner: function (materialNo) {
-    var matchedComponents = KeyComponentChange.findMatchedComponents(materialNo);
-    if (!matchedComponents.length) return null;
-    var orders = KeyComponentChange.state.orders;
-    var orderedOrders = orders
-      .filter(function (orderInfo) {
-        return String(orderInfo.wipOrderType) === "2";
-      })
-      .concat(
-        orders.filter(function (orderInfo) {
-          return String(orderInfo.wipOrderType) !== "2";
-        })
-      );
-    var candidates = [];
-    orderedOrders.forEach(function (orderInfo) {
-      var orderKey = KeyComponentChange.buildOrderKey(orderInfo);
-      var components = matchedComponents.filter(function (component) {
-        return KeyComponentChange.buildOrderKey(component) === orderKey;
-      });
-      if (components.length) candidates.push({ orderInfo: orderInfo, components: components });
+    var activeOrder = KeyComponentChange.getActiveOrder();
+    if (!activeOrder) return null;
+    var activeOrderKey = KeyComponentChange.buildOrderKey(activeOrder);
+    var components = KeyComponentChange.findMatchedComponents(materialNo).filter(function (component) {
+      return KeyComponentChange.buildOrderKey(component) === activeOrderKey;
     });
-    if (!candidates.length) return null;
-    for (var i = 0; i < candidates.length; i++) {
-      var quantityState = KeyComponentChange.getMaterialQuantityState(candidates[i].components);
-      if (quantityState.collectedQuantity < quantityState.requiredQuantity) {
-        return { orderInfo: candidates[i].orderInfo, components: candidates[i].components, isFull: false };
-      }
-    }
-    return { orderInfo: candidates[0].orderInfo, components: candidates[0].components, isFull: true };
+    if (!components.length) return null;
+    var quantityState = KeyComponentChange.getMaterialQuantityState(components);
+    return {
+      orderInfo: activeOrder,
+      components: components,
+      isFull: quantityState.collectedQuantity >= quantityState.requiredQuantity,
+    };
   },
 
   /**
@@ -895,18 +946,26 @@ var KeyComponentChange = {
       );
       return;
     }
+    var activeOrder = KeyComponentChange.getActiveOrder();
     var matchedComponents = KeyComponentChange.findMatchedComponents(parsedQrCode.materialNo);
     if (!matchedComponents.length) {
       KeyComponentChange.showToast("提示", parsedQrCode.materialNo + " 不是本订单关重件", "error");
+      return;
+    }
+    var activeComponents = matchedComponents.filter(function (component) {
+      return KeyComponentChange.buildOrderKey(component) === KeyComponentChange.buildOrderKey(activeOrder);
+    });
+    if (!activeComponents.length) {
+      KeyComponentChange.showToast("提示", "当前展示订单无此关重件，请切换订单", "error");
       return;
     }
     if (KeyComponentChange.isSerialCollected(parsedQrCode.serialNo)) {
       KeyComponentChange.showToast("提示", "该序列号已采集", "error");
       return;
     }
-    // 按物料类型卡控：该类型还有待解绑 → 跳到解绑页（只列该类型），解完自动返回
-    var materialType = matchedComponents[0].materialType;
-    if (KeyComponentChange.hasPendingRemoveOfType(materialType)) {
+    // 按物料类型卡控（仅改制单）：该类型还有待解绑 → 跳到解绑页（只列该类型），解完自动返回
+    var materialType = activeComponents[0].materialType;
+    if (String(activeOrder.wipOrderType) === "2" && KeyComponentChange.hasPendingRemoveOfType(materialType)) {
       var pendingQty = KeyComponentChange.getPendingRemoveQtyByType(materialType);
       KeyComponentChange.showToast(
         "提示",
@@ -1104,6 +1163,7 @@ var KeyComponentChange = {
   resetCheckSession: function () {
     var state = KeyComponentChange.state;
     state.orders = [];
+    state.activeOrderKey = "";
     state.orderDataMap = {};
     state.keyComponentList = [];
     state.serialList = [];
@@ -1116,6 +1176,7 @@ var KeyComponentChange = {
     state.orderRequestSequence++;
     state.keyComponentRequestSequence++;
     $(".order-no-tag").text("");
+    $(".order-switch-group").empty().addClass("hidden");
     $(".input-order-key").val("");
     $(".input-material-qr").val("");
     $(".key-component-list .key-component-card").remove();
@@ -1247,30 +1308,65 @@ var KeyComponentChange = {
     KeyComponentChange.loadChangeRecordList();
   },
 
-  loadChangeRecordList: function () {
+  /**
+   * 更换旧件列表：不再调接口，直接由已加载的采集记录派生。
+   * 归属生产单 → 只取生产单记录；归属改制单 → 取改制 + 同 VIN 生产单记录；
+   * 按物料（materialID 或 materialNo）+ materialSeq 过滤，录入时间倒序在渲染时排序。
+   */
+  buildChangeRecordList: function () {
     var state = KeyComponentChange.state;
     var pendingScan = state.pendingScan;
-    if (!pendingScan) return;
-    KeyComponentChange.showLoading("加载更换明细中...");
-    KeyComponentChange.apiCall(
-      window.KeyComponentChange_GetChangeKeyComponentInfo,
-      [
-        KeyComponentChange.buildTaskRequest("GetChangeKeyComponentInfo", {
-          wipOrderNo: pendingScan.wipOrderNo,
-          wipOrderType: pendingScan.wipOrderType,
-          materialNo: pendingScan.materialNo,
-          materialSeq: KeyComponentChange.normalizeMaterialSequence(pendingScan.materialSeq),
-        }),
-      ],
-      function (res) {
-        KeyComponentChange.hideLoading();
-        if (res.code !== 0) {
-          KeyComponentChange.showToast("加载失败", res.msg || "获取更换明细失败", "error");
-          return;
-        }
-        KeyComponentChange.renderChangeRecordList(Array.isArray(res.data) ? res.data : []);
+    if (!pendingScan) return [];
+    var ownerOrder = KeyComponentChange.findOrder(pendingScan.wipOrderNo, pendingScan.wipOrderType);
+    var ownerIsChange = !!ownerOrder && String(ownerOrder.wipOrderType) === "2";
+    var ownerKey = KeyComponentChange.buildOrderKey(ownerOrder);
+    var components = state.keyComponentList.filter(function (component) {
+      return (
+        component.materialNo === pendingScan.materialNo && KeyComponentChange.buildOrderKey(component) === ownerKey
+      );
+    });
+    if (!components.length) return [];
+    var materialIds = components.map(function (component) {
+      return String(component.materialID);
+    });
+    var materialNo = pendingScan.materialNo;
+    var sequence = KeyComponentChange.normalizeMaterialSequence(pendingScan.materialSeq);
+    var records = state.serialList.filter(function (serial) {
+      // 订单范围：生产单归属只取生产单；改制单归属取改制 + 生产单
+      if (ownerIsChange) {
+        if (String(serial.wipOrderType) !== "1" && String(serial.wipOrderType) !== "2") return false;
+      } else if (String(serial.wipOrderType) !== "1") {
+        return false;
       }
-    );
+      // 物料匹配：materialID 命中，或该 materialID 对应配置的 materialNo 命中
+      if (materialIds.indexOf(String(serial.materialID)) === -1) {
+        var component = state.keyComponentList.filter(function (item) {
+          return String(item.materialID) === String(serial.materialID);
+        })[0];
+        if (!component || component.materialNo !== materialNo) return false;
+      }
+      // 位置匹配（"1"/"2" 时按位置过滤）
+      if ((sequence === "1" || sequence === "2") && String(serial.materialSeq || "") !== sequence) return false;
+      return true;
+    });
+    return records.map(function (serial) {
+      var order = KeyComponentChange.findOrder(serial.wipOrderNo, serial.wipOrderType);
+      return {
+        wipOrderNo: serial.wipOrderNo,
+        wipOrderType: serial.wipOrderType,
+        vin: order ? order.vin : "",
+        serialNo: serial.serialNo,
+        materialID: serial.materialID,
+        materialNo: materialNo,
+        scanTime: serial.scanTime,
+      };
+    });
+  },
+
+  loadChangeRecordList: function () {
+    var pendingScan = KeyComponentChange.state.pendingScan;
+    if (!pendingScan) return;
+    KeyComponentChange.renderChangeRecordList(KeyComponentChange.buildChangeRecordList());
   },
 
   renderChangeRecordList: function (recordList) {
@@ -1658,6 +1754,9 @@ var KeyComponentChange = {
     $(".key-component-check-view").on("click", ".btn-delete-serial", function () {
       if (!KeyComponentChange.ensureButtonPermitted("deleteSerial")) return;
       KeyComponentChange.removeSerial($(this).closest(".serial-row").data("serial"));
+    });
+    $(".key-component-check-view").on("click", ".order-switch-btn", function () {
+      KeyComponentChange.setActiveOrder($(this).attr("data-order-key"));
     });
     $(".key-component-check-view").on("click", ".btn-unbind", function () {
       KeyComponentChange.enterRemoveView();

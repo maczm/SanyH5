@@ -189,6 +189,31 @@ body {
   color: var(--text-secondary);
   letter-spacing: 0.2px;
 }
+/* 多订单切换：只显示所选订单 */
+.mom-key-component-change .order-switch-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.mom-key-component-change .order-switch-btn {
+  border: 1px solid var(--border-color);
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mom-key-component-change .order-switch-btn.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
+  font-weight: 600;
+}
 .mom-key-component-change .info-tag {
   background: var(--primary-bg);
   color: var(--primary-dark);
@@ -286,17 +311,7 @@ body {
   align-items: flex-start;
   gap: 8px;
 }
-/* 卡片归属订单徽章：只展示「生产订单/改制订单」，与数量同一行，不另起一行 */
-.mom-key-component-change .key-component-order-tag {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--bg-btn-secondary);
-  border-radius: 6px;
-  padding: 2px 6px;
-  white-space: nowrap;
-}
-/* 标题两行：物料编码 + 描述；右侧竖列（订单徽章+数量 / 类型）右对齐 */
+/* 标题两行：物料编码 + 描述；右侧竖列（数量 / 类型）右对齐 */
 .mom-key-component-change .key-component-title {
   flex: 1;
   min-width: 0;
@@ -330,11 +345,6 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
-}
-.mom-key-component-change .key-component-side-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .mom-key-component-change .key-component-material-type {
   flex-shrink: 0;
