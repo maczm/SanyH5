@@ -638,7 +638,7 @@ var KeyComponentChange = {
       var $card = KeyComponentChange.cloneTemplate("template-key-component-card");
       $card
         .find(".key-component-order-tag")
-        .text(KeyComponentChange.formatOrderNo(group.wipOrderNo, group.wipOrderType));
+        .text(KeyComponentChange.getOrderTypeLabel(group.wipOrderType));
       $card.find(".key-component-material-no").text(group.materialNo);
       $card.find(".key-component-material-desc").text(group.materialDesc);
       $card.find(".key-component-material-type").text(group.materialType).toggleClass("hidden", !group.materialType);
