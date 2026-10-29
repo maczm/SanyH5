@@ -38,16 +38,15 @@ var mockOrderDataMap = {
     productDesc: "8x4 搅拌车底盘",
     vin: "LSVU2A0N260800002",
     factoryCode: "FAC-0002",
+    // 改制单的负数 = 需解绑数量：电机 -1×2 + 减件 -1，合计 -3，与 removeSnList 3 条对应
     keyComponentList: [
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
-      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: 1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: -1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
+      { materialID: 3001, materialNo: "MAT-MOTOR-011", materialDesc: "永磁体同步电机", materialQty: -1, uomCode: "EA", materialType: "永磁体同步电机", materialSeq: "1" },
       { materialID: 3002, materialNo: "MAT-BOX-012", materialDesc: "变速箱总成", materialQty: 1, uomCode: "EA", materialType: "关重件", materialSeq: "3" },
-      // 改制单减件：数量为负数，解绑后由后端回到 0（页面按原值显示 0/-1 → 0/0）
       { materialID: 3003, materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialQty: -1, uomCode: "EA", materialType: "改制减件", materialSeq: null },
     ],
-    snList: [
-      { serialNo: "SN-MOTOR-B1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-24 10:00:00" },
-    ],
+    // 013 为「只解绑」场景：无已采新件，卡片按负数显示 0/-N
+    snList: [],
     removeSnList: [
       { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-011", materialSeq: "1", scanTime: "2026-08-20 08:30:00" },
       { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-011", materialSeq: "2", scanTime: "2026-08-21 09:15:00" },
@@ -244,11 +243,14 @@ if (typeof window.KeyComponentChange_Remove != "function") {
       });
       // 模拟后端：解绑后该组件负数数量 +1（如 -1 → 0）
       if (removedRecord && ownerOrder) {
-        (ownerOrder.keyComponentList || []).forEach(function (component) {
+        var componentList = ownerOrder.keyComponentList || [];
+        for (var i = 0; i < componentList.length; i++) {
+          var component = componentList[i];
           if (component.materialNo === removedRecord.materialNo && Number(component.materialQty) < 0) {
             component.materialQty = Number(component.materialQty) + 1;
+            break;
           }
-        });
+        }
       }
       if (!window.__keyComponentMockRemoved) window.__keyComponentMockRemoved = [];
       window.__keyComponentMockRemoved.push(reported);
