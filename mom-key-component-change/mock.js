@@ -190,32 +190,6 @@ if (typeof window.KeyComponentChange_GetKeyComponentInfo != "function") {
   };
 }
 
-// -- Mock API 3：校验并保存（序列号以 CHG- 开头模拟需更换） --
-if (typeof window.KeyComponentChange_CheckAndSave != "function") {
-  window.KeyComponentChange_CheckAndSave = function (request, callback) {
-    var reported = (request && request.reported) || {};
-    recordMockRequest("CheckAndSave", reported);
-    setTimeout(function () {
-      if (String(reported.serialNo || "").indexOf("CHG-") === 0) {
-        callback({ code: 0, msg: "ok", data: { isChange: "1" } });
-        return;
-      }
-      var orderData = findMockOrderData(reported);
-      if (orderData) {
-        orderData.snList.push({
-          serialNo: reported.serialNo,
-          materialID: reported.materialID,
-          materialSeq: reported.materialSeq,
-          scanTime: currentMockTime(),
-        });
-      }
-      if (!window.__keyComponentMockSaved) window.__keyComponentMockSaved = [];
-      window.__keyComponentMockSaved.push({ taskType: "CheckAndSave", reported: reported });
-      callback({ code: 0, msg: "ok", data: { isChange: "0" } });
-    }, MOCK_DELAY);
-  };
-}
-
 // -- Mock API 4：移除关重件（删除已采序列号 / 解绑待解绑旧件） --
 if (typeof window.KeyComponentChange_Remove != "function") {
   window.KeyComponentChange_Remove = function (request, callback) {
@@ -268,32 +242,36 @@ if (typeof window.KeyComponentChange_Save != "function") {
     recordMockRequest("Save", reported);
     setTimeout(function () {
       var orderData = findMockOrderData(reported);
+      // oldGenealogyID 为空 = 正常采集（不替换旧件）；有值 = 替换
+      var isReplace = !!(reported.oldGenealogyID && String(reported.oldGenealogyID) !== "");
       if (orderData) {
-        var materialIds = [];
-        var requiredQuantity = 0;
-        orderData.keyComponentList.forEach(function (component) {
-          if (component.materialNo === reported.materialNo) {
-            materialIds.push(component.materialID);
-            requiredQuantity += Number(component.materialQty) || 0;
-          }
-        });
-        var collectedSerialList = orderData.snList.filter(function (serial) {
-          return materialIds.indexOf(serial.materialID) !== -1;
-        });
-        // 更换：优先置换同位置（同 materialSeq）的旧件，位置明确时才替换对应前/后电机
-        var sequenceText = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
-        var sameSequenceSerialList = collectedSerialList.filter(function (serial) {
-          var serialSequenceText = serial.materialSeq === null || serial.materialSeq === undefined ? "" : String(serial.materialSeq);
-          return sequenceText !== "" && serialSequenceText === sequenceText;
-        });
-        var replacedSerialList = sameSequenceSerialList.length
-          ? sameSequenceSerialList
-          : (collectedSerialList.length >= requiredQuantity ? [collectedSerialList[0]] : []);
-        replacedSerialList.forEach(function (replacedSerial) {
-          orderData.snList = orderData.snList.filter(function (serial) {
-            return serial.serialNo !== replacedSerial.serialNo;
+        if (isReplace) {
+          var materialIds = [];
+          var requiredQuantity = 0;
+          orderData.keyComponentList.forEach(function (component) {
+            if (component.materialNo === reported.materialNo) {
+              materialIds.push(component.materialID);
+              requiredQuantity += Number(component.materialQty) || 0;
+            }
           });
-        });
+          var collectedSerialList = orderData.snList.filter(function (serial) {
+            return materialIds.indexOf(serial.materialID) !== -1;
+          });
+          // 更换：优先置换同位置（同 materialSeq）的旧件，位置明确时才替换对应前/后电机
+          var sequenceText = reported.materialSeq === null || reported.materialSeq === undefined ? "" : String(reported.materialSeq);
+          var sameSequenceSerialList = collectedSerialList.filter(function (serial) {
+            var serialSequenceText = serial.materialSeq === null || serial.materialSeq === undefined ? "" : String(serial.materialSeq);
+            return sequenceText !== "" && serialSequenceText === sequenceText;
+          });
+          var replacedSerialList = sameSequenceSerialList.length
+            ? sameSequenceSerialList
+            : (collectedSerialList.length >= requiredQuantity ? [collectedSerialList[0]] : []);
+          replacedSerialList.forEach(function (replacedSerial) {
+            orderData.snList = orderData.snList.filter(function (serial) {
+              return serial.serialNo !== replacedSerial.serialNo;
+            });
+          });
+        }
         orderData.snList.push({
           serialNo: reported.serialNo,
           materialID: reported.materialID,

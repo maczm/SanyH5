@@ -148,59 +148,6 @@ window.KeyComponentChange_GetKeyComponentInfo(
 } }
 ```
 
-## 校验并保存扫描件
-
-```js
-window.KeyComponentChange_CheckAndSave(
-  { taskType: "CheckAndSave", reported: { wipOrderNo, wipOrderType, vin, productID, productNo, productDesc,
-    materialID, materialNo, materialDesc, materialSeq, serialNo, materialQty,
-    uomCode, partner, inputType, inputCode } }, callback)
-```
-
-**入参** `reported`
-
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `wipOrderNo` | string | 是 | 本次扫描物料**归属订单**的订单号（集合内可能为生产订单或改制订单；缺省按当前单） |
-| `wipOrderType` | number | 是 | 归属订单类型（1=生产订单，2=改制订单） |
-| `vin` | string | 是 | 归属订单的 VIN |
-| `productID` | number | 是 | 归属订单的订单物料 ID（查询订单信息 orderList 对应项） |
-| `productNo` | string | 是 | 归属订单的订单物料编码 |
-| `productDesc` | string | 是 | 归属订单的订单物料描述 |
-| `materialID` | number | 是 | 关重件物料 ID（查询关重件信息 配置条目） |
-| `materialNo` | string | 是 | 关重件物料编码（二维码第一段） |
-| `materialDesc` | string | 是 | 关重件物料描述（查询关重件信息 配置条目） |
-| `materialSeq` | string | 是 | 关重件序号（**字符串**：`"1"`=前电机，`"2"`=后电机，`""`=其它；配置值为 `null`/`undefined` 时上报 `""`） |
-| `serialNo` | string | 是 | 关重件序列号（二维码第三段冒号前部分，零件级） |
-| `materialQty` | number | 是 | 关重件数量（二维码第三段 `:数量`；不带数量时按 `1` 上报；数量之后的多余 `:` 段忽略，不上报） |
-| `uomCode` | string | 是 | 单位（查询关重件信息 配置条目） |
-| `partner` | string | 是 | 供应商（二维码第二段） |
-| `inputType` | number | 是 | 输入方式：`0`=手输，`1`=扫码 |
-| `inputCode` | number | 是 | 输入键位：回车 `13`，鼠标左键点击 `1` |
-
-**出参** `data`
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `isChange` | string | `"1"` = 走更换流程（页面跳视图3，本次不保存）；其它值 = 后台已保存 |
-
-**请求/响应示例**
-
-```jsonc
-// 采集归属生产单 014 的变速箱
-{ "taskType": "CheckAndSave", "reported": {
-    "wipOrderNo": "184000000014", "wipOrderType": 1, "vin": "LSVU2A0N260800003",
-    "productID": 9004, "productNo": "MAT-HOST-004", "productDesc": "8x4 牵引车底盘",
-    "materialID": 4003, "materialNo": "MAT-BOX-023", "materialDesc": "变速箱总成", "materialSeq": "3",
-    "serialNo": "SN-BOX-NEW-1", "materialQty": 1, "uomCode": "EA", "partner": "供应商A",
-    "inputType": 0, "inputCode": 13 } }
-
-// 已保存
-{ "code": 0, "msg": "ok", "data": { "isChange": "0" } }
-// 需走更换（页面跳视图3）
-{ "code": 0, "msg": "ok", "data": { "isChange": "1" } }
-```
-
 ## 移除关重件
 
 ```js
@@ -284,32 +231,58 @@ window.KeyComponentChange_GetChangeKeyComponentInfo(
 { "code": 0, "msg": "ok", "data": [ /* 结构同上 */ ] }
 ```
 
-## 保存新关重件（带被替换旧件 ID）
+## 保存扫描件（正常采集 / 替换共用）
 
 ```js
 window.KeyComponentChange_Save(
-  { taskType: "Save", reported: { ...同「校验并保存扫描件」全部字段, oldGenealogyID } }, callback)
+  { taskType: "Save", reported: { wipOrderNo, wipOrderType, vin, productID, productNo, productDesc,
+    materialID, materialNo, materialDesc, materialSeq, serialNo, materialQty,
+    uomCode, partner, inputType, inputCode, oldGenealogyID } }, callback)
 ```
 
-**入参** `reported`：「校验并保存扫描件」全部字段 + 下表字段。
+**入参** `reported`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `oldGenealogyID` | string | 是 | 被替换旧件的 ID（移除关重件 返回） |
+| `wipOrderNo` | string | 是 | 本次扫描物料**归属订单**的订单号 |
+| `wipOrderType` | number | 是 | 归属订单类型（1=生产订单，2=改制订单） |
+| `vin` | string | 是 | 归属订单的 VIN |
+| `productID` | number | 是 | 归属订单的订单物料 ID（查询订单信息 orderList 对应项） |
+| `productNo` | string | 是 | 归属订单的订单物料编码 |
+| `productDesc` | string | 是 | 归属订单的订单物料描述 |
+| `materialID` | number | 是 | 关重件物料 ID（查询关重件信息 配置条目） |
+| `materialNo` | string | 是 | 关重件物料编码（二维码第一段） |
+| `materialDesc` | string | 是 | 关重件物料描述（查询关重件信息 配置条目） |
+| `materialSeq` | string | 是 | 关重件序号（**字符串**：`"1"`=前电机，`"2"`=后电机，`""`=其它） |
+| `serialNo` | string | 是 | 关重件序列号（二维码第三段冒号前部分，零件级） |
+| `materialQty` | number | 是 | 关重件数量（不带 `:数量` 时按 `1`；多余 `:` 段忽略） |
+| `uomCode` | string | 是 | 单位（查询关重件信息 配置条目） |
+| `partner` | string | 是 | 供应商（二维码第二段） |
+| `inputType` | number | 是 | 输入方式：`0`=手输，`1`=扫码 |
+| `inputCode` | number | 是 | 输入键位：回车 `13`，鼠标左键点击 `1` |
+| `oldGenealogyID` | string | 否 | **可空**：空 = 正常采集入库；有值 = 替换（`移除关重件` 返回的 `oldGenealogyID`） |
 
 **出参**：仅 `code`、`msg`，`data` 为 `null`。
 
 **请求/响应示例**
 
 ```jsonc
-// 移除旧件后保存新件（reported = 校验并保存扫描件 全字段 + oldGenealogyID）
+// 正常采集：oldGenealogyID 传空
+{ "taskType": "Save", "reported": {
+    "wipOrderNo": "184000000014", "wipOrderType": 1, "vin": "LSVU2A0N260800003",
+    "productID": 9004, "productNo": "MAT-HOST-004", "productDesc": "8x4 牵引车底盘",
+    "materialID": 4003, "materialNo": "MAT-BOX-023", "materialDesc": "变速箱总成", "materialSeq": "3",
+    "serialNo": "SN-BOX-NEW-1", "materialQty": 1, "uomCode": "EA", "partner": "供应商A",
+    "inputType": 0, "inputCode": 13, "oldGenealogyID": "" } }
+{ "code": 0, "msg": "ok", "data": null }
+
+// 替换：先 移除关重件 拿到 oldGenealogyID，再保存
 { "taskType": "Save", "reported": {
     "wipOrderNo": "184000000013", "wipOrderType": 2, "vin": "LSVU2A0N260800002",
     "productID": 9002, "productNo": "MAT-HOST-002", "productDesc": "8x4 搅拌车底盘",
     "materialID": 3001, "materialNo": "MAT-MOTOR-011", "materialDesc": "永磁体同步电机",
     "materialSeq": "1", "serialNo": "CHG-M3", "materialQty": 1, "uomCode": "EA",
     "partner": "供应商B", "inputType": 0, "inputCode": 13, "oldGenealogyID": "GEN-1" } }
-
 { "code": 0, "msg": "ok", "data": null }
 ```
 

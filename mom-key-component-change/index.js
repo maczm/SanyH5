@@ -1,5 +1,5 @@
 // ============== 关重件更换（更换主页 + 移除页 + 更换页 + VIN更换页 四视图） ==============
-// 数据来源：Portal 注入的 window.KeyComponentChange_* 九个接口（callback 风格，
+// 数据来源：Portal 注入的 window.KeyComponentChange_* 六个在用接口（callback 风格，
 // 信封 { code, msg, data }，code 0 为成功），入参统一 { taskType, reported }。
 // 本地开发由同目录 mock.js 兜底（生产不部署，Portal 只取 index.html / index.js / index.css）。
 
@@ -1044,7 +1044,8 @@ var KeyComponentChange = {
       ownerOrder,
       matchedComponents
     );
-    KeyComponentChange.submitCheckAndSave();
+    // 正常采集：oldGenealogyID 传空（后端按普通入库处理）
+    KeyComponentChange.submitSaveNewKeyComponent("");
   },
 
   /** 该关重件已采集满：本次扫描不再直接入库，直接进入更换页由操作员指定被替换的旧件 */
@@ -1060,7 +1061,7 @@ var KeyComponentChange = {
     KeyComponentChange.enterChangeView();
   },
 
-  /** CheckAndSave / Save 共用报文字段（归属订单 + 本次扫描的关重件；vin=订单VIN，serialNo=零件序列号） */
+  /** 保存报文字段（归属订单 + 本次扫描的关重件；vin=订单VIN，serialNo=零件序列号） */
   buildCheckReported: function (pendingScan) {
     return {
       wipOrderNo: pendingScan.wipOrderNo,
@@ -1082,26 +1083,23 @@ var KeyComponentChange = {
     };
   },
 
-  submitCheckAndSave: function () {
+  /** 保存扫描件：正常采集传空 oldGenealogyID；替换传 Remove 返回的 oldGenealogyID */
+  submitSaveNewKeyComponent: function (oldGenealogyID) {
     var state = KeyComponentChange.state;
-    if (state.isSubmitting) return;
+    if (state.isSubmitting || !state.pendingScan) return;
     state.isSubmitting = true;
     var reported = KeyComponentChange.buildCheckReported(state.pendingScan);
+    reported.oldGenealogyID = oldGenealogyID || "";
     KeyComponentChange.showLoading("提交中...");
     KeyComponentChange.apiCall(
-      window.KeyComponentChange_CheckAndSave,
-      [KeyComponentChange.buildTaskRequest("CheckAndSave", reported)],
+      window.KeyComponentChange_Save,
+      [KeyComponentChange.buildTaskRequest("Save", reported)],
       function (res) {
         state.isSubmitting = false;
         KeyComponentChange.hideLoading();
         if (res.code !== 0) {
           state.pendingScan = null;
           KeyComponentChange.showToast("提交失败", res.msg || "保存关重件失败", "error");
-          return;
-        }
-        // isChange = 1：本次不保存，保留 pendingScan 进入更换页由操作员指定被替换的旧件
-        if (String((res.data || {}).isChange) === "1") {
-          KeyComponentChange.enterChangeView();
           return;
         }
         state.pendingScan = null;
