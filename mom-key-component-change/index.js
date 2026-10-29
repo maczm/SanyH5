@@ -754,9 +754,11 @@ var KeyComponentChange = {
 
     $(".key-component-list .key-component-card").remove();
     $(".empty-key-component").toggleClass("hidden", groups.length > 0);
-    // 需采集数量：当前选中订单的剩余值
+    // 需采集数量：当前选中订单的剩余值（已采只统计配置内物料，忽略历史/非配置序列号）
     var requiredQuantity = KeyComponentChange.sumMaterialQty(activeComponents);
-    var collectedQuantity = activeSerials.length;
+    var collectedQuantity = groups.reduce(function (total, group) {
+      return total + group.serialList.length;
+    }, 0);
     var pendingRemoveQty = isChangeActive ? KeyComponentChange.getPendingRemoveQty() : 0;
     $(".collect-quantity-tag").text(
       activeOrder ? Math.max(0, requiredQuantity - collectedQuantity - pendingRemoveQty) : ""
