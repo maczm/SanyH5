@@ -111,7 +111,7 @@ window.KeyComponentChange_GetKeyComponentInfo(
 | `materialID` | number | 关重件物料 ID（`snList` 按此字段归属） |
 | `materialNo` | string | 关重件物料编码 |
 | `materialDesc` | string | 关重件物料描述 |
-| `materialQty` | number | 关重件物料数量（该物料需采集总数；**改制单可为负数**，如 `-1` 表示需移除，解绑后由后端回到 `0`） |
+| `materialQty` | number | 关重件物料数量（该物料需采集总数；**改制单可为负数**，如 `-1` 表示需移除；**配置数量固定**，解绑只减少已采 SN，不回填该值） |
 | `uomCode` | string | 单位 |
 | `materialType` | string | 关重件类型 |
 | `materialSeq` | string | 关重件序号（配置值，**字符串**：`"1"`=前电机，`"2"`=后电机，null=不显示类型描述） |

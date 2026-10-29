@@ -46,8 +46,13 @@ var mockOrderDataMap = {
       { materialID: 3004, materialNo: "MAT-BOX-OLD-33", materialDesc: "变速箱总成（旧）", materialQty: -1, uomCode: "EA", materialType: "关重件", materialSeq: null },
       { materialID: 3003, materialNo: "MAT-NEG-031", materialDesc: "改制减件", materialQty: -1, uomCode: "EA", materialType: "改制减件", materialSeq: null },
     ],
-    // 013 为「只解绑」场景：无已采新件，卡片按负数显示 0/-N
-    snList: [],
+    // 013 为「只解绑」场景：待解绑旧件同时是已采 SN；解绑后已采 1/-1 → 0/-1，配置负数不变
+    snList: [
+      { serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialSeq: "1", scanTime: "2026-08-20 08:30:00" },
+      { serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialSeq: "2", scanTime: "2026-08-21 09:15:00" },
+      { serialNo: "SN-BOX-OLD-1", materialID: 3004, materialSeq: null, scanTime: "2026-08-21 10:30:00" },
+      { serialNo: "SN-NEG-OLD-1", materialID: 3003, materialSeq: null, scanTime: "2026-08-21 10:00:00" },
+    ],
     removeSnList: [
       { wipOrderNo: "184000000001", wipOrderType: 1, vin: "LSVU2A0N260800009", serialNo: "SN-MOTOR-OLD-1", materialID: 3001, materialNo: "MAT-MOTOR-OLD-11", materialSeq: "1", scanTime: "2026-08-20 08:30:00" },
       { wipOrderNo: "184000000002", wipOrderType: 1, vin: "LSVU2A0N260800010", serialNo: "SN-MOTOR-OLD-2", materialID: 3001, materialNo: "MAT-MOTOR-OLD-12", materialSeq: "2", scanTime: "2026-08-21 09:15:00" },
@@ -279,12 +284,13 @@ if (typeof window.KeyComponentChange_Remove != "function") {
     var reported = (request && request.reported) || {};
     recordMockRequest("Remove", reported);
     setTimeout(function () {
-      var orderData = findMockOrderData(reported);
-      if (orderData) {
-        orderData.snList = orderData.snList.filter(function (serial) {
+      // 移除旧件：从所有订单的已采清单移除该序列号（同一物理件可能挂多张单）
+      Object.keys(mockOrderDataMap).forEach(function (orderNo) {
+        var order = mockOrderDataMap[orderNo];
+        order.snList = order.snList.filter(function (serial) {
           return serial.serialNo !== reported.serialNo;
         });
-      }
+      });
       // 待解绑清单：从所有订单的 removeSnList 中移除该旧件；记录所属订单用于负数数量回填
       var removedRecord = null;
       var ownerOrder = null;
@@ -300,17 +306,7 @@ if (typeof window.KeyComponentChange_Remove != "function") {
           return record.serialNo !== reported.serialNo;
         });
       });
-      // 模拟后端：解绑后该组件负数数量 +1（如 -1 → 0）
-      if (removedRecord && ownerOrder) {
-        var componentList = ownerOrder.keyComponentList || [];
-        for (var i = 0; i < componentList.length; i++) {
-          var component = componentList[i];
-          if (String(component.materialID) === String(removedRecord.materialID) && Number(component.materialQty) < 0) {
-            component.materialQty = Number(component.materialQty) + 1;
-            break;
-          }
-        }
-      }
+      // 配置数量固定不变：解绑只减少已采 SN，不回填 materialQty
       if (!window.__keyComponentMockRemoved) window.__keyComponentMockRemoved = [];
       window.__keyComponentMockRemoved.push(reported);
       callback({ code: 0, msg: "ok", data: { oldGenealogyID: "GEN-" + window.__keyComponentMockRemoved.length } });
