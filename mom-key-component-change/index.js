@@ -843,6 +843,36 @@ var KeyComponentChange = {
     return { orderInfo: candidates[0].orderInfo, components: candidates[0].components, isFull: true };
   },
 
+  /**
+   * 是否替换（决定「正常保存」还是「先弹替换界面」）：
+   * - 生产单：该单该物料已采完 → 是；
+   * - 改制单：该物料已采完，或未采完但同 VIN 生产单该物料存在已采 SN（active）→ 是。
+   */
+  isReplaceMaterial: function (ownerOrder, components) {
+    var quantityState = KeyComponentChange.getMaterialQuantityState(components);
+    if (quantityState.collectedQuantity >= quantityState.requiredQuantity) return true;
+    if (!ownerOrder || String(ownerOrder.wipOrderType) !== "2") return false;
+    return KeyComponentChange.hasProductionActiveSerial(components);
+  },
+
+  /** 同 VIN 生产单上该物料是否已有已采 SN（按 materialID 或 materialNo 匹配） */
+  hasProductionActiveSerial: function (components) {
+    var materialIds = components.map(function (component) {
+      return String(component.materialID);
+    });
+    var materialNos = components.map(function (component) {
+      return component.materialNo;
+    });
+    return KeyComponentChange.state.serialList.some(function (serial) {
+      if (String(serial.wipOrderType) !== "1") return false;
+      if (materialIds.indexOf(String(serial.materialID)) !== -1) return true;
+      var productionComponent = KeyComponentChange.state.keyComponentList.filter(function (component) {
+        return String(component.wipOrderType) === "1" && String(component.materialID) === String(serial.materialID);
+      })[0];
+      return !!productionComponent && materialNos.indexOf(productionComponent.materialNo) !== -1;
+    });
+  },
+
   handleMaterialCheck: function () {
     var state = KeyComponentChange.state;
     if (state.isSubmitting) {
@@ -893,8 +923,9 @@ var KeyComponentChange = {
       KeyComponentChange.showToast("提示", parsedQrCode.materialNo + " 不是本订单关重件", "error");
       return;
     }
+    var isReplace = KeyComponentChange.isReplaceMaterial(scanOwner.orderInfo, scanOwner.components);
     var finishMaterialScan = function (materialSequence) {
-      if (scanOwner.isFull) {
+      if (isReplace) {
         KeyComponentChange.startMaterialChange(
           parsedQrCode,
           materialSequence,
@@ -906,7 +937,7 @@ var KeyComponentChange = {
       KeyComponentChange.checkAndSave(parsedQrCode, materialSequence, scanOwner.orderInfo, scanOwner.components);
     };
     // 序号优先级（人工选择 / 自动分配 / 弹窗）统一在 resolveMaterialSequence 内处理
-    KeyComponentChange.resolveMaterialSequence(scanOwner.components, scanOwner.isFull, finishMaterialScan);
+    KeyComponentChange.resolveMaterialSequence(scanOwner.components, isReplace, finishMaterialScan);
   },
 
   /** 按关重件序号取配置条目：同物料编码多条配置时，materialID/uomCode 必须与所选序号对应 */
@@ -1245,9 +1276,17 @@ var KeyComponentChange = {
   },
 
   renderChangeRecordList: function (recordList) {
+    var sortedList = recordList.slice().sort(function (left, right) {
+      var leftTime = KeyComponentChange.normalizeTime(left.scanTime);
+      var rightTime = KeyComponentChange.normalizeTime(right.scanTime);
+      if (leftTime === rightTime) return 0;
+      if (!leftTime) return 1;
+      if (!rightTime) return -1;
+      return leftTime < rightTime ? 1 : -1;
+    });
     $(".change-record-list .change-record-card").remove();
-    $(".empty-change-record").toggleClass("hidden", recordList.length > 0);
-    recordList.forEach(function (record) {
+    $(".empty-change-record").toggleClass("hidden", sortedList.length > 0);
+    sortedList.forEach(function (record) {
       var $card = KeyComponentChange.cloneTemplate("template-change-record-card");
       $card
         .find(".change-record-order-no")

@@ -20,7 +20,7 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `orderList` | array | 订单集合；订单号搜索恒 1 条；VIN 搜索按 `vin` 取该车订单（改制在前、生产在后），无同组时只有一条 |
+| `orderList` | array | 订单集合；**订单号搜索返回该单所在 VIN 的订单组**，VIN 搜索按 `vin` 取该车订单（改制在前、生产在后）；无同组时只有一条 |
 
 **orderList 每项**
 
@@ -38,13 +38,14 @@ window.KeyComponentChange_GetWipOrderNoInfo(
 **请求/响应示例**
 
 ```jsonc
-// 订单号搜索
-{ "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "184000000013", "vin": "" } }
+// 订单号搜索（返回该单所在 VIN 的订单组）
+{ "taskType": "GetWipOrderNoInfo", "reported": { "wipOrderNo": "184000000015", "vin": "" } }
 
-// 响应（订单号搜索：只回命中的一张单）
 { "code": 0, "msg": "ok", "data": { "orderList": [
-  { "wipOrderNo": "184000000013", "wipOrderType": 2, "productID": 9002,
-    "productNo": "MAT-HOST-002", "productDesc": "8x4 搅拌车底盘", "vin": "LSVU2A0N260800002" }
+  { "wipOrderNo": "184000000015", "wipOrderType": 2, "productID": 9005,
+    "productNo": "MAT-HOST-005", "productDesc": "8x4 牵引车底盘（改制）", "vin": "LSVU2A0N260800003" },
+  { "wipOrderNo": "184000000014", "wipOrderType": 1, "productID": 9004,
+    "productNo": "MAT-HOST-004", "productDesc": "8x4 牵引车底盘", "vin": "LSVU2A0N260800003" }
 ] } }
 
 // VIN 搜索
