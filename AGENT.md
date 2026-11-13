@@ -168,7 +168,6 @@ Portal 表单环境下 **id 属性一律不可用**：控件 id 在运行页面�
 
 - 页面**一律不写 id、不用 id 选择器**（含 div / span / template 等所有元素）；HTML 用 class 标识，JS/CSS 用 class 选择器，事件用 class 委托
 - `<template>` 用 class 标识，`cloneTemplate` 内部用 `document.querySelector("." + templateClassName)`；工具函数（如扫码）接收 class 选择器而非 id
-- 唯一例外：mom-cert 第三方 HTML（只读、含大量第三方 id）的 index.js 只能按第三方 id 定位；此例外不扩散
 - 排查线索：元素点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用了 id
 
 ## 8. Portal API 公共约定
