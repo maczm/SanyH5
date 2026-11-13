@@ -7,7 +7,7 @@
 
 ## 1. 项目边界
 
-SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS，无构建链、无 package.json、无 CI。jQuery 3.4.0 本地化（根目录 `jquery.min.js`）；图片预览为共享库 Viewer.js 1.15.2（根目录 `viewer.min.js` / `viewer.min.css`）。
+SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、独立 tag。纯静态 HTML/CSS/JS，无构建链、无 package.json、无 CI。jQuery 以本地文件引入（根目录 `jquery.min.js`）；图片预览为共享库 Viewer.js（根目录 `viewer.min.js` / `viewer.min.css`）。
 
 | 子项目 | 目录 | 架构 |
 |---|---|---|
@@ -192,26 +192,33 @@ Portal 表单环境下 **id 属性一律不可用**：控件 id 在运行页面�
 
 ## 9. 工具与环境
 
+> 工具版本以机器实际安装为准（`<工具> --version`），本文只记调用方式与判定标准、**不记版本号**；滚动升级工具后若调用方式或判定标准变了，同步改本节。
+
 ### 9.1 环境事实
 
-- OS：WSL2 Ubuntu 26.04；Node v24.19.0（nvm 管理）；npm 源 npmmirror
+- OS：WSL2 Ubuntu；Node 由 nvm 管理；npm 源 npmmirror
 - 仓库 `/home/wangzm/projects/SanyH5`，git 身份 wangzm <1466418631@qq.com>，远端 `github.com/maczm/SanyH5`
+- 本地预览：nginx 常驻，端口 8080，root=projects → `http://localhost:8080/SanyH5/<页面目录>/`
 - WSL IP 会变：`hostname -I | awk '{print $1}'`（Windows 侧访问 WSL 服务用）
 
-| 环节 | 工具 | 调用方式 |
-|---|---|---|
-| 本地预览 | nginx（常驻，端口 8080，root=projects） | `http://localhost:8080/SanyH5/<页面目录>/` |
-| 编码 | VS Code | `code /home/wangzm/projects/SanyH5` |
-| JS 静态检查 | ESLint 10.9.1 | `eslint <文件>`，配置 `eslint.config.mjs`，标准 **0 error 0 warning** |
-| 格式化 | Prettier 3.9.6 | `prettier --check` / `--write`，配置 `.prettierrc.json`，忽略 `.prettierignore`（含 `*.html`、`*.md`） |
-| HTML 结构体检 | tidy 5.8.0 | `tidy -q -e --show-warnings no --duplicate-ids <html>`；**判断依据是 stderr 为空**（不使用退出码） |
-| 页面回归 / 冒烟 | Playwright 1.62.1 | `NODE_PATH=$(npm root -g) node tests/<脚本>` |
-| 接口联调 | curl + jq 1.8.1 | `curl <url> \| jq` |
-| 抓包 | mitmproxy 8.1.1 | `mitmproxy`（代理指向 WSL IP） |
-| 图片处理 / EXIF | ImageMagick 7.1.2 | `convert` / `identify -verbose` |
-| 代码搜索 | ripgrep 15.1.0 | `rg <pattern>`（命令名是 rg） |
+### 9.2 工具清单
 
-### 9.2 环境快速自检
+| 用途 | 工具 | 调用方式与判定 |
+|---|---|---|
+| 编辑 | VS Code | `code /home/wangzm/projects/SanyH5` |
+| 版本管理 | git | 常规命令；改完即提交（§6） |
+| 代码搜索 | ripgrep | `rg <pattern>`（命令名是 rg） |
+| JS 静态检查 | ESLint | `eslint <文件>`；配置 `eslint.config.mjs`；标准 **0 error 0 warning** |
+| 格式化 | Prettier | `prettier --check` / `--write`；配置 `.prettierrc.json`，忽略 `.prettierignore`（含 `*.html`、`*.md`） |
+| HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids <html>`；**判断依据是 stderr 为空**，不看退出码 |
+| 页面回归 / 冒烟 | Playwright | `NODE_PATH=$(npm root -g) node tests/<脚本>`（脚本临时重写，§6）；冒烟用 `node -e` 内联，不留脚本 |
+| 接口联调 | curl + jq | `curl <url> \| jq` |
+| 抓包 | mitmproxy | `mitmproxy`（代理指向 WSL IP） |
+| 图片处理 / EXIF | ImageMagick | `convert` / `identify -verbose` |
+
+### 9.3 每页自检与部署（一次只做一个子项目）
+
+先确认环境在位（任一项失败先修环境，不要继续跑回归）：
 
 ```bash
 git log --oneline | head -1
@@ -219,9 +226,7 @@ eslint --version && playwright --version
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/SanyH5/mom-packing/index.html
 ```
 
-### 9.3 单页自检与部署（一次只做一个子项目）
-
-以 `mom-packing` 为例，替换目录名即可：
+再跑该页三项检查。以 `mom-packing` 为例，替换目录名即可：
 
 ```bash
 cd /home/wangzm/projects/SanyH5
@@ -238,16 +243,25 @@ NODE_PATH=$(npm root -g) node tests/mom-packing.regress.cjs
 
 三项全绿 → 打该页 tag（§6）→ 部署该页。其他子项目不需要跟着跑、跟着发；一次改动落在多页时按 §4 圈出的范围**逐个**跑，仍不合并成全量。
 
-### 9.4 环境坑
+### 9.4 工具坑
 
-1. bash 在沙箱中运行：**工作区外只读**（`~/.npm`、`/usr` 等）；全局安装工具需用户在终端执行
-2. 命令内 `&` 起的后台进程随命令结束被回收；常驻服务用 DSH 后台任务
-3. `/tmp` 每次命令独立，不能跨命令依赖
-4. `pgrep/pkill -f` 会匹配到自身命令行，用字符类规避（如 `ser[v]e`）
-5. Playwright 不可驱动 Windows 侧浏览器，一律用 WSL 内 headless shell
-6. Playwright 浏览器下载必须带镜像：`PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright`
-7. node 脚本 require 全局包需 `NODE_PATH=$(npm root -g)`
-8. **新建文件权限为 600**：write 工具产物默认 `-rw-------`，nginx（www-data）读不了会 403；新建被服务的文件后 `chmod 644 <文件>`
-9. **tidy 退出码不可信**：无错误时也返回 1，判断依据是 stderr 是否为空；`--duplicate-ids` 是开关，**后面不能跟 `yes`**（会报 `"yes" is not a file`）
-10. **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`）：会重排表格、改写强调标记、折行内联 JS，破坏手工排版
-11. **`aria-disabled="true"` 的元素 Playwright 拒绝点击**（判为 not enabled），回归脚本须 `.click({ force: true })`；真实浏览器照常派发 click
+**沙箱与安装**
+- bash 在沙箱中运行：**工作区外只读**（`~/.npm`、`/usr` 等）；全局安装工具、装系统包需用户在终端执行（§3）
+- `/tmp` 每条命令独立，不能跨命令依赖
+
+**后台进程**
+- 命令内 `&` 起的后台进程随命令结束被回收；常驻服务用 DSH 后台任务
+- `pgrep/pkill -f` 会匹配到自身命令行，用字符类规避（如 `ser[v]e`）
+
+**node 脚本**
+- require 全局包需 `NODE_PATH=$(npm root -g)`
+
+**Playwright**
+- 不可驱动 Windows 侧浏览器，一律用 WSL 内 headless shell
+- 浏览器下载必须带镜像：`PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright`
+- `aria-disabled="true"` 的元素被拒绝点击（判为 not enabled），脚本须 `.click({ force: true })`；真实浏览器照常派发 click
+
+**判定与产物**
+- **tidy 退出码不可信**：无错误时也返回 1，只看 stderr 是否为空；`--duplicate-ids` 是开关，**后面不能跟 `yes`**（会报 `"yes" is not a file`）
+- **新建文件权限为 600**：write 工具产物默认 `-rw-------`，nginx（www-data）读不了会 403；新建被服务的文件后 `chmod 644 <文件>`
+- **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`）：会重排表格、改写强调标记、折行内联 JS，破坏手工排版
