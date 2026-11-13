@@ -1,13 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
+    >
     <title>照片上传</title>
-    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="index.css">
   </head>
   <body>
     <div class="app-container mom-photo-upload">
@@ -23,7 +23,7 @@
               <span class="form-summary-station"></span>
               <span class="form-summary-order"></span>
             </span>
-            <button type="button" class="btn-clear-form form-clear-btn" title="清空">
+            <button type="button" class="btn-clear-form form-clear-btn" title="清空" aria-label="清空">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
             <span class="form-arrow">
@@ -41,8 +41,8 @@
                   type="text"
                   placeholder="输入工位编码或名称筛选"
                   autocomplete="off"
-                />
-                <input class="input-station-code" type="hidden" />
+                >
+                <input class="input-station-code" type="hidden">
                 <svg class="combobox-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
                 <div class="combobox-dropdown dropdown-station hidden"></div>
               </div>
@@ -55,8 +55,8 @@
                  
                   type="text"
                   placeholder="请输入或扫码订单号"
-                />
-                <button type="button" class="icon-btn btn-scan btn-scan-order">
+                >
+                <button type="button" class="icon-btn btn-scan btn-scan-order" aria-label="扫码订单号">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" /></svg>
                 </button>
               </div>
@@ -81,7 +81,7 @@
               <span class="order-info-summary-template"></span>
             </span>
             <span class="order-info-header-thumb">
-              <img class="template-image template-header-image" src="" alt="铭牌模板">
+              <img class="template-image template-header-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="铭牌模板">
             </span>
             <span class="order-info-arrow">
               <svg class="arrow-down hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" /></svg>
@@ -102,7 +102,7 @@
                 <span class="field-label">铭牌模板</span>
                 <span class="field-value template-single-name-value">-</span>
               </div>
-              <img class="template-image template-single-image" src="" alt="铭牌模板">
+              <img class="template-image template-single-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="铭牌模板">
             </div>
             <!-- 态C：多模板已选（展开时看模板图） -->
             <div class="hidden block-template-selected">
@@ -111,7 +111,7 @@
                 <span class="field-value template-selected-name-value">-</span>
                 <button type="button" class="btn-change-template-inline pick-template-btn">更换</button>
               </div>
-              <img class="template-image template-selected-image" src="" alt="铭牌模板">
+              <img class="template-image template-selected-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="铭牌模板">
             </div>
             <!-- 态D：多模板未选（必须选择，否则不允许保存） -->
             <div class="hidden block-template-none">
@@ -151,7 +151,7 @@
       </div>
 
       <!-- ==================== 隐藏的文件选择 input ==================== -->
-      <input type="file" class="photo-input-hidden photo-input" accept="image/*" />
+      <input type="file" class="photo-input-hidden photo-input" accept="image/*">
 
       <!-- ==================== 弹窗骨架（hidden 预埋，JS 只显隐/填值） ==================== -->
       <!-- 加载中 -->
@@ -190,7 +190,7 @@
         <button type="button" class="photo-preview-close">&times;</button>
         <div class="photo-preview-viewport preview-viewport">
           <div class="photo-preview-panner preview-panner">
-            <img class="photo-preview-image preview-image" src="" alt="preview">
+            <img class="photo-preview-image preview-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="preview">
           </div>
         </div>
       </div>
@@ -237,8 +237,8 @@
       <!-- 照片缩略图 -->
       <template class="template-photo-item">
         <div class="photo-item">
-          <img src="" alt="photo">
-          <button type="button" class="photo-delete">
+          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="photo">
+          <button type="button" class="photo-delete" aria-label="删除照片">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -246,7 +246,7 @@
       <!-- 模板选择项 -->
       <template class="template-picker-item">
         <div class="picker-item">
-          <img src="" alt="">
+          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
           <div class="picker-item-name"></div>
         </div>
       </template>

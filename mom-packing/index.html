@@ -1,13 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
+    >
     <title>装箱作业</title>
-    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="index.css">
   </head>
   <body>
     <div class="app-container mom-packing-app">
@@ -35,14 +35,14 @@
           <div class="packing-panel">
             <div class="section-header">
               <span class="section-step filled">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:14px;height:14px;"><path d="M5 13l4 4L19 7" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><path d="M5 13l4 4L19 7" /></svg>
               </span>
               <span class="section-title">装箱信息</span>
             </div>
             <div class="packing-card"></div>
             <div class="qty-section">
               <div class="qty-label">本次装箱数量</div>
-              <input class="qty-input packing-qty" type="number" inputmode="decimal" step="any" />
+              <input class="qty-input packing-qty" type="number" inputmode="decimal" step="any">
               <div class="qty-hint"></div>
               <div class="qty-error hidden"></div>
             </div>
@@ -75,7 +75,7 @@
       </div>
 
       <!-- ==================== 隐藏的文件选择 input ==================== -->
-      <input type="file" class="photo-input-hidden photo-input" accept="image/*" capture="environment" />
+      <input type="file" class="photo-input-hidden photo-input" accept="image/*" capture="environment">
 
       <!-- ==================== 弹窗骨架 ==================== -->
       <!-- 加载中 -->
@@ -104,7 +104,7 @@
       <!-- 照片预览（简单版） -->
       <div class="photo-preview-mask hidden template-preview">
         <button type="button" class="photo-preview-close">&times;</button>
-        <img class="photo-preview-image preview-image" src="" alt="preview">
+        <img class="photo-preview-image preview-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="preview">
       </div>
 
       <!-- ==================== 循环结构模板 ==================== -->
@@ -123,11 +123,11 @@
           <span class="step-chip"></span>
           <span class="step-name"></span>
           <div class="step-input-row">
-            <input class="search-input" type="text" />
-            <button type="button" class="icon-btn btn-search">
+            <input class="search-input" type="text">
+            <button type="button" class="icon-btn btn-search" aria-label="搜索">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             </button>
-            <button type="button" class="icon-btn btn-scan">
+            <button type="button" class="icon-btn btn-scan" aria-label="扫码">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" /></svg>
             </button>
           </div>
@@ -163,8 +163,8 @@
       <!-- 照片缩略图 -->
       <template class="template-photo-item">
         <div class="photo-item">
-          <img src="" alt="photo">
-          <button type="button" class="photo-delete">
+          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="photo">
+          <button type="button" class="photo-delete" aria-label="删除照片">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>

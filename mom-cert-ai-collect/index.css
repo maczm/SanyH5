@@ -442,7 +442,9 @@ body {
   flex-direction: column;
   gap: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .mom-cert-ai-collect .sub-item-card.is-highlight {
@@ -862,6 +864,22 @@ body {
 
 .mom-cert-ai-collect .list-table th:last-child {
   border-right: none;
+}
+
+.mom-cert-ai-collect .list-table th:nth-child(1) {
+  width: 14%;
+}
+
+.mom-cert-ai-collect .list-table th:nth-child(2) {
+  width: 38%;
+}
+
+.mom-cert-ai-collect .list-table th:nth-child(3) {
+  width: 30%;
+}
+
+.mom-cert-ai-collect .list-table th:nth-child(4) {
+  width: 22%;
 }
 
 .mom-cert-ai-collect .list-table td {

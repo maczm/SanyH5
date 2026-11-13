@@ -26,7 +26,7 @@ SanyH5：7 个独立子项目（MOM 页面），互不影响、独立部署、�
 1. **mom-cert/index.html 第三方只读**：该页一切改动只能落在 `mom-cert/index.js`（index.js 先于内联脚本加载，可叠加修复）。唯一例外：2025-09 经用户批准将 jQuery CDN 改本地（仅 script src 一行），此后仍禁止其他修改。
 2. **生产部署每页只有 3 文件**：index.html / index.js / index.css。开发期允许额外 `mock.js`（Portal 只取 3 文件，mock.js 不进生产）。`jquery.min.js` / `viewer.min.*` 为全仓共享库，随解决方案整体部署，各页以 `../jquery.min.js`、`../viewer.min.*` 引用。
 3. **根目录无 package.json、无 node_modules**；工具一律全局安装。
-4. **不格式化、不批量修改任何 `*.html`**（`.prettierignore` 已排除；mom-cert 尤其只读）。
+4. **不格式化、不批量修改任何 `*.html`**（`.prettierignore` 已排除；mom-cert 尤其只读）；为满足 html-validate 规范做**定点修正**可以，但必须逐处核对、不许整页格式化或批量替换。
 5. **本文件是唯一规则源**：全部约束/规则/约定只写在这里；不另建 docs/ 协议目录、不新增规则文件。
 6. **不删除、不重命名任何现有文件**，除非用户明确要求（`tests/` 例外，见 §6）。
 
@@ -127,6 +127,7 @@ JS 零 HTML 拼接：
 - 回车统一入口：委托在页面根容器上按输入框 class 分派，并跳过输入法组字中的回车（`isComposing` 或 `keyCode === 229`）
 - **扫码框键盘控制**：平时保持可编辑（扫码枪可直接键入、连续扫码）；**程序化聚焦时先临时 `readonly` 再聚焦**（不弹软键盘），聚焦后解锁；手动点击照常弹键盘
 - 页面初次渲染（初始显隐状态）必须在 `initPage` 中显式执行一次
+- **`<img>` 占位不用 `src=""`**（html-validate 判非法）：用 1px 透明 GIF 的 data URI 占位，JS 运行时再赋真实 `src`
 - **表单宿主可能在根容器上方留不可见占位**（实测 6px，父层 `padding`/`border` 均为 0）：用 `compensateHostTopGap()` 抵消——先复位 `margin-top`，再测「根容器顶部偏移 − 父层顶部偏移」，仅当父层无 `padding`/`border` 且差值在 40px 以内时施加等量负 margin；**必须紧接在 `fitPageHeight()` 之前执行**（顺序反了高度按旧偏移算），`resize` 时同样先抵消后算高。本地直开 / iframe 嵌入时父层为 `body`、差值为 0，自然 no-op
 
 ### 7.5 UI 一致性
@@ -134,6 +135,7 @@ JS 零 HTML 拼接：
 - 折叠卡片统一形态：**左侧图标 + 标题 + 清空按钮（箭头左侧）+ 双态箭头**，点击卡片头折叠/展开
 - 同类组件样式与交互必须完全一致（背景/内边距/字体/圆角逐项对齐）
 - 弹窗类 UI（toast/确认/选择）骨架预埋，运行时不重建 DOM
+- **纯图标按钮必须带 `aria-label`**（无可见文字时唯一的可访问名称，html-validate `text-content` 强制）
 - **页面不自绘顶部标题行**：标题栏由 Portal 提供；右上角控件（返回、VIN更换等）优先做成根容器**流式首项**贴顶右对齐（控件高度即顶部占用），确需固定定位时在根容器预留 `padding-top`；两者都以不遮挡首行内容为准
 
 ### 7.6 命名
@@ -243,6 +245,8 @@ NODE_PATH=$(npm root -g) node tests/mom-packing.regress.cjs
 
 三项全绿 → 打该页 tag（§6）→ 部署该页。其他子项目不需要跟着跑、跟着发；一次改动落在多页时按 §4 圈出的范围**逐个**跑，仍不合并成全量。
 
+HTML 体检报 error 就**改 HTML 让它通过**，不接受规则豁免、不用 `off` 压掉、不加例外清单。
+
 ### 9.4 工具坑
 
 **沙箱与安装**
@@ -262,7 +266,7 @@ NODE_PATH=$(npm root -g) node tests/mom-packing.regress.cjs
 - `aria-disabled="true"` 的元素被拒绝点击（判为 not enabled），脚本须 `.click({ force: true })`；真实浏览器照常派发 click
 
 **判定与产物**
-- **html-validate 判定看退出码**：0 = 通过、1 = 有 error；warning 不阻断。默认推荐预设与页面既有风格冲突（void 自闭合、内联 style、图标按钮无文本、空 src），已在 `.htmlvalidate.json` 里关掉对应规则，**不要随手恢复或删掉豁免**，否则存量页面全线报错
-- 不用 `--fix`：会直接改写 HTML（违反 §2 第 4 条）
+- **html-validate 判定看退出码**：0 = 通过、1 = 有 error；warning 不阻断。配置只继承 `html-validate:recommended`（`.htmlvalidate.json`），**不豁免任何规则**——报错就按规则改 HTML，不许加 `off` 绕过
+- 不用 `--fix` 批量改 HTML：会顺手改写无关结构（§2 第 4 条）；要改就逐处定点修改
 - **新建文件权限为 600**：write 工具产物默认 `-rw-------`，nginx（www-data）读不了会 403；新建被服务的文件后 `chmod 644 <文件>`
 - **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`）：会重排表格、改写强调标记、折行内联 JS，破坏手工排版
