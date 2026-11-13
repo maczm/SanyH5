@@ -210,7 +210,7 @@ Portal 表单环境下 **id 属性一律不可用**：控件 id 在运行页面�
 | 代码搜索 | ripgrep | `rg <pattern>`（命令名是 rg） |
 | JS 静态检查 | ESLint | `eslint <文件>`；配置 `eslint.config.mjs`；标准 **0 error 0 warning** |
 | 格式化 | Prettier | `prettier --check` / `--write`；配置 `.prettierrc.json`，忽略 `.prettierignore`（含 `*.html`、`*.md`） |
-| HTML 结构体检 | tidy | `tidy -q -e --show-warnings no --duplicate-ids <html>`；**判断依据是 stderr 为空**，不看退出码 |
+| HTML 结构体检 | html-validate | `html-validate <html文件>`；配置根目录 `.htmlvalidate.json`；**exit 0 即通过**（有 error 返回 1）；mom-cert 第三方只读页不跑 |
 | 页面回归 / 冒烟 | Playwright | `NODE_PATH=$(npm root -g) node tests/<脚本>`（脚本临时重写，§6）；冒烟用 `node -e` 内联，不留脚本 |
 | 接口联调 | curl + jq | `curl <url> \| jq` |
 | 抓包 | mitmproxy | `mitmproxy`（代理指向 WSL IP） |
@@ -234,8 +234,8 @@ cd /home/wangzm/projects/SanyH5
 # 1. 本页 JS + mock.js（ESLint 0 error 0 warning）
 eslint mom-packing/Index.js mom-packing/mock.js
 
-# 2. 本页 HTML 结构（stderr 为空即通过；勿批量改 HTML，§2 第 4 条）
-tidy -q -e --show-warnings no --duplicate-ids mom-packing/index.html
+# 2. 本页 HTML 结构（exit 0 即通过；勿批量改 HTML，§2 第 4 条）
+html-validate mom-packing/index.html
 
 # 3. 本页回归脚本（临时，用后删除；§6）
 NODE_PATH=$(npm root -g) node tests/mom-packing.regress.cjs
@@ -262,6 +262,7 @@ NODE_PATH=$(npm root -g) node tests/mom-packing.regress.cjs
 - `aria-disabled="true"` 的元素被拒绝点击（判为 not enabled），脚本须 `.click({ force: true })`；真实浏览器照常派发 click
 
 **判定与产物**
-- **tidy 退出码不可信**：无错误时也返回 1，只看 stderr 是否为空；`--duplicate-ids` 是开关，**后面不能跟 `yes`**（会报 `"yes" is not a file`）
+- **html-validate 判定看退出码**：0 = 通过、1 = 有 error；warning 不阻断。默认推荐预设与页面既有风格冲突（void 自闭合、内联 style、图标按钮无文本、空 src），已在 `.htmlvalidate.json` 里关掉对应规则，**不要随手恢复或删掉豁免**，否则存量页面全线报错
+- 不用 `--fix`：会直接改写 HTML（违反 §2 第 4 条）
 - **新建文件权限为 600**：write 工具产物默认 `-rw-------`，nginx（www-data）读不了会 403；新建被服务的文件后 `chmod 644 <文件>`
 - **别对 markdown 跑 `prettier --write`**（`.prettierignore` 已排除 `*.md`）：会重排表格、改写强调标记、折行内联 JS，破坏手工排版
