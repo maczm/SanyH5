@@ -71,7 +71,7 @@ git diff --name-only origin/master...HEAD | grep -E '^mom-[^/]+/' | cut -d/ -f1 
 **完成标准（逐项自检）**：
 
 - [ ] 验证全绿：eslint 0 error 0 warning；受影响子项目回归全绿、0 JS 错误；结构变更已同步脚本
-- [ ] 符合 §7 中与本次改动相关的条目（命名、注释、Mock、骨架交互、回车拦截、零 id、按钮开关）
+- [ ] 符合 §7 中与本次改动相关的条目（命名、注释、Mock、骨架交互、回车拦截、零 id）
 - [ ] 提交符合 §6（含实际跑了哪些脚本的验证摘要）；工作区干净且 `tests/` 已清理
 
 ## 6. 提交、Tag 与验证脚本
@@ -170,17 +170,6 @@ Portal 表单环境下 **id 属性一律不可用**：控件 id 在运行页面�
 - `<template>` 用 class 标识，`cloneTemplate` 内部用 `document.querySelector("." + templateClassName)`；工具函数（如扫码）接收 class 选择器而非 id
 - 唯一例外：mom-cert 第三方 HTML（只读、含大量第三方 id）的 index.js 只能按第三方 id 定位；此例外不扩散
 - 排查线索：元素点击无响应、输入框读值为空、清空/回填无效 → 先检查是否用了 id
-
-### 7.11 输入框按钮与按钮开关
-
-1. **每个输入框成对提供「搜索按钮」与「扫码按钮」**（`btn-search-*` / `btn-scan-*`）：搜索走手动输入后的查询，扫码走 `OpenCamera`；业务动作只由 回车/按钮/扫码 触发（§7.4）
-2. **每个按钮独立配置「显示开关」与「权限开关」**，集中在命名空间的一个 `BUTTON_SWITCH` 常量对象里（禁止散落在各处 if 中）：
-   - `visible: false` → 加 `.hidden`
-   - `permitted: false` → **置灰禁用、保留占位**（布局不跳动）：需提示的配 `deniedMessage`，加 `.disabled` + `aria-disabled="true"` 而**不加原生 `disabled`**（原生 disabled 不派发 click，提示无从触发），回调首行 `ensureButtonPermitted(开关项)` 拦截并弹提示；不需提示的直接用原生 `disabled`
-   - 开关按按钮语义命名（`searchOrder` / `scanOrder` / `unbind` / `complete` / `deleteSerial` / `removeRecord` / `changeRecord` / `back` / `vinChange` / `searchVinOrder` / `scanVinOrder` / `scanNewVin` / `scanFactoryCode` / `confirmVinChange` / `backVinChange`），一按钮一项、互相独立
-3. 按「class → 按钮」映射表统一应用：常量 `BUTTON_SELECTOR` + 函数 `applyButtonSwitch()`（初始化与每次渲染后各一次）；**循环结构克隆的行内按钮必须在渲染后重放一次**，否则拿不到开关状态
-4. **业务条件与开关叠加取交集**：如解绑按钮 = `wipOrderType === 2 && needRemoveQty > removeQty && BUTTON_SWITCH.unbind.visible`，由专门函数（如 `updateUnbindButton()`）在开关应用末尾统一计算，不允许两处各写一半
-5. 对**新建/改造页面**生效；既有页面后续改造时同步，不做一次性批量改造
 
 ## 8. Portal API 公共约定
 
